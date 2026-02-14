@@ -1,0 +1,449 @@
+{
+  "users": [
+    {
+      "name": "HURE Care",
+      "username": "admin",
+      "email": "tanveer@gmail.com",
+      "role": "superadmin",
+      "status": "active"
+    },
+    {
+      "name": "Dr. Jacksons",
+      "username": "Jackson",
+      "email": "***",
+      "role": "doctor",
+      "status": "active"
+    },
+    {
+      "name": "Dr. Dolly Smith",
+      "username": "dolly",
+      "email": "***",
+      "role": "doctor",
+      "status": "active"
+    },
+    {
+      "name": "ABCD",
+      "username": "ABCD",
+      "email": "**",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "John Mwangi",
+      "username": "johnmwangi",
+      "email": "***",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "Jon Day",
+      "username": "jonday",
+      "email": "***",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "Dr Anand",
+      "username": "Anand1",
+      "email": "brigitashirima@yahoo.com",
+      "role": "doctor",
+      "status": "active"
+    },
+    {
+      "name": "Kamau Mwanza",
+      "username": "Kmwanza",
+      "email": "hureplatform@gmail.com",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "M Usman",
+      "username": "Jonny Day",
+      "email": "musmanriaz8888@gmail.com",
+      "role": "superadmin",
+      "status": "active"
+    },
+    {
+      "name": "Khalid",
+      "username": "khalid",
+      "email": "Khalid@yahoo.com",
+      "role": "doctor",
+      "status": "active"
+    },
+    {
+      "name": "Khalid",
+      "username": "khalid2",
+      "email": "Khalid@yahoo.com",
+      "role": "doctor",
+      "status": "active"
+    },
+    {
+      "name": "Tanveer Ahmad Ansari",
+      "username": "tanveer",
+      "email": "demo123@example.com",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "farrukh azad",
+      "username": "farrukh",
+      "email": "fusamaf@yahoo.com",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "farrukh azad",
+      "username": "usama",
+      "email": "fusama@yahoo.com",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "sajid",
+      "username": "sadmin",
+      "email": "sajid@yahoo.com",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "abc",
+      "username": "sadmin2",
+      "email": "sajid@yahoo.com",
+      "role": "clinic_owner",
+      "status": "inactive"
+    },
+    {
+      "name": "Hamza",
+      "username": "hamza",
+      "email": "Hamza@yahoo.com",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "jameel",
+      "username": "jameel",
+      "email": "fusamaf@yahoo.com",
+      "role": "clinic_owner",
+      "status": "active"
+    },
+    {
+      "name": "Doctor1",
+      "username": "doctor1",
+      "email": "aa",
+      "role": "doctor",
+      "status": "active"
+    },
+    {
+      "name": "Doctor2",
+      "username": "doctor2",
+      "email": "aa",
+      "role": "doctor",
+      "status": "active"
+    },
+    {
+      "name": "aaa",
+      "username": "aaa",
+      "email": "fusamaf@yahoo.com",
+      "role": "clinic_owner",
+      "status": "active"
+    }
+  ],
+  "doctors": [
+    {
+      "name": "Dr. Dolly Smith",
+      "email": "***",
+      "mobile": "***",
+      "address": "***",
+      "status": "active"
+    },
+    {
+      "name": "Dr. Jacksons",
+      "email": "abcd@gmail.com",
+      "mobile": "1234567890",
+      "address": "****",
+      "status": "active"
+    },
+    {
+      "name": "Dr Anand",
+      "email": "***",
+      "mobile": "***",
+      "address": "***",
+      "status": "active"
+    },
+    {
+      "name": "Fela Kamal",
+      "email": "",
+      "mobile": "NULL",
+      "address": "123 Street 1",
+      "status": "inactive"
+    },
+    {
+      "name": "Khalid",
+      "email": "Amjid@yahoo.com",
+      "mobile": "0565456464",
+      "address": "Pakistan",
+      "status": "active"
+    },
+    {
+      "name": "Khalid",
+      "email": "Amjid@yahoo.com",
+      "mobile": "0565456464",
+      "address": "Pakistan",
+      "status": "active"
+    },
+    {
+      "name": "dr aa",
+      "email": "aa@",
+      "mobile": "1111",
+      "address": "Pakistan",
+      "status": "active"
+    },
+    {
+      "name": "Doctor1",
+      "email": "aa",
+      "mobile": "11",
+      "address": "Pak",
+      "status": "active"
+    },
+    {
+      "name": "Doctor2",
+      "email": "aa",
+      "mobile": "11",
+      "address": "Pak",
+      "status": "active"
+    },
+    {
+      "name": "Dr. Akram Ansari",
+      "email": "**",
+      "mobile": "**",
+      "address": "**",
+      "status": "active"
+    }
+  ],
+  "appointments": [
+    {
+      "patientName": "Abid Ansari",
+      "date": "2025-08-29",
+      "time": "10:15 AM",
+      "reason": "Fever Check Up",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "",
+      "date": "2025-08-29",
+      "time": "12:00 AM",
+      "reason": "Fever",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "",
+      "date": "2025-08-29",
+      "time": "10:10 AM",
+      "reason": "Fever Temp: 110 dc",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "",
+      "date": "2025-08-29",
+      "time": "11:06 AM",
+      "reason": "Demo",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Mr jaicobi",
+      "date": "2025-08-30",
+      "time": "04:00 PM",
+      "reason": "Headache",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Abid Ansari",
+      "date": "2025-08-30",
+      "time": "04:00 PM",
+      "reason": "Tooth Pain",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "",
+      "date": "2025-09-01",
+      "time": "12:00 PM",
+      "reason": "Demo Test",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Mr jaicobi",
+      "date": "2025-09-26",
+      "time": "10:05 AM",
+      "reason": "Fever Checkup",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Anas Khan",
+      "date": "2025-09-02",
+      "time": "11:00 AM",
+      "reason": "Follow Up",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Anas Khan",
+      "date": "2025-09-02",
+      "time": "12:00 PM",
+      "reason": "Hii",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Mr jaicobi",
+      "date": "2025-09-04",
+      "time": "11:00 AM",
+      "reason": "Fever",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Abid Ansari",
+      "date": "2025-11-06",
+      "time": "03:20 PM",
+      "reason": "Fever Checkup",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Alisha",
+      "date": "2025-09-06",
+      "time": "05:40 PM",
+      "reason": "Vomitting",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Anas Khan",
+      "date": "2025-09-06",
+      "time": "07:00 PM",
+      "reason": "Follow Up",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Mr jaicobi",
+      "date": "2025-09-06",
+      "time": "12:00 PM",
+      "reason": "New Visit",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Joe Lee",
+      "date": "2025-09-06",
+      "time": "05:00 PM",
+      "reason": "Follow Up",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Jon kee",
+      "date": "2025-09-06",
+      "time": "04:00 AM",
+      "reason": "Fever Checkup",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Jon kee",
+      "date": "2025-09-11",
+      "time": "10:21 AM",
+      "reason": "Tooth Pain",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Jon kee",
+      "date": "2025-09-20",
+      "time": "03:06 PM",
+      "reason": "Fever Check Up",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Joe Lee",
+      "date": "2025-09-20",
+      "time": "03:52 PM",
+      "reason": "Tooth pain",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Tanveer Ahmad",
+      "date": "2025-09-24",
+      "time": "12:05 AM",
+      "reason": "Follow Up",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Fela Kuti",
+      "date": "2025-09-06",
+      "time": "12:10 AM",
+      "reason": "Headache",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Fela Kuti",
+      "date": "2025-09-24",
+      "time": "12:05 AM",
+      "reason": "headache",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Abid Ansari",
+      "date": "2025-09-30",
+      "time": "12:05 AM",
+      "reason": "xxxx",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Alisha",
+      "date": "2025-10-01",
+      "time": "12:10 AM",
+      "reason": "xxx",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Anas Khan",
+      "date": "2025-09-30",
+      "time": "12:15 AM",
+      "reason": "xxx",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Anil Kumar",
+      "date": "2025-09-29",
+      "time": "12:20 AM",
+      "reason": "xxx",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Mine Lasi",
+      "date": "2025-09-29",
+      "time": "12:10 AM",
+      "reason": "xxx",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Anil Yadav",
+      "date": "2025-11-03",
+      "time": "09:30 AM",
+      "reason": "Folow Up",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Abid Ansari",
+      "date": "2025-11-09",
+      "time": "04:35 AM",
+      "reason": "coughing consultation",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Abrar",
+      "date": "2025-11-03",
+      "time": "11:50 AM",
+      "reason": "Fever",
+      "status": "scheduled"
+    },
+    {
+      "patientName": "Mine Lasi",
+      "date": "2025-11-22",
+      "time": "04:45 PM",
+      "reason": "cough",
+      "status": "scheduled"
+    }
+  ]
+}
