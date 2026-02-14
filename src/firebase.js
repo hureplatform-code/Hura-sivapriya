@@ -13,7 +13,7 @@ import { getStorage } from "firebase/storage";
 //   appId: "YOUR_APP_ID"
 // };
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDrs2FNzYv1DwKJ88CaPSswT3xG6WDx7Co",
   authDomain: "huraplatform.firebaseapp.com",
   projectId: "huraplatform",
