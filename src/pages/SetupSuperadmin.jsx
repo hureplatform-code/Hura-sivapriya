@@ -79,8 +79,14 @@ export default function SetupSuperadmin() {
       // Also create a default "Main Organization" profile for them? (Optional)
       
       navigate('/login');
+      navigate('/login');
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Accouunt exists in Firebase Auth but not in Database. Please delete the user from Firebase Console -> Authentication and try again.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
