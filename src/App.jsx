@@ -3,11 +3,13 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import SetupSuperadmin from './pages/SetupSuperadmin';
 import Dashboard from './pages/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 import Users from './pages/master/Users';
 import PermissionsEditor from './pages/master/PermissionsEditor';
 import Profile from './pages/master/Profile';
+import Subscriptions from './pages/superadmin/Subscriptions';
 import Accounts from './pages/master/Accounts';
 import Branches from './pages/master/Branches';
 import PracticeType from './pages/config/PracticeType';
@@ -46,6 +48,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          {/* Temporary Setup Route */}
+          <Route path="/setup-superadmin" element={<SetupSuperadmin />} />
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           
           {/* Master Setup */}
@@ -55,6 +59,9 @@ function App() {
           <Route path="/master/branches" element={<PrivateRoute><Branches /></PrivateRoute>} />
           <Route path="/master/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
           
+          {/* Superadmin Routes */}
+          <Route path="/superadmin/subscriptions" element={<PrivateRoute><Subscriptions /></PrivateRoute>} />
+
           {/* Clinical Ops */}
           <Route path="/appointments" element={<PrivateRoute><Appointments /></PrivateRoute>} />
           <Route path="/notes" element={<PrivateRoute><Notes /></PrivateRoute>} />

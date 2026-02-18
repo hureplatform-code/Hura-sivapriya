@@ -6,7 +6,7 @@ import {
   signOut 
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -59,13 +59,18 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeDoc = () => {};
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      unsubscribeDoc(); // Unsubscribe previous listener if any
+
       if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
+        setLoading(true);
+        // Subscribe to user document changes
+        unsubscribeDoc = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
             setUserData(data);
 
             // Update lastLogin if not already updated this session
@@ -77,20 +82,28 @@ export function AuthProvider({ children }) {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                await setDoc(doc(db, 'users', user.uid), { lastLogin: now }, { merge: true });
+                setDoc(doc(db, 'users', user.uid), { lastLogin: now }, { merge: true }).catch(console.error);
                 sessionStorage.setItem('login_updated', 'true');
             }
+          } else {
+             // Doc doesn't exist yet (e.g. during signup creation)
+             setUserData(null);
           }
-        } catch (error) {
+          setLoading(false);
+        }, (error) => {
           console.error('Error fetching user doc:', error);
-        }
+          setLoading(false);
+        });
       } else {
         setUserData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeAuth();
+      unsubscribeDoc();
+    };
   }, []);
 
   const value = {

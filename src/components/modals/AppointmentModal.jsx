@@ -18,6 +18,7 @@ import userService from '../../services/userService';
 export default function AppointmentModal({ isOpen, onClose, onSave, initialDate }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [notification, setNotification] = useState(null);
   const [isQuickPatientOpen, setIsQuickPatientOpen] = useState(false);
   
   const [patients, setPatients] = useState([]);
@@ -100,7 +101,8 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedPatient) {
-      alert("Please select a valid patient first.");
+      setNotification({ type: 'error', message: "Please select a valid patient first." });
+      setTimeout(() => setNotification(null), 3000);
       return;
     }
 
@@ -353,6 +355,19 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
               )}
             </motion.div>
           </div>
+        )}
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+          >
+             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+             </div>
+             {notification.message}
+          </motion.div>
         )}
       </AnimatePresence>
 

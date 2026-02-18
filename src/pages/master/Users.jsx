@@ -1,23 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { 
-  Users as UsersIcon, 
-  Search, 
-  Filter, 
-  Plus, 
-  MoreVertical, 
-  Shield, 
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  Users as UsersIcon,
+  Search,
+  Filter,
+  Plus,
+  MoreVertical,
+  Shield,
   Clock,
   Edit2,
   Trash2,
   CheckCircle2,
   XCircle,
-  Bell
+  Bell,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UserModal from '../../components/modals/UserModal';
 import PermissionsEditor from '../../components/modals/PermissionsEditor';
 import userService from '../../services/userService';
+import facilityService from '../../services/facilityService';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -28,16 +31,54 @@ export default function Users() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [permUserId, setPermUserId] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [facilities, setFacilities] = useState({});
+  const [facilityUsage, setFacilityUsage] = useState({}); // { facilityId: { count: 3, max: 5, plan: 'Pro' } }
+
+  const { currentUser, userData } = useAuth(); // Get userData for facilityId
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (userData) {
+        fetchUsers();
+    }
+  }, [userData]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const data = await userService.getAllUsers();
+      let data = [];
+      const stats = {};
+      const facMap = {};
+
+      // STRICT DATA ISOLATION:
+      if (userData?.role === 'superadmin') {
+         // Fetch all users AND all facilities to map subscriptions
+         const [allUsers, allFacilities] = await Promise.all([
+           userService.getAllUsers(),
+           facilityService.getAllFacilities()
+         ]);
+
+         // Filter: Show only Clinic Owners and Superadmins. Hide doctors/staff.
+         data = allUsers.filter(u => ['superadmin', 'clinic_owner'].includes(u.role));
+
+         // Calculate Usage Stats
+         allFacilities.forEach(fac => {
+           facMap[fac.id] = fac;
+           const staffCount = allUsers.filter(u => u.facilityId === fac.id && u.role !== 'clinic_owner').length;
+           stats[fac.id] = {
+             count: staffCount,
+             max: fac.subscription?.maxStaff || 1,
+             plan: fac.subscription?.planName || 'Free'
+           };
+         });
+         
+      } else if (userData?.facilityId) {
+         data = await userService.getUsersByFacility(userData.facilityId);
+      } else {
+         data = [];
+      }
       setUsers(data);
+      setFacilityUsage(stats);
+      setFacilities(facMap);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
@@ -61,16 +102,40 @@ export default function Users() {
     setIsModalOpen(true);
   };
 
-  const handleSaveUser = async (userData) => {
+  const handleSaveUser = async (userForm) => {
     try {
+      // FORCE FACILITY ID:
+      const finalData = { 
+        ...userForm, 
+        facilityId: userData.facilityId // Link to creator's facility
+      };
+
       if (selectedUser) {
         // Exclude password from updates if it somehow sneaks in
-        const { password, ...updateData } = userData;
+        const { password, ...updateData } = finalData;
         await userService.updateUser(selectedUser.id, updateData);
         setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, ...updateData } : u));
         showNotification('User updated successfully!');
       } else {
-        const { password, ...profileData } = userData;
+        const { password, ...profileData } = finalData;
+        
+        // Prevent Clinic Owners from creating Superadmins
+        if (userData.role === 'clinic_owner' && profileData.role === 'superadmin') {
+            throw new Error("You cannot create Superadmin accounts.");
+        }
+
+        // --- CHECK STAFF LIMITS (Subscription Enforcement) ---
+        if (userData.role === 'clinic_owner' && userData.facilityId) {
+             const facility = await facilityService.getProfile(userData.facilityId);
+             const currentStaffCount = users.length; // Approximate (or fetch specific count)
+             const maxStaff = facility?.subscription?.maxStaff || 3; // Default fallback
+
+             if (currentStaffCount >= maxStaff) {
+                 throw new Error(`Plan Limit Reached! Your current plan allows mostly ${maxStaff} staff members. Please upgrade your subscription.`);
+             }
+        }
+        // -----------------------------------------------------
+
         if (password) {
            const savedUser = await userService.createStaffAccount(profileData, password);
            setUsers(prev => [savedUser, ...prev]);
@@ -186,14 +251,33 @@ export default function Users() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold capitalize
-                          ${user.role === 'superadmin' ? 'bg-purple-50 text-purple-600' : 
-                            user.role === 'clinic_owner' ? 'bg-blue-50 text-blue-600' : 
-                            'bg-green-50 text-green-600'}
-                        `}>
-                          <Shield className="h-3 w-3" />
-                          {user.role.replace('_', ' ')}
-                        </span>
+                        {user.role === 'clinic_owner' && facilityUsage[user.facilityId] ? (
+                           <div className="flex flex-col gap-1">
+                             <span className="inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100 uppercase tracking-wide">
+                               {facilityUsage[user.facilityId].plan} Plan
+                             </span>
+                             <div className="flex items-center gap-1.5 mt-0.5">
+                                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full ${facilityUsage[user.facilityId].count >= facilityUsage[user.facilityId].max ? 'bg-red-500' : 'bg-emerald-500'}`}
+                                    style={{ width: `${Math.min((facilityUsage[user.facilityId].count / facilityUsage[user.facilityId].max) * 100, 100)}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-500">
+                                  {facilityUsage[user.facilityId].count}/{facilityUsage[user.facilityId].max} Users
+                                </span>
+                             </div>
+                           </div>
+                        ) : (
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold capitalize
+                            ${user.role === 'superadmin' ? 'bg-purple-50 text-purple-600' : 
+                              user.role === 'clinic_owner' ? 'bg-blue-50 text-blue-600' : 
+                              'bg-green-50 text-green-600'}
+                          `}>
+                            <Shield className="h-3 w-3" />
+                            {user.role.replace('_', ' ')}
+                          </span>
+                        )}
                       </td>
                       <td className="py-4 px-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold capitalize

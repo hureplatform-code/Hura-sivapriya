@@ -56,6 +56,12 @@ export default function Notes() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingNote, setViewingNote] = useState(null);
+  const [notification, setNotification] = useState(null);
+
+  const showNotification = (type, message) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   useEffect(() => {
     fetchNotes();
@@ -218,7 +224,9 @@ export default function Notes() {
             onSave={() => {
               setIsCreating(false);
               fetchNotes();
+              showNotification('success', 'Clinical note saved successfully.');
             }}
+            showNotification={showNotification}
           />
         )}
         {viewingNote && (
@@ -227,12 +235,25 @@ export default function Notes() {
             onClose={() => setViewingNote(null)}
           />
         )}
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+          >
+             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <div className="h-5 w-5 rounded-full border-2 border-white" />}
+             </div>
+             {notification.message}
+          </motion.div>
+        )}
       </AnimatePresence>
     </DashboardLayout>
   );
 }
 
-function NoteEditor({ onClose, onSave, initialPatientId = '', initialAppointmentId = '' }) {
+function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', initialAppointmentId = '' }) {
   const [activeSpecialties, setActiveSpecialties] = useState(['general']);
   const [patientId, setPatientId] = useState(initialPatientId);
   const [appointmentId, setAppointmentId] = useState(initialAppointmentId);
@@ -283,7 +304,7 @@ function NoteEditor({ onClose, onSave, initialPatientId = '', initialAppointment
   const handleSave = async () => {
     try {
       if (!patientId) {
-        alert('Please select a patient first.');
+        showNotification('error', 'Please select a patient first.');
         return;
       }
       const patient = patients.find(p => p.id === patientId);
@@ -725,9 +746,9 @@ function NoteEditor({ onClose, onSave, initialPatientId = '', initialAppointment
                   type="button"
                   onClick={() => {
                     if (formData.diagnosis) {
-                      alert(`Primary Diagnosis set to: ${formData.diagnosis}`);
+                      showNotification('success', `Primary Diagnosis set to: ${formData.diagnosis}`);
                     } else {
-                      alert('Please enter a diagnosis first.');
+                      showNotification('error', 'Please enter a diagnosis first.');
                     }
                   }}
                   className="px-8 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"

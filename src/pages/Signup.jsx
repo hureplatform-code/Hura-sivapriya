@@ -42,20 +42,28 @@ export default function Signup() {
     try {
       setError('');
       setLoading(true);
-      // In a real SaaS, this would create the User AND the Facility entry
-      await signup(formData.email, formData.password, {
-        name: formData.name,
-        role: 'clinic_owner'
-      });
-      
-      // Seed initial facility data
-      await facilityService.updateProfile({
+
+      // 1. Create the Facility first to get the ID
+      const newFacility = await facilityService.createFacility({
         name: formData.facilityName,
         type: formData.facilityType,
         email: formData.email,
-        phone: formData.phone
+        phone: formData.phone,
+        subscriptionPlan: 'Free' // Default plan
       });
 
+      if (!newFacility || !newFacility.id) {
+        throw new Error("Failed to provision facility.");
+      }
+
+      // 2. Create the User linked to this Facility
+      await signup(formData.email, formData.password, {
+        name: formData.name,
+        role: 'clinic_owner',
+        facilityId: newFacility.id,
+        status: 'active'
+      });
+      
       setStep(3); // Success step
     } catch (err) {
       console.error('Signup Error:', err);

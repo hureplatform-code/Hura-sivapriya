@@ -5,16 +5,22 @@ import { useNavigate } from 'react-router-dom';
 import patientService from '../../services/patientService';
 import appointmentService from '../../services/appointmentService';
 import medicalRecordService from '../../services/medicalRecordService';
+import facilityService from '../../services/facilityService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header() {
   const { userData } = useAuth();
   const navigate = useNavigate();
+  const role = userData?.role || 'Superadmin';
+  const [notifications, setNotifications] = React.useState([]);
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const notificationRef = React.useRef(null);
+  
+  // Search State
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState([]);
   const [searching, setSearching] = React.useState(false);
   const [showResults, setShowResults] = React.useState(false);
-  const role = userData?.role || 'Superadmin';
 
   const handleSearch = async (val) => {
     setQuery(val);
@@ -46,6 +52,88 @@ export default function Header() {
       console.error("Search error:", err);
     } finally {
       setSearching(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchNotifications();
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [userData]);
+
+  const fetchNotifications = async () => {
+    if (!userData) return;
+    try {
+      let notes = [];
+      const role = userData.role?.toLowerCase();
+
+      if (role === 'superadmin') {
+        const [requests, facilities] = await Promise.all([
+          facilityService.getAllSubscriptionRequests(),
+          facilityService.getAllFacilities()
+        ]);
+        
+        const pending = requests.filter(r => r.status === 'pending');
+        notes = pending.map(r => {
+          const facility = facilities.find(f => f.id === r.facilityId);
+          return {
+            id: r.id,
+            title: 'New Upgrade Request',
+            message: `${facility?.name || 'Unknown Facility'} requested ${r.requestedPlan}`,
+            time: new Date(r.timestamp),
+            type: 'alert',
+            link: '/superadmin/subscriptions'
+          };
+        });
+      } else if (role === 'admin') { // Clinic Admin
+        if (userData.facilityId) {
+          const profile = await facilityService.getProfile(userData.facilityId);
+          if (profile?.subscription?.expiryDate) {
+            const expiry = new Date(profile.subscription.expiryDate);
+            const now = new Date();
+            const diffTime = Math.abs(expiry - now);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays <= 7) {
+              notes.push({
+                id: 'sub-exp',
+                title: 'Subscription Expiring',
+                message: `Your plan expires in ${diffDays} days. Renew now to avoid interruption.`,
+                time: now,
+                type: 'warning',
+                link: '/master/accounts'
+              });
+            }
+          }
+        }
+      } else if (role === 'doctor') {
+        // Fetch all appointments and filter for this doctor & today
+        const appointments = await appointmentService.getAllAppointments();
+        const today = new Date().toISOString().split('T')[0];
+        const doctorAppointments = appointments.filter(apt => 
+          (apt.provider === userData.name || apt.providerId === userData.uid) && 
+          apt.date === today && 
+          apt.status !== 'completed' && apt.status !== 'cancelled'
+        );
+        
+        notes = doctorAppointments.map(apt => ({
+          id: apt.id,
+          title: 'Appointment Today',
+          message: `${apt.patient} at ${apt.time} - ${apt.type}`,
+          time: new Date(`${apt.date}T${apt.time}`),
+          type: 'info',
+          link: '/appointments'
+        }));
+      }
+
+      setNotifications(notes.sort((a, b) => b.time - a.time));
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
     }
   };
 
@@ -118,10 +206,72 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-6">
-        <button className="relative p-2 text-slate-400 hover:text-slate-900 transition-colors">
-          <Bell className="h-6 w-6" />
-          <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
+        <div className="relative" ref={notificationRef}>
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className={`relative p-2 transition-colors rounded-xl ${showNotifications ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-900'}`}
+          >
+            <Bell className="h-6 w-6" />
+            {notifications.length > 0 && (
+              <span className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 h-5 w-5 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+                {notifications.length}
+              </span>
+            )}
+          </button>
+
+          <AnimatePresence>
+            {showNotifications && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute right-0 mt-4 w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-50 origin-top-right"
+              >
+                <div className="p-4 border-b border-slate-50 flex items-center justify-between">
+                  <h3 className="font-black text-slate-900 text-sm">Notifications</h3>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{notifications.length} New</span>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                  {notifications.length > 0 ? (
+                    notifications.map((note) => (
+                      <button 
+                        key={note.id}
+                        onClick={() => {
+                          if (note.link) navigate(note.link);
+                          setShowNotifications(false);
+                        }}
+                        className="w-full text-left p-4 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-all group"
+                      >
+                        <div className="flex gap-3">
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 
+                            ${note.type === 'alert' ? 'bg-red-50 text-red-500' : 
+                              note.type === 'warning' ? 'bg-amber-50 text-amber-500' : 'bg-blue-50 text-blue-500'}`}
+                          >
+                            <Bell className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-900 leading-snug group-hover:text-primary-600 transition-colors">{note.title}</p>
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-2">{note.message}</p>
+                            <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-wide">
+                              {note.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center">
+                      <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-300">
+                        <Bell className="h-6 w-6" />
+                      </div>
+                      <p className="text-xs font-bold text-slate-400">No new notifications</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         
         <div className="h-8 w-[1px] bg-slate-100"></div>
 

@@ -34,6 +34,7 @@ export default function Appointments() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [specialtyFilter, setSpecialtyFilter] = useState('All');
+  const [notification, setNotification] = useState(null);
   // Calendar State
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -72,9 +73,13 @@ export default function Appointments() {
     try {
       const newAppointment = await appointmentService.bookAppointment(data);
       setAppointments(prev => [newAppointment, ...prev]);
+      setNotification({ type: 'success', message: 'Appointment booked successfully!' });
+      setTimeout(() => setNotification(null), 3000);
     } catch (error) {
       console.error("Error booking appointment, adding with mock ID:", error);
       setAppointments(prev => [{ ...data, id: Date.now().toString(), status: 'scheduled' }, ...prev]);
+      setNotification({ type: 'warning', message: 'Offline booking created.' });
+      setTimeout(() => setNotification(null), 3000);
     }
     setIsModalOpen(false);
   };
@@ -89,6 +94,8 @@ export default function Appointments() {
     try {
       await appointmentService.updateAppointmentStatus(id, 'arrived');
       fetchAppointments();
+      setNotification({ type: 'success', message: 'Patient marked as Arrived.' });
+      setTimeout(() => setNotification(null), 3000);
     } catch (error) {
       console.error("Error arriving patient:", error);
     }
@@ -99,7 +106,8 @@ export default function Appointments() {
       try {
         await appointmentService.updateAppointment(id, { status: 'cancelled' });
         fetchAppointments();
-        alert('Appointment cancelled successfully.');
+        setNotification({ type: 'success', message: 'Appointment cancelled successfully.' });
+        setTimeout(() => setNotification(null), 3000);
       } catch (error) {
         console.error('Error cancelling appointment:', error);
       }
@@ -111,7 +119,8 @@ export default function Appointments() {
       try {
         await appointmentService.deleteAppointment(id);
         fetchAppointments();
-        alert('Appointment deleted successfully.');
+        setNotification({ type: 'success', message: 'Appointment deleted successfully.' });
+        setTimeout(() => setNotification(null), 3000);
       } catch (error) {
         console.error('Error deleting appointment:', error);
       }
@@ -426,6 +435,21 @@ export default function Appointments() {
         onClose={() => setIsSummaryOpen(false)}
         appointment={selectedApt}
       />
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+          >
+             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+             </div>
+             {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

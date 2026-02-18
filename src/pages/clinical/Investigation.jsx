@@ -30,6 +30,7 @@ export default function Investigation() {
   const [isAdding, setIsAdding] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     fetchInvestigations();
@@ -49,14 +50,16 @@ export default function Investigation() {
 
   const handleCancelRequest = (inv) => {
     if (window.confirm(`Are you sure you want to CANCEL investigation request ${inv.id}?`)) {
-      alert(`Investigation ${inv.id} has been cancelled.`);
+      setNotification({ type: 'success', message: `Investigation ${inv.id} has been cancelled.` });
+      setTimeout(() => setNotification(null), 3000);
       fetchInvestigations();
     }
   };
 
   const handleDeleteRequest = (id) => {
     if (window.confirm(`Are you sure you want to PERMANENTLY delete this record?`)) {
-      alert(`Record deleted.`);
+      setNotification({ type: 'success', message: `Record deleted.` });
+      setTimeout(() => setNotification(null), 3000);
       fetchInvestigations();
     }
   };
@@ -268,15 +271,42 @@ export default function Investigation() {
         {isAdding && (
           <InvestigationModal 
             onClose={() => setIsAdding(false)} 
-            onSave={() => { setIsAdding(false); fetchInvestigations(); }} 
+            onSave={() => { 
+                setIsAdding(false); 
+                fetchInvestigations(); 
+                setNotification({ type: 'success', message: 'Investigation requested successfully.' });
+                setTimeout(() => setNotification(null), 3000);
+            }} 
           />
         )}
         {updatingId && (
           <ResultUpdateModal 
             investigationId={updatingId} 
             onClose={() => setUpdatingId(null)}
-            onSave={() => { setUpdatingId(null); fetchInvestigations(); }}
+            onSave={() => { 
+                setUpdatingId(null); 
+                fetchInvestigations(); 
+                setNotification({ type: 'success', message: 'Result updated successfully.' });
+                setTimeout(() => setNotification(null), 3000);
+            }}
+            onError={(msg) => {
+                setNotification({ type: 'error', message: msg });
+                setTimeout(() => setNotification(null), 3000);
+            }}
           />
+        )}
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+          >
+             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+             </div>
+             {notification.message}
+          </motion.div>
         )}
       </AnimatePresence>
     </DashboardLayout>
@@ -401,7 +431,7 @@ function InvestigationModal({ onClose, onSave }) {
   );
 }
 
-function ResultUpdateModal({ investigationId, onClose, onSave }) {
+function ResultUpdateModal({ investigationId, onClose, onSave, onError }) {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState('');
   const [notes, setNotes] = useState('');
@@ -418,7 +448,7 @@ function ResultUpdateModal({ investigationId, onClose, onSave }) {
       onSave();
     } catch (error) {
       console.error('Error updating result:', error);
-      alert('Upload failed. Check storage permissions.');
+      if (onError) onError('Upload failed. Check storage permissions.');
     } finally {
       setUploading(false);
     }

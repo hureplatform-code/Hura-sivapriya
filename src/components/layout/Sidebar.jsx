@@ -31,17 +31,7 @@ const menuItems = [
     path: '/',
     roles: ['superadmin', 'doctor', 'clinic_owner', 'nurse', 'receptionist', 'pharmacist']
   },
-  {
-    id: 'subscription',
-    icon: CloudCog,
-    label: 'Subscription',
-    roles: ['superadmin'],
-    subItems: [
-      { label: 'Change Plan', path: '/subscription/change' },
-      { label: 'User Plan', path: '/subscription/user-plan' },
-      { label: 'Growth/Add-ons', path: '/subscription/growth' },
-    ]
-  },
+
   {
     id: 'master-setup',
     icon: Settings,
@@ -52,7 +42,6 @@ const menuItems = [
       { label: 'Patient Registry', path: '/master/patients' },
       { label: 'Users & Staff', path: '/master/users' },
       { label: 'Security Matrix', path: '/master/permissions' },
-      { label: 'Accounts Setup', path: '/master/accounts' },
       { label: 'Branch Management', path: '/master/branches' },
     ]
   },
@@ -101,6 +90,13 @@ const menuItems = [
     ]
   },
   {
+    id: 'subscriptions',
+    icon: CreditCard,
+    label: 'Subscriptions',
+    path: '/superadmin/subscriptions',
+    roles: ['superadmin']
+  },
+  {
     id: 'reports',
     icon: FileBarChart,
     label: 'Reports',
@@ -113,6 +109,13 @@ const menuItems = [
       { label: 'Service Utilization', path: '/reports/utilization' },
     ]
   },
+  {
+    id: 'subscription',
+    icon: CreditCard,
+    label: 'Subscription',
+    path: '/master/accounts',
+    roles: ['clinic_owner']
+  }
 ];
 
 export default function Sidebar() {
@@ -127,28 +130,44 @@ export default function Sidebar() {
     }));
   };
 
-  const role = userData?.role || 'superadmin';
-  const [facilityProfile, setFacilityProfile] = useState(() => {
-    // Synchronous initialization from cache
-    try {
-      const cached = localStorage.getItem('hospital_profile_cache');
-      return cached ? JSON.parse(cached) : null;
-    } catch (e) {
-      return null;
-    }
-  });
+  // Determine role. Do NOT default to 'doctor' silently.
+  const role = userData?.role;
+
+  // If user is logged in (currentUser exists) but userData/role is missing, 
+  // waiting for AuthContext or data is corrupted.
+  if (!role && userData === null) {
+      // Data is loaded but null -> Profile missing
+      return (
+        <aside className="w-72 bg-white h-screen border-r border-slate-100 p-8 flex flex-col items-center justify-center text-center">
+            <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4">
+                <ShieldCheck className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900">Profile Missing</h3>
+            <p className="text-xs text-slate-500 mt-2">
+                Your account exists but has no role assigned. Please contact support or re-create your account.
+            </p>
+             <button 
+                onClick={logout}
+                className="mt-6 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors"
+            >
+                Log Out
+            </button>
+        </aside>
+      );
+  }
+  
+  if (!role) return null; // Still loading or something else
+  const [facilityProfile, setFacilityProfile] = useState(null);
 
   React.useEffect(() => {
-    const fetchLogo = async () => {
-      try {
-        const profile = await import('../../services/facilityService').then(m => m.default.getProfile());
-        if (profile) setFacilityProfile(profile);
-      } catch (e) {
-        console.error("Sidebar logo fetch error:", e);
-      }
-    };
-    fetchLogo();
-  }, []);
+    if (userData?.facilityId) {
+       import('../../services/facilityService').then(m => {
+          m.default.getProfile(userData.facilityId).then(p => {
+            if (p) setFacilityProfile(p);
+          });
+       });
+    }
+  }, [userData?.facilityId]);
 
   const filteredMenuItems = menuItems.filter(item => 
     !item.roles || item.roles.includes(role)
@@ -213,7 +232,7 @@ export default function Sidebar() {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden pl-12 space-y-1"
                   >
-                    {item.subItems.map((sub) => (
+                    {item.subItems.filter(sub => !sub.roles || sub.roles.includes(role)).map((sub) => (
                       <NavLink
                         key={sub.path}
                         to={sub.path}

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shield, Mail, User, Lock, AlertCircle } from 'lucide-react';
 import { APP_CONFIG } from '../../config';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function UserModal({ isOpen, onClose, user, onSave }) {
+  const { userData: currentUser } = useAuth(); // getting userData as currentUser for role check
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -132,7 +134,14 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
                         onChange={(e) => setFormData({...formData, role: e.target.value})}
                         className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent rounded-2xl transition-all duration-200 text-slate-900 text-sm font-medium appearance-none"
                       >
-                        {APP_CONFIG.ROLES.map(role => (
+                        {APP_CONFIG.ROLES.filter(role => {
+                            // If current user is clinic_owner, hide superadmin
+                            if (currentUser?.role === 'clinic_owner') {
+                                return role.id !== 'superadmin' && role.id !== 'clinic_owner';
+                            }
+                            // If current user is superadmin, show all (or maybe hide superadmin if we don't want more supers)
+                            return true;
+                        }).map(role => (
                           <option key={role.id} value={role.id}>{role.name}</option>
                         ))}
                       </select>

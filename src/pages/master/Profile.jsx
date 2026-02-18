@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
 import facilityService from '../../services/facilityService';
 import { 
   Building2, 
@@ -59,16 +60,20 @@ export default function Profile() {
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
 
+  const { userData } = useAuth();
+
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (userData?.facilityId) {
+        fetchData();
+    }
+  }, [userData]);
 
   const fetchData = async () => {
     try {
       setFetching(true);
       const [profileData, branchesData] = await Promise.all([
-        facilityService.getProfile(),
-        facilityService.getBranches()
+        facilityService.getProfile(userData.facilityId),
+        facilityService.getBranches() // This might also need filtering by facilityId later??
       ]);
       
       if (profileData) {
@@ -110,7 +115,7 @@ export default function Profile() {
         logoUrl: profile.logoUrl || logoPreview
       };
       
-      await facilityService.updateProfile(finalProfileData, logoFile);
+      await facilityService.updateProfile(userData.facilityId, finalProfileData, logoFile);
       setLogoFile(null);
       showNotification('Facility profile updated successfully!');
       fetchData(); // Refresh to ensure state is in sync

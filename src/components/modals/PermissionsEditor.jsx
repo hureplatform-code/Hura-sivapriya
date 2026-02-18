@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldCheck, 
   ChevronRight, 
@@ -17,6 +17,7 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
   const [permissions, setPermissions] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     fetchPermissions();
@@ -66,7 +67,8 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
       onClose();
     } catch (error) {
       console.error('Error saving permissions:', error);
-      alert('Failed to save permissions matrix.');
+      setNotification({ type: 'error', message: 'Failed to save permissions matrix.' });
+      setTimeout(() => setNotification(null), 3000);
     } finally {
       setSaving(false);
     }
@@ -203,7 +205,23 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
             )}
           </button>
         </div>
+
       </motion.div>
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+          >
+             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <div className="h-5 w-5 rounded-full border-2 border-white" />}
+             </div>
+             {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -73,6 +73,12 @@ const userService = {
   async getUsersByRole(role) {
     const q = [where('role', '==', role)];
     return firestoreService.getAll(this.collection, q);
+  },
+
+  async getUsersByFacility(facilityId) {
+    if (!facilityId) return [];
+    const q = [where('facilityId', '==', facilityId)];
+    return firestoreService.getAll(this.collection, q);
   }
 };
 

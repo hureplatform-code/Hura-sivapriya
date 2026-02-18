@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { TrendingUp, PieChart, Activity, Target, ArrowUpRight, ArrowDownRight, Filter, Download } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { TrendingUp, BarChart3, Target, ArrowUpRight, Filter } from 'lucide-react';
+
 import medicalRecordService from '../../services/medicalRecordService';
 import patientService from '../../services/patientService';
 
 export default function DiagnosisTrend() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [trends, setTrends] = useState([]);
   const [stats, setStats] = useState({ prevRate: '0%', improved: 0, screened: 0 });
   const [showComparative, setShowComparative] = useState(false);
@@ -74,12 +75,23 @@ export default function DiagnosisTrend() {
 
     } catch (error) {
       console.error('Error fetching diagnosis trends:', error);
+      setError('Failed to load diagnosis data. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-bold text-slate-500">Analyzing Clinical Data...</div></DashboardLayout>;
+  
+  if (error) return (
+    <DashboardLayout>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 py-12 text-center">
+        <div className="text-red-500 mb-4 text-xl font-bold">Error Loading Report</div>
+        <p className="text-slate-600 mb-6">{error}</p>
+        <button onClick={fetchTrends} className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">Retry Analysis</button>
+      </div>
+    </DashboardLayout>
+  );
 
   return (
     <DashboardLayout>
@@ -115,19 +127,19 @@ export default function DiagnosisTrend() {
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-slate-700">{t.disease}</span>
                         <div className={`flex items-center text-[10px] font-black uppercase ${t.trend === 'up' ? 'text-red-500' : 'text-emerald-500'}`}>
-                          {t.trend === 'up' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                          {t.trend === 'up' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3 rotate-90" />}
                           {t.change}
                         </div>
                       </div>
                       <span className="text-sm font-black text-slate-900">{t.current} cases</span>
                     </div>
                     <div className="h-4 bg-slate-50 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(t.current / (trends[0]?.current || 1)) * 100}%` }}
-                        transition={{ duration: 1.5, ease: 'circOut', delay: i * 0.1 }}
-                        className={`h-full rounded-full ${t.trend === 'up' ? 'bg-amber-400' : 'bg-primary-500'}`}
+                    <div className="h-4 bg-slate-50 rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${(t.current / (trends[0]?.current || 1)) * 100}%` }}
+                        className={`h-full rounded-full transition-all duration-1000 ease-out ${t.trend === 'up' ? 'bg-amber-400' : 'bg-primary-500'}`}
                       />
+                    </div>
                     </div>
                   </div>
                 )) : <div className="text-center py-20 text-slate-400">No clinical data recorded to identify trends.</div>}
@@ -137,7 +149,7 @@ export default function DiagnosisTrend() {
             <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
               <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
                 <div className="h-24 w-24 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/10">
-                  <Activity className="h-12 w-12 text-primary-400" />
+                  <TrendingUp className="h-12 w-12 text-primary-400" />
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <h3 className="text-2xl font-black">Clinical Early Warning System</h3>
@@ -170,7 +182,7 @@ export default function DiagnosisTrend() {
 
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
               <h4 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <PieChart className="h-4 w-4 text-slate-400" />
+                <BarChart3 className="h-4 w-4 text-slate-400" />
                 Quick Filters
               </h4>
               <div className="space-y-3">
@@ -184,45 +196,39 @@ export default function DiagnosisTrend() {
           </div>
         </div>
       </div>
-      <AnimatePresence>
-        {showComparative && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-[2.5rem] p-10 max-w-2xl w-full shadow-2xl relative"
-            >
-              <button onClick={() => setShowComparative(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900">
-                <Filter className="h-6 w-6 rotate-45" />
-              </button>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">Comparative Epidemiological Analysis</h3>
-              <p className="text-slate-500 mb-8">Detailed month-over-month disease prevalence breakdown.</p>
-              
-              <div className="space-y-4">
-                {trends.map(t => (
-                  <div key={t.disease} className="p-6 bg-slate-50 rounded-3xl flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-slate-900">{t.disease}</p>
-                      <p className="text-xs text-slate-500 font-medium">Prev: {t.previous} cases • Curr: {t.current} cases</p>
-                    </div>
-                    <div className={`flex items-center gap-2 font-black text-sm ${t.trend === 'up' ? 'text-red-500' : 'text-emerald-500'}`}>
-                      {t.trend === 'up' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                      {t.change}
-                    </div>
+      {showComparative && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-2xl w-full shadow-2xl relative">
+            <button onClick={() => setShowComparative(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900">
+              <Filter className="h-6 w-6 rotate-45" />
+            </button>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Comparative Epidemiological Analysis</h3>
+            <p className="text-slate-500 mb-8">Detailed month-over-month disease prevalence breakdown.</p>
+            
+            <div className="space-y-4">
+              {trends.map(t => (
+                <div key={t.disease} className="p-6 bg-slate-50 rounded-3xl flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900">{t.disease}</p>
+                    <p className="text-xs text-slate-500 font-medium">Prev: {t.previous} cases • Curr: {t.current} cases</p>
                   </div>
-                ))}
-              </div>
-              
-              <button 
-                onClick={() => setShowComparative(false)}
-                className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl"
-              >
-                Close Report
-              </button>
-            </motion.div>
+                  <div className={`flex items-center gap-2 font-black text-sm ${t.trend === 'up' ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {t.trend === 'up' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4 rotate-90" />}
+                    {t.change}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <button 
+              onClick={() => setShowComparative(false)}
+              className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl"
+            >
+              Close Report
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

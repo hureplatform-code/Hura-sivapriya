@@ -35,3 +35,8 @@ npm run build
 - **Icons**: Lucide React
 - **Backend**: Firebase (Auth, Firestore, Storage)
 - **PDF Generation**: jsPDF
+
+
+## Setup Super Admin
+- **URL**: http://domain.com/setup-superadmin
+<!-- Set up the login for super admin -->
