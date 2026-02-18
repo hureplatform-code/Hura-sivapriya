@@ -79,6 +79,13 @@ const userService = {
     if (!facilityId) return [];
     const q = [where('facilityId', '==', facilityId)];
     return firestoreService.getAll(this.collection, q);
+  },
+
+  async countActiveStaff(facilityId) {
+    if (!facilityId) return 0;
+    const q = [where('facilityId', '==', facilityId), where('role', '!=', 'clinic_owner')];
+    const users = await firestoreService.getAll(this.collection, q);
+    return users.length;
   }
 };
 

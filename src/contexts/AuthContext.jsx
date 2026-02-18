@@ -7,6 +7,8 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import facilityService from '../services/facilityService';
+import userService from '../services/userService';
 
 const AuthContext = createContext();
 
@@ -18,6 +20,8 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [activeStaffCount, setActiveStaffCount] = useState(0);
 
   async function login(email, password) {
     const result = await signInWithEmailAndPassword(auth, email, password);
@@ -90,12 +94,14 @@ export function AuthProvider({ children }) {
              setUserData(null);
           }
           setLoading(false);
-        }, (error) => {
+        }, async (error) => {
           console.error('Error fetching user doc:', error);
           setLoading(false);
         });
       } else {
         setUserData(null);
+        setSubscriptionStatus(null);
+        setActiveStaffCount(0);
         setLoading(false);
       }
     });
@@ -106,12 +112,33 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // Subscription Monitor Effect
+  useEffect(() => {
+    const fetchSubData = async () => {
+        if (userData?.facilityId && userData.role !== 'superadmin') {
+            try {
+                const facility = await facilityService.getProfile(userData.facilityId);
+                if (facility) {
+                    setSubscriptionStatus(facility.subscription);
+                    const count = await userService.countActiveStaff(userData.facilityId);
+                    setActiveStaffCount(count);
+                }
+            } catch (err) {
+                console.error("Sub check error:", err);
+            }
+        }
+    };
+    fetchSubData();
+  }, [userData]);
+
   const value = {
     currentUser,
     userData,
     login,
     signup,
-    logout
+    logout,
+    subscriptionStatus,
+    activeStaffCount
   };
   return (
     <AuthContext.Provider value={value}>
