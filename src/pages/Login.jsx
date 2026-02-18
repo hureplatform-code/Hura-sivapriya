@@ -30,7 +30,7 @@ export default function Login() {
       {/* Left Side: Brand Imagery */}
       <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden bg-slate-900">
         <div 
-          className="absolute inset-0 bg-[url('/assets/img/loginbg.png')] bg-cover bg-center opacity-40 scale-105 transition-transform duration-[20s] hover:scale-100"
+          className="absolute inset-0 bg-[url('/assets/img/loginbg_v2.png')] bg-cover bg-center opacity-80 scale-105 transition-transform duration-[20s] hover:scale-100"
         />
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 via-slate-900/40 to-transparent" />
         
@@ -135,14 +135,7 @@ export default function Login() {
             </div>
 
             <div className="flex items-center justify-between px-2">
-              <label className="flex items-center cursor-pointer group">
-                <input type="checkbox" className="hidden" />
-                <div className="h-5 w-5 border-2 border-slate-200 rounded-lg flex items-center justify-center group-hover:border-primary-500 transition-colors mr-3">
-                  <div className="h-2 w-2 bg-primary-500 rounded-sm opacity-0" />
-                </div>
-                <span className="text-xs font-bold text-slate-600">Keep session active</span>
-              </label>
-              <a href="#" className="text-xs font-black text-primary-600 uppercase tracking-widest hover:text-primary-700 transition-colors">Recovery key?</a>
+              {/* Removed Session/Recovery options as per request */}
             </div>
 
             <button
