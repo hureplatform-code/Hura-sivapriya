@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   MapPin, 
   Map, 
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import facilityService from '../../services/facilityService';
+import auditService from '../../services/auditService';
 
 export default function Branches() {
   const [branches, setBranches] = useState([]);
@@ -30,14 +32,18 @@ export default function Branches() {
     status: 'Active'
   });
 
+  const { userData, subscriptionStatus } = useAuth();
+
   React.useEffect(() => {
-    fetchBranches();
-  }, []);
+    if (userData?.facilityId) {
+      fetchBranches();
+    }
+  }, [userData]);
 
   const fetchBranches = async () => {
     try {
       setLoading(true);
-      const data = await facilityService.getBranches();
+      const data = await facilityService.getBranches(userData.facilityId);
       setBranches(data || []);
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -48,8 +54,27 @@ export default function Branches() {
 
   const handleAddBranch = async (e) => {
     e.preventDefault();
+    if (userData?.role === 'clinic_owner' && subscriptionStatus) {
+       // maxLocations includes main clinic. Allowed branches = maxLocations - 1
+       const allowedBranches = Math.max(0, (subscriptionStatus.maxLocations || 1) - 1);
+       if (branches.length >= allowedBranches) {
+           alert(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxLocations} locations in total. Please upgrade your subscription to add more branches.`);
+           return;
+       }
+    }
+    
     try {
-      await facilityService.addBranch(newBranch);
+      const result = await facilityService.addBranch(userData.facilityId, newBranch);
+      
+      await auditService.logActivity({
+        userId: userData?.uid,
+        userName: userData?.name || 'Clinic Owner',
+        action: 'ADD_BRANCH',
+        module: 'MASTER_SETUP',
+        description: `Added new facility branch: ${newBranch.name} at ${newBranch.location}`,
+        metadata: { branchId: result.id, branchName: newBranch.name, facilityId: userData.facilityId }
+      });
+
       setShowAdd(false);
       setNewBranch({ name: '', location: '', phone: '', email: '', status: 'Active' });
       fetchBranches();
@@ -61,7 +86,18 @@ export default function Branches() {
   const handleDeleteBranch = async (id) => {
     if (window.confirm('Are you sure you want to delete this branch?')) {
       try {
+        const branchToDelete = branches.find(b => b.id === id);
         await facilityService.deleteBranch(id);
+        
+        await auditService.logActivity({
+          userId: userData?.uid,
+          userName: userData?.name || 'Clinic Owner',
+          action: 'DELETE_BRANCH',
+          module: 'MASTER_SETUP',
+          description: `Removed facility branch: ${branchToDelete?.name || id}`,
+          metadata: { branchId: id, branchName: branchToDelete?.name, facilityId: userData.facilityId }
+        });
+
         fetchBranches();
       } catch (error) {
         console.error('Error deleting branch:', error);
@@ -78,7 +114,16 @@ export default function Branches() {
             <p className="text-slate-500 mt-1">Manage multiple facility locations and site-specific records.</p>
           </div>
           <button 
-            onClick={() => setShowAdd(true)}
+            onClick={() => {
+              if (userData?.role === 'clinic_owner' && subscriptionStatus) {
+                 const allowedBranches = Math.max(0, (subscriptionStatus.maxLocations || 1) - 1);
+                 if (branches.length >= allowedBranches) {
+                     alert(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxLocations} locations in total.`);
+                     return;
+                 }
+              }
+              setShowAdd(true);
+            }}
             className="flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
           >
             <Plus className="h-5 w-5" /> Add Location

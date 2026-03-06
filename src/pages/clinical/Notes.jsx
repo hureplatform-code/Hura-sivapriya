@@ -32,6 +32,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import medicalRecordService from '../../services/medicalRecordService';
 import patientService from '../../services/patientService';
 import appointmentService from '../../services/appointmentService';
+import auditService from '../../services/auditService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SPECIALTIES = [
   { id: 'general', name: 'General', icon: Stethoscope },
@@ -63,12 +65,36 @@ export default function Notes() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const { userData } = useAuth();
+
   useEffect(() => {
     fetchNotes();
     if (location.state?.autoCreate) {
       setIsCreating(true);
     }
   }, [location.state]);
+
+  if (userData?.role === 'superadmin') {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+           <div className="h-20 w-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-600 mb-6 shadow-inner">
+              <ClipboardList className="h-10 w-10" />
+           </div>
+           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Clinical Governance Notice</h2>
+           <p className="text-slate-500 max-w-md mt-2 font-medium">
+             Individual clinical observations and consultation notes are restricted to medical practitioners. Superadmins have access to system-wide audit logs but not private patient records.
+           </p>
+           <button 
+             onClick={() => window.history.back()}
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+           >
+             Go Back
+           </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const fetchNotes = async () => {
     try {
@@ -155,9 +181,23 @@ export default function Notes() {
                           </p>
                         </div>
                       </div>
-                      <span className={`px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest capitalize`}>
-                        {note.specialty}
-                      </span>
+                      <div className="flex gap-2 items-center">
+                        <span className={`px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest capitalize`}>
+                          {note.specialty}
+                        </span>
+                        {note.status === 'draft' ? (
+                          <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-widest">Draft</span>
+                        ) : (
+                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Signed
+                          </span>
+                        )}
+                        {note.entryMode === 'audio' && (
+                          <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-widest" title="Created via Audio">
+                             Dictated
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
@@ -254,6 +294,7 @@ export default function Notes() {
 }
 
 function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', initialAppointmentId = '' }) {
+  const { userData } = useAuth();
   const [activeSpecialties, setActiveSpecialties] = useState(['general']);
   const [patientId, setPatientId] = useState(initialPatientId);
   const [appointmentId, setAppointmentId] = useState(initialAppointmentId);
@@ -267,6 +308,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     diagnosis: '',
     specialtyData: {}
   });
+
+  const [entryMode, setEntryMode] = useState('text'); // 'text' or 'audio'
+  const [transcriptReviewed, setTranscriptReviewed] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [fakeTranscript, setFakeTranscript] = useState('');
 
   useEffect(() => {
     fetchPatients();
@@ -301,34 +347,59 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     );
   };
 
-  const handleSave = async () => {
+  const handleSave = async (status = 'signed') => {
     try {
       if (!patientId) {
         showNotification('error', 'Please select a patient first.');
         return;
       }
+      if (status === 'signed' && entryMode === 'audio' && !transcriptReviewed) {
+         showNotification('error', 'You must review and mark the audio transcript as reviewed before signing.');
+         return;
+      }
       const patient = patients.find(p => p.id === patientId);
-      await medicalRecordService.createRecord({
+      const recordData = {
         ...formData,
         patientId,
         patientName: patient?.name || 'Unknown Patient',
         appointmentId, // Link the note to the appointment
         specialties: activeSpecialties,
+        status, // 'draft' or 'signed'
+        entryMode,
         createdAt: new Date(),
-        doctorName: 'Dr. Dolly Smith', 
+        doctorName: userData?.name || 'Dr. Dolly Smith', 
         title: activeSpecialties.length > 1 
           ? 'Multi-Specialty Clinical Note' 
           : `${SPECIALTIES.find(s => s.id === activeSpecialties[0]).name} Clinical Note`
+      };
+
+      const result = await medicalRecordService.createRecord(recordData);
+
+      // Log the activity to Audit Trail
+      await auditService.logActivity({
+        userId: userData?.uid,
+        userName: userData?.name || 'Doctor',
+        action: status === 'signed' ? 'SIGN_CLINICAL_NOTE' : 'CREATE_DRAFT_NOTE',
+        module: 'CLINICAL',
+        description: status === 'signed' 
+          ? `Signed medical record for ${patient?.name || 'Patient'} (Specialties: ${activeSpecialties.join(', ')})`
+          : `Created/Updated clinical draft for ${patient?.name || 'Patient'}`,
+        metadata: {
+          patientId,
+          appointmentId,
+          specialties: activeSpecialties,
+          recordId: result?.id,
+          entryMode,
+          status
+        }
       });
 
-      // Mark the appointment as completed if linked
-      if (appointmentId) {
-        await appointmentService.updateAppointmentStatus(appointmentId, 'completed');
-      }
+      // Appointment remains 'in-session'. Discharge must be done explicitly from the Appointments page.
 
       onSave();
     } catch (error) {
       console.error('Error saving note:', error);
+      showNotification('error', 'Failed to save clinical note.');
     }
   };
 
@@ -437,6 +508,117 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                 />
               </div>
             </div>
+            {/* Input Mode Toggle */}
+            <div className="bg-slate-100 p-2 rounded-3xl inline-flex w-fit mb-4">
+               <button 
+                 onClick={() => setEntryMode('text')}
+                 className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${entryMode === 'text' ? 'bg-white shadow-lg text-slate-900 border border-slate-200' : 'text-slate-500 hover:text-slate-900 border border-transparent'}`}
+               >
+                 Text-Only
+               </button>
+               <button 
+                 onClick={() => setEntryMode('audio')}
+                 className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${entryMode === 'audio' ? 'bg-white shadow-lg text-indigo-600 border border-slate-200' : 'text-slate-500 hover:text-slate-900 border border-transparent'}`}
+               >
+                 Audio & AI
+               </button>
+            </div>
+
+             {entryMode === 'audio' && (
+                <div className="bg-indigo-50/50 border border-indigo-100 rounded-3xl p-8 space-y-6">
+                   <div className="flex items-center justify-between">
+                      <div>
+                         <h4 className="text-lg font-black text-indigo-900">Audio Dictation</h4>
+                         <p className="text-xs text-indigo-600 font-bold mt-1">Record your note and AI will generate the transcript and SOAP.</p>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                           if (!isRecording) {
+                              const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                              if (!SpeechRecognition) {
+                                 showNotification('error', 'Speech recognition is not supported in this browser.');
+                                 return;
+                              }
+                              
+                              const recognition = new SpeechRecognition();
+                              recognition.continuous = true;
+                              recognition.interimResults = true;
+                              recognition.lang = 'en-US';
+
+                              recognition.onstart = () => setIsRecording(true);
+                              recognition.onresult = (event) => {
+                                 const transcript = Array.from(event.results)
+                                    .map(result => result[0])
+                                    .map(result => result.transcript)
+                                    .join('');
+                                 setFakeTranscript(transcript);
+                              };
+
+                              recognition.onerror = (event) => {
+                                 console.error('Speech recognition error:', event.error);
+                                 setIsRecording(false);
+                                 showNotification('error', `Speech Recognition Error: ${event.error}`);
+                              };
+
+                              recognition.onend = () => {
+                                 setIsRecording(false);
+                                 // Basic Simulated SOAP extraction from transcript
+                                 const transcript = fakeTranscript;
+                                 if (transcript) {
+                                    // Simulated logic for splitting transcript into SOAP
+                                    const subjectiveMatch = transcript.match(/Subjective:(.*?)Objective:/i) || transcript.match(/Subjective:(.*)/i);
+                                    const objectiveMatch = transcript.match(/Objective:(.*?)Assessment:/i) || transcript.match(/Objective:(.*)/i);
+                                    
+                                    setFormData(prev => ({
+                                       ...prev,
+                                       subjective: subjectiveMatch ? subjectiveMatch[1].trim() : transcript.split('Objective:')[0].trim(),
+                                       objective: objectiveMatch ? objectiveMatch[1].trim() : (transcript.split('Objective:')[1] || '').split('Assessment:')[0].trim() || prev.objective,
+                                       assessment: (transcript.split('Assessment:')[1] || '').split('Plan:')[0].trim() || prev.assessment,
+                                       plan: (transcript.split('Plan:')[1] || '').trim() || prev.plan
+                                    }));
+                                 }
+                              };
+
+                              recognition.start();
+                              window._currentRecognition = recognition;
+                           } else {
+                              if (window._currentRecognition) {
+                                 window._currentRecognition.stop();
+                              }
+                           }
+                        }}
+                        className={`px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                          isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        }`}
+                      >
+                        <span className={`h-3 w-3 rounded-full bg-white`}></span>
+                        {isRecording ? 'Stop Recording' : 'Start Dictation'}
+                      </button>
+                   </div>
+                   {fakeTranscript && (
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100">
+                         <div className="flex items-center justify-between mb-4">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Transcript</p>
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                         </div>
+                         <p className="text-sm font-medium text-slate-700 leading-relaxed mb-6 bg-slate-50 p-6 rounded-xl italic border border-slate-100 shadow-inner">"{fakeTranscript}"</p>
+                         <label className="flex items-center gap-3 cursor-pointer group">
+                            <div className={`h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all ${transcriptReviewed ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 group-hover:border-emerald-300'}`}>
+                               <CheckCircle2 className={`h-4 w-4 text-white transition-opacity ${transcriptReviewed ? 'opacity-100' : 'opacity-0'}`} />
+                            </div>
+                            <span className="text-xs font-bold text-slate-600 uppercase tracking-widest group-hover:text-slate-900">Mark transcript reviewed</span>
+                            <input 
+                              type="checkbox"
+                              className="hidden" 
+                              checked={transcriptReviewed}
+                              onChange={(e) => setTranscriptReviewed(e.target.checked)}
+                            />
+                         </label>
+                      </div>
+                   )}
+                </div>
+             )}
 
             {/* Specialty Specific Fields - ADDITIVE SECTIONS */}
             <div className="space-y-8">
@@ -765,19 +947,37 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             Auto-save active
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <button
               onClick={onClose}
-              className="px-8 py-4 bg-slate-50 text-slate-500 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
+              className="px-8 py-4 bg-slate-50 text-slate-500 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all font-bold"
             >
-              Discard changes
+              Discard
             </button>
             <button
-              onClick={handleSave}
-              className="px-12 py-4 bg-primary-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-primary-700 transition-all shadow-2xl shadow-primary-200 active:scale-95"
+               onClick={() => handleSave('draft')}
+               className="px-8 py-4 bg-slate-800 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-900 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center gap-2"
             >
-              Save & Sign Case Note
+               Save Draft
             </button>
+            <div className="relative group">
+                <button
+                  disabled={entryMode === 'audio' && !transcriptReviewed}
+                  onClick={() => handleSave('signed')}
+                  className={`px-12 py-4 font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-2xl active:scale-95 flex items-center gap-2 ${
+                     (entryMode === 'audio' && !transcriptReviewed) 
+                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' 
+                     : 'bg-primary-600 text-white hover:bg-primary-700 shadow-primary-200'
+                  }`}
+                >
+                  Save & Sign Note
+                </button>
+                {(entryMode === 'audio' && !transcriptReviewed) && (
+                   <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 text-[10px] bg-slate-900 text-white p-2 rounded-lg text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                     You must mark the transcript as reviewed first.
+                   </div>
+                )}
+            </div>
           </div>
         </div>
       </motion.div>

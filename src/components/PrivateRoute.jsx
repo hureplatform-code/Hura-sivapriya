@@ -22,8 +22,36 @@ export default function PrivateRoute({ children }) {
 
   if (checking) return <div className="h-screen flex items-center justify-center bg-slate-50">Loading access rights...</div>;
 
-  // SUPERADMIN SKIP
-  if (userData?.role === 'superadmin') return children;
+  // ROLE-BASED ROUTE GUARDS (Hard Blocks)
+  if (userData?.role === 'superadmin') {
+      const blockedForSuperadmin = [
+          '/appointments', '/notes', '/clinical-forms', '/investigation', '/ward',
+          '/pharmacy', '/master/patients', '/master/profile', '/master/branches'
+      ];
+      if (blockedForSuperadmin.some(p => location.pathname.startsWith(p))) {
+           return <Navigate to="/" />;
+      }
+      return children;
+  }
+
+  // Prevent Clinical Ops / Admin access for receptionist
+  if (userData?.role === 'receptionist') {
+      const blockedForReceptionist = [
+         '/notes', '/clinical-forms', '/investigation', '/ward', '/pharmacy', '/accounting', '/config', '/reports'
+      ];
+      // Note: /master/patients is allowed for receptionist. Custom /master check:
+      if (blockedForReceptionist.some(p => location.pathname.startsWith(p)) || 
+         (location.pathname.startsWith('/master') && !location.pathname.startsWith('/master/patients'))) {
+           return <Navigate to="/" />;
+      }
+  }
+
+  // Prevent Non-Pharmacist access to Pharmacy
+  if (!['clinic_owner', 'pharmacist'].includes(userData?.role)) {
+      if (location.pathname.startsWith('/pharmacy')) {
+           return <Navigate to="/" />;
+      }
+  }
 
   if (userData?.facilityId && subscriptionStatus) {
       // 1. CHECK EXPIRY

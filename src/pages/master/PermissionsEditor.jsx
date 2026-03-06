@@ -16,24 +16,39 @@ import { PERMISSION_MODULES } from '../../constants/permissions';
 
 const permissionModules = [
   { 
+    id: 'appointments', 
+    label: 'Appointment & Scheduling', 
+    rights: ['view_appointment', 'create_appointment', 'edit_appointment', 'cancel_appointment', 'check_in_patient', 'mark_no_show', 'reschedule', 'set_slot_duration', 'view_appointment_details']
+  },
+  { 
+    id: 'patients', 
+    label: 'Patient Management', 
+    rights: ['register_patient', 'edit_patient_demographics', 'view_patient_demographics', 'access_allergies', 'access_triage', 'view_visit_history']
+  },
+  { 
     id: 'clinical', 
-    label: 'Clinical Operations', 
-    rights: ['view_patients', 'add_notes', 'delete_notes', 'view_investigations', 'add_investigations', 'process_results']
+    label: 'Clinical Permissions', 
+    rights: ['create_clinical_note', 'edit_clinical_note', 'view_clinical_note', 'discharge_patient', 'order_lab', 'view_lab_results', 'upload_lab_results', 'prescribe_medication', 'view_prescriptions']
   },
   { 
     id: 'pharmacy', 
-    label: 'Pharmacy & Inventory', 
-    rights: ['dispense_drugs', 'manage_stock', 'add_inventory', 'delete_inventory', 'view_expired']
+    label: 'Pharmacy', 
+    rights: ['view_pharmacy_stock', 'add_stock', 'edit_stock', 'dispense_medication', 'manage_suppliers']
   },
   { 
     id: 'billing', 
-    label: 'Finance & Billing', 
-    rights: ['create_invoice', 'void_invoice', 'process_payment', 'view_revenue', 'accounting_access']
+    label: 'Billing & Finance', 
+    rights: ['create_invoice', 'edit_invoice', 'view_invoice', 'accept_payment', 'process_insurance_claim', 'view_financial_reports', 'view_general_ledger']
   },
   { 
-    id: 'admin', 
-    label: 'System Admin', 
-    rights: ['manage_users', 'edit_roles', 'facility_config', 'view_audit_logs', 'system_settings']
+    id: 'reporting', 
+    label: 'Reporting', 
+    rights: ['view_daily_visits', 'view_diagnosis_trends', 'view_consultant_outcomes', 'view_service_utilization', 'export_reports']
+  },
+  { 
+    id: 'system', 
+    label: 'System Control', 
+    rights: ['access_master_setup', 'access_security_matrix', 'view_audit_logs', 'export_data']
   }
 ];
 
@@ -129,7 +144,7 @@ export default function PermissionsEditor() {
 
           {/* Permissions Grid */}
           <div className="lg:col-span-3 space-y-8">
-              {PERMISSION_MODULES.map((module, idx) => (
+              {permissionModules.map((module, idx) => (
                 <motion.div 
                   key={module.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -148,36 +163,24 @@ export default function PermissionsEditor() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border-t border-slate-50">
-                     {module.rights?.map((right) => (
+                     {module.rights?.map((rightKey) => {
+                       const formattedLabel = rightKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                       return (
                        <div 
-                         key={right.key} 
-                         onClick={() => togglePermission(right.key)}
+                         key={rightKey} 
+                         onClick={() => togglePermission(rightKey)}
                          className="group p-6 border-r border-b border-slate-50 hover:bg-primary-50/30 transition-all cursor-pointer flex items-center justify-between"
                        >
                          <div className="space-y-1">
-                            <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{right.label}</p>
+                            <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{formattedLabel}</p>
                             <p className="text-[10px] text-slate-400 font-bold">Standard Role Default</p>
                          </div>
-                         <div className={`h-6 w-11 rounded-full transition-all flex items-center px-1 ${permissions[selectedRole]?.[right.key] ? 'bg-emerald-500' : 'bg-slate-200'}`}>
-                            <div className={`h-4 w-4 rounded-full bg-white shadow-sm transition-all transform ${permissions[selectedRole]?.[right.key] ? 'translate-x-5' : 'translate-x-0'}`} />
+                         <div className={`h-6 w-11 rounded-full transition-all flex items-center px-1 ${permissions[selectedRole]?.[rightKey] ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                            <div className={`h-4 w-4 rounded-full bg-white shadow-sm transition-all transform ${permissions[selectedRole]?.[rightKey] ? 'translate-x-5' : 'translate-x-0'}`} />
                          </div>
                        </div>
-                     ))}
-                     {module.children?.map((child) => (
-                        <div 
-                          key={child.key} 
-                          onClick={() => togglePermission(child.key)}
-                          className="group p-6 border-r border-b border-slate-50 hover:bg-primary-50/30 transition-all cursor-pointer flex items-center justify-between"
-                        >
-                          <div className="space-y-1">
-                             <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{child.label}</p>
-                             <p className="text-[10px] text-slate-400 font-bold">Standard Role Default</p>
-                          </div>
-                          <div className={`h-6 w-11 rounded-full transition-all flex items-center px-1 ${permissions[selectedRole]?.[child.key] ? 'bg-emerald-500' : 'bg-slate-200'}`}>
-                             <div className={`h-4 w-4 rounded-full bg-white shadow-sm transition-all transform ${permissions[selectedRole]?.[child.key] ? 'translate-x-5' : 'translate-x-0'}`} />
-                          </div>
-                        </div>
-                     ))}
+                     )})}
+
                   </div>
                 </motion.div>
               ))}

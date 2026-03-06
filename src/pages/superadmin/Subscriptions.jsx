@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import facilityService from '../../services/facilityService';
 import userService from '../../services/userService';
+import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   CreditCard, 
@@ -20,24 +21,19 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 const PLANS = [
   {
-    id: 'starter',
-    name: 'Starter',
-    limits: { staff: 2, locations: 1 }
+    id: 'essential',
+    name: 'Essential',
+    limits: { staff: 10, locations: 1 }
   },
   {
-    id: 'growth',
-    name: 'Growth',
-    limits: { staff: 5, locations: 2 }
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    limits: { staff: 20, locations: 5 }
+    id: 'professional',
+    name: 'Professional',
+    limits: { staff: 30, locations: 2 }
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    limits: { staff: 999, locations: 999 }
+    limits: { staff: 75, locations: 5 }
   }
 ];
 export default function Subscriptions() {
@@ -57,7 +53,13 @@ export default function Subscriptions() {
     maxStaff: 0,
     maxLocations: 0,
     expiryDate: '',
-    status: 'active'
+    status: 'active',
+    features: {
+      audioDictation: true,
+      aiExtraction: false,
+      multiBranch: true,
+      smsNotifications: false
+    }
   });
 
   useEffect(() => {
@@ -102,6 +104,17 @@ export default function Subscriptions() {
     try {
       await facilityService.updateSubscriptionRequest(requestId, 'dismissed');
       setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'dismissed' } : r));
+      
+      const req = requests.find(r => r.id === requestId);
+      await auditService.logActivity({
+        userId: userData?.uid,
+        userName: userData?.name || 'Superadmin',
+        action: 'DISMISS_SUBSCRIPTION_REQUEST',
+        module: 'GOVERNANCE',
+        description: `Dismissed subscription upgrade request from ${req?.facilityName || 'Facility'}`,
+        metadata: { requestId, facilityId: req?.facilityId }
+      });
+
       setNotification({ type: 'success', message: 'Request dismissed.' });
       setTimeout(() => setNotification(null), 3000);
     } catch (error) {
@@ -116,7 +129,13 @@ export default function Subscriptions() {
       maxStaff: facility.subscription?.maxStaff || 5,
       maxLocations: facility.subscription?.maxLocations || 1,
       expiryDate: facility.subscription?.expiryDate ? facility.subscription.expiryDate.split('T')[0] : '',
-      status: facility.subscription?.status || 'active'
+      status: facility.subscription?.status || 'active',
+      features: facility.subscription?.features || {
+        audioDictation: true,
+        aiExtraction: false,
+        multiBranch: true,
+        smsNotifications: false
+      }
     });
     setIsModalOpen(true);
   };
@@ -137,12 +156,31 @@ export default function Subscriptions() {
 
   const handleSave = async () => {
     try {
-      await facilityService.updateSubscription(selectedFacility.id, {
+      const updateData = {
         ...editForm,
         planId: 'custom', // For now
         startDate: selectedFacility.subscription?.startDate || new Date().toISOString(),
         updatedAt: new Date().toISOString()
+      };
+
+      await facilityService.updateSubscription(selectedFacility.id, updateData);
+      
+      // Log the activity to Audit Trail
+      await auditService.logActivity({
+        userId: userData?.uid,
+        userName: userData?.name || 'Superadmin',
+        action: 'UPDATE_SUBSCRIPTION',
+        module: 'GOVERNANCE',
+        description: `Updated subscription for ${selectedFacility.name} (Plan: ${editForm.planName}, Status: ${editForm.status})`,
+        metadata: {
+          facilityId: selectedFacility.id,
+          facilityName: selectedFacility.name,
+          newPlan: editForm.planName,
+          status: editForm.status,
+          limits: { staff: editForm.maxStaff, locations: editForm.maxLocations }
+        }
       });
+
       setIsModalOpen(false);
       fetchFacilities(); // Refresh
       setNotification({ type: 'success', message: 'Subscription successfully updated!' });
@@ -257,7 +295,11 @@ export default function Subscriptions() {
                        </td>
                        <td className="p-4">
                           {fac.subscription?.status === 'active' ? (
-                             <span className="text-green-600 text-xs font-black uppercase tracking-wider flex items-center gap-1"><CheckCircle className="h-3 w-3"/> Active</span>
+                             <span className="text-emerald-600 text-xs font-black uppercase tracking-wider flex items-center gap-1"><CheckCircle className="h-3 w-3"/> Active</span>
+                          ) : fac.subscription?.status === 'trial' ? (
+                             <span className="text-blue-600 text-xs font-black uppercase tracking-wider flex items-center gap-1"><Clock className="h-3 w-3"/> Trial</span>
+                          ) : fac.subscription?.status === 'suspended' ? (
+                             <span className="text-orange-600 text-xs font-black uppercase tracking-wider flex items-center gap-1"><XCircle className="h-3 w-3"/> Suspended</span>
                           ) : (
                              <span className="text-red-500 text-xs font-black uppercase tracking-wider flex items-center gap-1"><XCircle className="h-3 w-3"/> {fac.subscription?.status}</span>
                           )}
@@ -365,9 +407,31 @@ export default function Subscriptions() {
                       className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary-500"
                     >
                         <option value="active">Active</option>
+                        <option value="trial">Trial</option>
                         <option value="expired">Expired</option>
                         <option value="suspended">Suspended</option>
                     </select>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Managed Feature Flags</label>
+                    <div className="grid grid-cols-2 gap-3">
+                       {Object.keys(editForm.features).map((flag) => (
+                         <button
+                           key={flag}
+                           type="button"
+                           onClick={() => setEditForm({
+                             ...editForm,
+                             features: { ...editForm.features, [flag]: !editForm.features[flag] }
+                           })}
+                           className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all
+                             ${editForm.features[flag] ? 'bg-primary-50 border-primary-200 text-primary-900 font-bold' : 'bg-slate-50 border-transparent text-slate-400 font-medium'}
+                           `}
+                         >
+                            <span className="text-[10px] uppercase tracking-tight">{flag.replace(/([A-Z])/g, ' $1')}</span>
+                            <div className={`h-4 w-4 rounded-full border-2 ${editForm.features[flag] ? 'bg-primary-600 border-primary-600' : 'bg-white border-slate-200'}`} />
+                         </button>
+                       ))}
+                    </div>
                   </div>
                </div>
 

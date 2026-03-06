@@ -23,7 +23,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
 import inventoryService from '../../services/inventoryService';
 
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+
 export default function Inventory() {
+  const navigate = useNavigate();
+  const { userData } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -33,6 +38,28 @@ export default function Inventory() {
   useEffect(() => {
     fetchInventory();
   }, []);
+
+  if (userData?.role === 'superadmin') {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+           <div className="h-20 w-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-600 mb-6 shadow-inner">
+              <Package className="h-10 w-10" />
+           </div>
+           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Stock Governance</h2>
+           <p className="text-slate-500 max-w-md mt-2 font-medium">
+             Clinic clinical stocks and pharmacy inventories are managed at the facility level. Platform governance access is restricted to Resource Utilization analytics.
+           </p>
+           <button 
+             onClick={() => navigate('/reports/usage')}
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+           >
+             Go to Resource Reports
+           </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const fetchInventory = async () => {
     try {

@@ -23,6 +23,7 @@ import billingService from '../services/billingService';
 import auditService from '../services/auditService';
 import patientService from '../services/patientService';
 import medicalRecordService from '../services/medicalRecordService';
+import facilityService from '../services/facilityService';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_CONFIG } from '../config';
 
@@ -41,40 +42,73 @@ export default function Dashboard() {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const [users, appointments, invoices, billingStats, logs, patients, allRecords] = await Promise.all([
+      
+      // SRS RULE: Superadmin CANNOT access patient records
+      const isSuperadmin = role === 'superadmin' || role === 'platform_owner';
+      
+      const promises = [
         userService.getAllUsers(),
         appointmentService.getAllAppointments(),
         billingService.getAllInvoices(),
         billingService.getFinancialStats(),
-        auditService.getRecentLogs(6),
-        patientService.getAllPatients(),
-        medicalRecordService.getAllRecords()
-      ]);
+        auditService.getRecentLogs(6, isSuperadmin ? null : userData?.facilityId)
+      ];
+      
+      if (!isSuperadmin) {
+        promises.push(patientService.getAllPatients());
+        promises.push(medicalRecordService.getAllRecords());
+      } else {
+        promises.push(Promise.resolve([])); // Patients placeholder
+        promises.push(Promise.resolve([])); // Records placeholder
+      }
+
+      const [users, appointments, invoices, billingStats, logs, patients, allRecords] = await Promise.all(promises);
 
       const today = new Date().toLocaleDateString();
       const completedToday = appointments.filter(a => a.status === 'completed' && new Date(a.date).toLocaleDateString() === today).length;
+      const pendingNotes = allRecords ? allRecords.filter(r => r.status === 'draft').length : 0;
+      const overdueNotes = allRecords ? allRecords.filter(r => r.status === 'draft' && (new Date() - new Date(r.createdAt?.seconds ? r.createdAt.seconds * 1000 : Date.now())) > 86400000).length : 0;
 
-      if (role === 'doctor') {
+      if (isSuperadmin) {
+        // PLATFORM GOVERNANCE VIEW
+        const allFacilities = await facilityService.getAllFacilities();
+        const totalOrganizations = allFacilities.length;
+        const activeSubscribers = allFacilities.filter(f => f.subscription?.status === 'active').length;
+        const totalRevenueEstimate = allFacilities.reduce((sum, f) => {
+           const plan = (f.subscription?.planName || 'Essential').toLowerCase();
+           const monthly = plan === 'professional' ? 5000 : plan === 'enterprise' ? 15000 : 2500;
+           return sum + monthly;
+        }, 0);
+
+        setStats([
+          { label: 'Total Clinics', value: totalOrganizations.toString(), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Active Orgs', value: activeSubscribers.toString(), icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Platform Revenue', value: `${APP_CONFIG.CURRENCY} ${totalRevenueEstimate.toLocaleString()}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Global Audit Logs', value: logs.length.toString(), icon: History, color: 'text-slate-600', bg: 'bg-slate-50' },
+        ]);
+        setArrears([]); // Hide clinic arrears
+      } else if (role === 'doctor') {
         setStats([
           { label: "Today's Patients", value: appointments.filter(a => new Date(a.date).toLocaleDateString() === today).length.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Pending Notes', value: '0', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Pending Notes', value: pendingNotes.toString(), icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
           { label: 'Avg Time/Visit', value: '15 min', icon: History, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'Completed Today', value: completedToday.toString(), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Completed Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         ]);
+        setArrears(invoices.filter(i => i.paymentStatus !== 'paid').slice(0, 4));
       } else {
         const arrearsRate = billingStats.revenue > 0 
           ? ((billingStats.outstanding / (billingStats.revenue + billingStats.outstanding)) * 100).toFixed(1) + '%' 
           : '0%';
 
         setStats([
-          { label: 'Total Patients', value: patients.length.toLocaleString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Overdue Notes (>24h)', value: overdueNotes.toString(), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
           { label: 'Active Doctors', value: users.filter(u => u.role === 'doctor').length.toString(), icon: Stethoscope, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Monthly Revenue', value: `${APP_CONFIG.CURRENCY} ${billingStats.revenue.toLocaleString()}`, icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50' },
           { label: 'Arrears Rate', value: arrearsRate, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
         ]);
+        setArrears(invoices.filter(i => i.paymentStatus !== 'paid').slice(0, 4));
       }
 
-      setArrears(invoices.filter(i => i.paymentStatus !== 'paid').slice(0, 4));
       setAuditLogs(logs || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);

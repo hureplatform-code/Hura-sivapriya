@@ -22,41 +22,33 @@ const paymentHistory = [];
 
 const PLANS = [
   {
-    id: 'starter',
-    name: 'Starter',
-    price: 'Free',
-    limits: { staff: 2, locations: 1 },
-    features: ['Basic Patient Records', 'Appointment Scheduling', 'Standard Support'],
-    limitLabel: 'Up to 2 Staff',
-    recommended: false
-  },
-  {
-    id: 'growth',
-    name: 'Growth',
+    id: 'essential',
+    name: 'Essential',
     price: '$49',
     period: '/mo',
-    limits: { staff: 5, locations: 2 },
-    features: ['Up to 5 Staff', '2 Locations', 'Advanced Reporting', 'Priority Email Support'],
-    limitLabel: 'Up to 5 Staff',
-    recommended: true
+    limits: { staff: 10, locations: 1 },
+    features: ['Up to 10 Staff', '1 Location', 'Full EMR Modules', 'Standard Support'],
+    limitLabel: 'Up to 10 Staff',
+    recommended: false
   },
   {
-    id: 'pro',
-    name: 'Pro',
+    id: 'professional',
+    name: 'Professional',
     price: '$99',
     period: '/mo',
-    limits: { staff: 20, locations: 5 },
-    features: ['Up to 20 Staff', '5 Locations', 'Financial Modules', 'Dedicated Account Manager'],
-    limitLabel: 'Up to 20 Staff',
-    recommended: false
+    limits: { staff: 30, locations: 2 },
+    features: ['Up to 30 Staff', '2 Locations', 'Advanced Reporting', 'Priority Email Support'],
+    limitLabel: 'Up to 30 Staff',
+    recommended: true
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 'Custom',
-    limits: { staff: 999, locations: 999 },
-    features: ['Unlimited Staff', 'Unlimited Locations', 'Custom API Integration', '24/7 Phone Support'],
-    limitLabel: 'Unlimited',
+    price: '$199',
+    period: '/mo',
+    limits: { staff: 75, locations: 5 },
+    features: ['Up to 75 Staff', '5 Locations', 'Dedicated Account Manager', '24/7 Phone Support'],
+    limitLabel: 'Up to 75 Staff',
     recommended: false
   }
 ];

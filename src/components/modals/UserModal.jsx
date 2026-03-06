@@ -22,7 +22,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
       setFormData({
         name: '',
         email: '',
-        role: 'doctor',
+        role: currentUser?.role === 'superadmin' ? 'clinic_owner' : 'doctor',
         status: 'active'
       });
     }
@@ -139,7 +139,10 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
                             if (currentUser?.role === 'clinic_owner') {
                                 return role.id !== 'superadmin' && role.id !== 'clinic_owner';
                             }
-                            // If current user is superadmin, show all (or maybe hide superadmin if we don't want more supers)
+                            // If current user is superadmin, ONLY show superadmin and clinic_owner
+                            if (currentUser?.role === 'superadmin') {
+                                return ['superadmin', 'clinic_owner'].includes(role.id);
+                            }
                             return true;
                         }).map(role => (
                           <option key={role.id} value={role.id}>{role.name}</option>

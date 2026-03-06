@@ -50,7 +50,8 @@ const firestoreService = {
     non_pharma_masters: 'non_pharma_masters',
     icd_masters: 'icd_masters',
     lab_masters: 'lab_masters',
-    imaging_masters: 'imaging_masters'
+    imaging_masters: 'imaging_masters',
+    patient_documents: 'patient_documents'
   },
 
   // Generic CRUD

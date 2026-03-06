@@ -21,6 +21,7 @@ import UserModal from '../../components/modals/UserModal';
 import PermissionsEditor from '../../components/modals/PermissionsEditor';
 import userService from '../../services/userService';
 import facilityService from '../../services/facilityService';
+import auditService from '../../services/auditService';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -34,7 +35,7 @@ export default function Users() {
   const [facilities, setFacilities] = useState({});
   const [facilityUsage, setFacilityUsage] = useState({}); // { facilityId: { count: 3, max: 5, plan: 'Pro' } }
 
-  const { currentUser, userData } = useAuth(); // Get userData for facilityId
+  const { currentUser, userData, activeStaffCount, subscriptionStatus } = useAuth(); // Get userData for facilityId
 
   useEffect(() => {
     if (userData) {
@@ -93,6 +94,12 @@ export default function Users() {
   };
 
   const handleCreateNew = () => {
+    if (userData?.role === 'clinic_owner' && subscriptionStatus) {
+       if (activeStaffCount >= subscriptionStatus.maxStaff) {
+          showNotification(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxStaff} staff members.`);
+          return;
+       }
+    }
     setSelectedUser(null);
     setIsModalOpen(true);
   };
@@ -114,6 +121,16 @@ export default function Users() {
         // Exclude password from updates if it somehow sneaks in
         const { password, ...updateData } = finalData;
         await userService.updateUser(selectedUser.id, updateData);
+        
+        await auditService.logActivity({
+          userId: userData?.uid,
+          userName: userData?.name || 'Admin',
+          action: 'UPDATE_USER',
+          module: 'GOVERNANCE',
+          description: `Updated user profile for ${updateData.name} (${updateData.email})`,
+          metadata: { targetUserId: selectedUser.id, role: updateData.role, status: updateData.status }
+        });
+
         setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, ...updateData } : u));
         showNotification('User updated successfully!');
       } else {
@@ -125,24 +142,40 @@ export default function Users() {
         }
 
         // --- CHECK STAFF LIMITS (Subscription Enforcement) ---
-        if (userData.role === 'clinic_owner' && userData.facilityId) {
-             const facility = await facilityService.getProfile(userData.facilityId);
-             const currentStaffCount = users.length; // Approximate (or fetch specific count)
-             const maxStaff = facility?.subscription?.maxStaff || 3; // Default fallback
-
-             if (currentStaffCount >= maxStaff) {
-                 throw new Error(`Plan Limit Reached! Your current plan allows mostly ${maxStaff} staff members. Please upgrade your subscription.`);
+        if (userData?.role === 'clinic_owner' && subscriptionStatus) {
+             if (activeStaffCount >= subscriptionStatus.maxStaff) {
+                 throw new Error(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxStaff} staff members. Please upgrade your subscription.`);
              }
         }
         // -----------------------------------------------------
 
         if (password) {
            const savedUser = await userService.createStaffAccount(profileData, password);
+           
+           await auditService.logActivity({
+             userId: userData?.uid,
+             userName: userData?.name || 'Admin',
+             action: 'CREATE_USER',
+             module: 'GOVERNANCE',
+             description: `Created new ${profileData.role} account: ${profileData.name} (${profileData.email})`,
+             metadata: { targetUserId: savedUser.id, role: profileData.role, facilityId: profileData.facilityId }
+           });
+
            setUsers(prev => [savedUser, ...prev]);
            showNotification('Staff account and profile created!');
         } else {
            // Fallback for cases where password might be missing (should be required in modal)
            const savedUser = await userService.createUser(profileData);
+
+           await auditService.logActivity({
+             userId: userData?.uid,
+             userName: userData?.name || 'Admin',
+             action: 'CREATE_USER_PROFILE',
+             module: 'GOVERNANCE',
+             description: `Created user profile (No Auth) for ${profileData.name}`,
+             metadata: { targetUserId: savedUser.id, role: profileData.role }
+           });
+
            setUsers(prev => [savedUser, ...prev]);
            showNotification('Profile created (No Auth Account)');
         }
@@ -157,10 +190,27 @@ export default function Users() {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(prev => prev.filter(u => u.id !== id));
-      showNotification('User removed successfully.');
+      try {
+        const targetUser = users.find(u => u.id === id);
+        await userService.deleteUser(id);
+        
+        await auditService.logActivity({
+          userId: userData?.uid,
+          userName: userData?.name || 'Admin',
+          action: 'DELETE_USER',
+          module: 'GOVERNANCE',
+          description: `Deleted user: ${targetUser?.name || 'Unknown'} (${targetUser?.email || id})`,
+          metadata: { targetUserId: id, facilityId: targetUser?.facilityId }
+        });
+
+        setUsers(prev => prev.filter(u => u.id !== id));
+        showNotification('User removed successfully.');
+      } catch (error) {
+        console.error("Delete user error:", error);
+        showNotification('Failed to delete user.');
+      }
     }
   };
 

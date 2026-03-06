@@ -10,6 +10,12 @@ import Users from './pages/master/Users';
 import PermissionsEditor from './pages/master/PermissionsEditor';
 import Profile from './pages/master/Profile';
 import Subscriptions from './pages/superadmin/Subscriptions';
+import GlobalAudit from './pages/superadmin/GlobalAudit';
+import SystemCodes from './pages/superadmin/SystemCodes';
+import Reports from './pages/master/Reports';
+import OutpatientReport from './pages/reports/OutpatientReport';
+import OutcomeReport from './pages/reports/OutcomeReport';
+import InventoryReport from './pages/reports/InventoryReport';
 import Accounts from './pages/master/Accounts';
 import Branches from './pages/master/Branches';
 import PracticeType from './pages/config/PracticeType';
@@ -22,7 +28,6 @@ import Billing from './pages/financial/Billing';
 import Accounting from './pages/financial/Accounting';
 import Inventory from './pages/operational/Inventory';
 import Ward from './pages/clinical/Ward';
-import OutpatientReport from './pages/reports/OutpatientReport';
 import ChangePlan from './pages/subscription/ChangePlan';
 import UserPlan from './pages/subscription/UserPlan';
 import Growth from './pages/subscription/Growth';
@@ -32,13 +37,17 @@ import DailyVisits from './pages/reports/DailyVisits';
 import DiagnosisTrend from './pages/reports/DiagnosisTrend';
 import PatientList from './pages/master/PatientList';
 import PatientDetails from './pages/master/PatientDetails';
-import OutcomeReport from './pages/reports/OutcomeReport';
 import ServiceUtilization from './pages/reports/ServiceUtilization';
 import InvestigationSetup from './pages/config/InvestigationSetup';
 import PharmacySetup from './pages/config/PharmacySetup';
 import MedicineConfig from './pages/config/MedicineConfig';
 import DrugCatalog from './pages/config/DrugCatalog';
 import ProcedureMaster from './pages/config/ProcedureMaster';
+import AdoptionReport from './pages/reports/AdoptionReport';
+import ResourceUsageReport from './pages/reports/ResourceUsageReport';
+import InsuranceAgingReport from './pages/reports/InsuranceAgingReport';
+import DailyCashflowReport from './pages/reports/DailyCashflowReport';
+import WaitlistTV from './pages/clinical/WaitlistTV';
 import './index.css';
 
 function App() {
@@ -61,6 +70,16 @@ function App() {
           
           {/* Superadmin Routes */}
           <Route path="/superadmin/subscriptions" element={<PrivateRoute><Subscriptions /></PrivateRoute>} />
+          <Route path="/superadmin/audit" element={<PrivateRoute><GlobalAudit /></PrivateRoute>} />
+          <Route path="/superadmin/codes" element={<PrivateRoute><SystemCodes /></PrivateRoute>} />
+          <Route path="/master/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+          <Route path="/reports/outpatient" element={<PrivateRoute><OutpatientReport /></PrivateRoute>} />
+          <Route path="/reports/outcome" element={<PrivateRoute><OutcomeReport /></PrivateRoute>} />
+          <Route path="/reports/inventory" element={<PrivateRoute><InventoryReport /></PrivateRoute>} />
+          <Route path="/reports/adoption" element={<PrivateRoute><AdoptionReport /></PrivateRoute>} />
+          <Route path="/reports/usage" element={<PrivateRoute><ResourceUsageReport /></PrivateRoute>} />
+          <Route path="/reports/insurance-aging" element={<PrivateRoute><InsuranceAgingReport /></PrivateRoute>} />
+          <Route path="/reports/daily-cashflow" element={<PrivateRoute><DailyCashflowReport /></PrivateRoute>} />
 
           {/* Clinical Ops */}
           <Route path="/appointments" element={<PrivateRoute><Appointments /></PrivateRoute>} />
@@ -68,6 +87,7 @@ function App() {
           <Route path="/clinical-forms" element={<PrivateRoute><ClinicalForms /></PrivateRoute>} />
           <Route path="/investigation" element={<PrivateRoute><Investigation /></PrivateRoute>} />
           <Route path="/ward" element={<PrivateRoute><Ward /></PrivateRoute>} />
+          <Route path="/waitlist-tv" element={<WaitlistTV />} />
           
           {/* Configuration */}
           <Route path="/config/practice" element={<PrivateRoute><PracticeType /></PrivateRoute>} />
@@ -91,10 +111,8 @@ function App() {
           <Route path="/pharmacy" element={<PrivateRoute><Inventory /></PrivateRoute>} />
           
           {/* Reports */}
-          <Route path="/reports/outpatient" element={<PrivateRoute><OutpatientReport /></PrivateRoute>} />
           <Route path="/reports/daily" element={<PrivateRoute><DailyVisits /></PrivateRoute>} />
           <Route path="/reports/diagnosis" element={<PrivateRoute><DiagnosisTrend /></PrivateRoute>} />
-          <Route path="/reports/outcomes" element={<PrivateRoute><OutcomeReport /></PrivateRoute>} />
           <Route path="/reports/utilization" element={<PrivateRoute><ServiceUtilization /></PrivateRoute>} />
 
           {/* New Master Setup */}

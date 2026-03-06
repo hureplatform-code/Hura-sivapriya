@@ -30,6 +30,8 @@ import 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
 import billingService from '../../services/billingService';
 import patientService from '../../services/patientService';
+import auditService from '../../services/auditService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const BILL_TYPES = [
   { id: '1', name: 'Registration', icon: User, stage: 1 },
@@ -53,9 +55,33 @@ export default function Billing() {
     todayPayments: 0
   });
 
+  const { userData } = useAuth();
+
   useEffect(() => {
     fetchInvoices();
   }, []);
+
+  if (userData?.role === 'superadmin') {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+           <div className="h-20 w-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 shadow-inner">
+              <Receipt className="h-10 w-10" />
+           </div>
+           <h2 className="text-2xl font-black text-slate-900 tracking-tight">FinOps Oversight</h2>
+           <p className="text-slate-500 max-w-md mt-2 font-medium">
+             Clinic-level invoice data contains sensitive patient billing information. Platform governance access is restricted to Global Revenue Analytics.
+           </p>
+           <button 
+             onClick={() => navigate('/accounting')}
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+           >
+             Go to Platform Revenue
+           </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const fetchInvoices = async () => {
     try {
@@ -128,6 +154,27 @@ export default function Billing() {
   const handleViewDetails = (inv) => {
     setNotification({ type: 'info', message: `Viewing details for ${inv.invoiceNo} (Patient: ${inv.patientName})` });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleMarkAsPaid = async (inv) => {
+    try {
+      await billingService.updatePaymentStatus(inv.id, 'paid', inv);
+      
+      await auditService.logActivity({
+        userId: userData?.uid,
+        userName: userData?.name || 'Receptionist',
+        action: 'MARK_INVOICE_PAID',
+        module: 'FINANCIAL',
+        description: `Marked Invoice #${inv.invoiceNo} as PAID for ${inv.patientName}`,
+        metadata: { invoiceId: inv.id, amount: inv.totalAmount, patientName: inv.patientName }
+      });
+      
+      setNotification({ type: 'success', message: `Invoice ${inv.invoiceNo} marked as paid. Ledger updated.` });
+      setTimeout(() => setNotification(null), 3000);
+      fetchInvoices();
+    } catch (error) {
+      console.error('Error marking as paid:', error);
+    }
   };
 
   return (
@@ -276,6 +323,15 @@ export default function Billing() {
                                   <Receipt className="h-4 w-4" />
                                   Print Invoice
                                 </button>
+                                {inv.status !== 'paid' && (
+                                  <button 
+                                    onClick={() => { handleMarkAsPaid(inv); setActiveMenu(null); }}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Mark as Paid
+                                  </button>
+                                )}
                                 <div className="h-px bg-slate-50 my-1"></div>
                                 <button 
                                   onClick={() => { handleVoidInvoice(inv); setActiveMenu(null); }}
@@ -329,6 +385,7 @@ export default function Billing() {
 }
 
 function BillGenerator({ onClose, onSave }) {
+  const { userData } = useAuth();
   const [stage, setStage] = useState(1);
   const [patientId, setPatientId] = useState('');
   const [appointmentId, setAppointmentId] = useState('');
@@ -407,7 +464,7 @@ function BillGenerator({ onClose, onSave }) {
     }
     const patient = patients.find(p => p.id === patientId);
     
-    await billingService.createInvoice({
+    const invoiceData = {
       ...formData,
       patientId,
       invAppId: appointmentId,
@@ -417,7 +474,26 @@ function BillGenerator({ onClose, onSave }) {
       invoiceNo: `INV-${Date.now().toString().slice(-6)}`,
       createdAt: new Date(),
       status: 'pending'
+    };
+
+    const result = await billingService.createInvoice(invoiceData);
+
+    // Audit Logging
+    await auditService.logActivity({
+      userId: userData?.uid,
+      userName: userData?.name || 'Receptionist',
+      action: 'GENERATE_INVOICE',
+      module: 'FINANCIAL',
+      description: `Generated Invoice #${invoiceData.invoiceNo} for ${patient?.name || 'Patient'} - Total: ${APP_CONFIG.CURRENCY} ${invoiceData.totalAmount}`,
+      metadata: {
+        invoiceId: result?.id,
+        invoiceNo: invoiceData.invoiceNo,
+        patientId,
+        amount: invoiceData.totalAmount,
+        stage: invoiceData.stage
+      }
     });
+
     onSave();
   };
 

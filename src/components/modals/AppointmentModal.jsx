@@ -108,12 +108,18 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
 
     setLoading(true);
     try {
+      const now = new Date();
+      const todayString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const isSameDay = formData.date === todayString;
+
       const appointmentData = {
         ...formData,
         patient: selectedPatient.name,
         patientId: selectedPatient.id,
-        status: 'pending',
-        createdAt: new Date()
+        status: 'scheduled',
+        bookingType: isSameDay ? 'SD' : 'ADV',
+        confirmationStatus: 'NC', // Default Not Confirmed
+        createdAt: new Date().toISOString()
       };
       
       if (onSave) {

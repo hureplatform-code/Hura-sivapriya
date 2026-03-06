@@ -1,18 +1,12 @@
 import firestoreService from './firestoreService';
-import { serverTimestamp } from 'firebase/firestore';
+import { serverTimestamp, orderBy, limit, where, query, collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const auditService = {
   collection: firestoreService.collections.audit_logs || 'audit_logs',
 
   /**
    * Logs an activity to the audit trail
-   * @param {Object} logData 
-   * @param {string} logData.userId - ID of the user performing the action
-   * @param {string} logData.userName - Name of the user
-   * @param {string} logData.action - Action performed (e.g., 'CREATE_NOTE', 'UPDATE_RESULT')
-   * @param {string} logData.module - System module (e.g., 'CLINICAL', 'FINANCIAL')
-   * @param {string} logData.description - Human readable description
-   * @param {Object} logData.metadata - Any additional context (patientId, recordId, etc.)
    */
   async logActivity(logData) {
     try {
@@ -29,12 +23,24 @@ const auditService = {
   /**
    * Fetches recent audit logs for the dashboard feed
    * @param {number} limitNum 
+   * @param {string|null} facilityId - If provided, filter by facility (Governance Rule)
    */
-  async getRecentLogs(limitNum = 10) {
+  async getRecentLogs(limitNum = 20, facilityId = null) {
     try {
-      // In a real Firestore setup, we'd use orderBy('timestamp', 'desc').limit(limitNum)
-      // For now, using the standard getAll helper
-      return await firestoreService.getAll(this.collection);
+      const constraints = [
+        orderBy('timestamp', 'desc'),
+        limit(limitNum)
+      ];
+      
+      // If facilityId is provided, scoped to that clinic. 
+      // If null, it's a Superadmin viewing GLOBAL audit trail.
+      if (facilityId) {
+        constraints.unshift(where('facilityId', '==', facilityId));
+      }
+      
+      const q = query(collection(db, this.collection), ...constraints);
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
       console.error('Error fetching audit logs:', error);
       return [];

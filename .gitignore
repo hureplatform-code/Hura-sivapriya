@@ -1,6 +1,9 @@
 # Logs
 logs
 *.log
+*.pdf
+*.docx
+*.doc
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

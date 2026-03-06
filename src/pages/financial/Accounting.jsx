@@ -1,31 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { 
-  Wallet, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Search, 
-  Filter, 
-  Plus, 
-  MoreVertical, 
   Building2, 
-  Users, 
+  TrendingUp, 
+  ArrowDownRight, 
+  DollarSign, 
+  PlusCircle, 
+  ArrowUpRight, 
+  Filter, 
+  Search,
+  Wallet,
+  Users,
   FileText,
-  DollarSign,
   PieChart,
   History,
-  TrendingUp,
   X,
-  PlusCircle,
   CreditCard,
-  Briefcase
+  Briefcase,
+  Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
 import accountingService from '../../services/accountingService';
 import billingService from '../../services/billingService';
+import auditService from '../../services/auditService';
+import facilityService from '../../services/facilityService';
+import userService from '../../services/userService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Accounting() {
+  const { userData } = useAuth();
   const [ledgers, setLedgers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -44,16 +48,45 @@ export default function Accounting() {
   const fetchAccountingData = async () => {
     try {
       setLoading(true);
-      const [billingStats, ledgerEntries] = await Promise.all([
-        billingService.getFinancialStats(),
-        accountingService.getAllEntries()
-      ]);
-
-      const revenue = billingStats.revenue;
-      const stats = await accountingService.getAccountingStats(revenue);
       
-      setLedgers(ledgerEntries || []);
-      setAccStats({ ...stats, revenue });
+      if (userData?.role === 'superadmin') {
+         // PLATFORM LEVEL OVERVIEW
+         const [allFacilities, allUsers] = await Promise.all([
+           facilityService.getAllFacilities(),
+           userService.getAllUsers()
+         ]);
+
+         const clinicsCount = allFacilities.length;
+         const activeSubscribers = allFacilities.filter(f => f.subscription?.status === 'active').length;
+         const globalRevenue = allFacilities.reduce((sum, f) => {
+            // Estimate revenue based on subscription plan monthly cost (placeholder logic)
+            const plan = (f.subscription?.planName || 'Essential').toLowerCase();
+            const monthly = plan === 'professional' ? 5000 : plan === 'enterprise' ? 15000 : 2500;
+            return sum + monthly;
+         }, 0);
+
+         setAccStats({
+           expenses: 45000, // Platform server/staff costs
+           vendorBalance: clinicsCount, // Re-use for Clinic Count
+           netProfit: globalRevenue - 45000,
+           revenue: globalRevenue,
+           isPlatform: true,
+           activeSubscribers
+         });
+         
+         setLedgers([]); // Superadmins see organizations, not clinic ledgers here
+      } else {
+         const [billingStats, ledgerEntries] = await Promise.all([
+           billingService.getFinancialStats(),
+           accountingService.getAllEntries()
+         ]);
+
+         const revenue = billingStats.revenue;
+         const stats = await accountingService.getAccountingStats(revenue);
+         
+         setLedgers(ledgerEntries || []);
+         setAccStats({ ...stats, revenue, isPlatform: false });
+      }
 
     } catch (error) {
       console.error('Error fetching accounting data:', error);
@@ -67,7 +100,12 @@ export default function Accounting() {
     return l.status === filterType;
   });
 
-  const stats = [
+  const stats = accStats.isPlatform ? [
+    { label: 'Platform Revenue', value: `${APP_CONFIG.CURRENCY} ${accStats.revenue.toLocaleString()}`, change: '+12%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Server/Dev Costs', value: `${APP_CONFIG.CURRENCY} 45,000`, change: '-5.2%', icon: ArrowDownRight, color: 'text-red-600', bg: 'bg-red-50' },
+    { label: 'Total Clinics', value: accStats.vendorBalance.toString(), change: 'Active Orgs', icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Platform Profit', value: `${APP_CONFIG.CURRENCY} ${accStats.netProfit.toLocaleString()}`, change: '+20%', icon: DollarSign, color: 'text-slate-900', bg: 'bg-slate-50' },
+  ] : [
     { label: 'Monthly Revenue', value: `${APP_CONFIG.CURRENCY} ${accStats.revenue.toLocaleString()}`, change: '+12%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Total Expenses', value: `${APP_CONFIG.CURRENCY} ${accStats.expenses.toLocaleString()}`, change: '-5.2%', icon: ArrowDownRight, color: 'text-red-600', bg: 'bg-red-50' },
     { label: 'Vendor Balance', value: `${APP_CONFIG.CURRENCY} ${accStats.vendorBalance.toLocaleString()}`, change: 'Active Vendors', icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -75,9 +113,23 @@ export default function Accounting() {
   ];
 
   const handlePostEntry = async (data) => {
-    await accountingService.createEntry(data);
-    setIsAdding(false);
-    fetchAccountingData();
+    try {
+      const result = await accountingService.createEntry(data);
+      
+      await auditService.logActivity({
+        userId: userData?.uid,
+        userName: userData?.name || 'Accountant',
+        action: 'POST_LEDGER_ENTRY',
+        module: 'FINANCIAL',
+        description: `Posted ${data.type} entry: ${data.item} for ${APP_CONFIG.CURRENCY} ${data.amount}`,
+        metadata: { entryId: result.id, type: data.type, amount: data.amount }
+      });
+
+      setIsAdding(false);
+      fetchAccountingData();
+    } catch (error) {
+       console.error('Error posting entry:', error);
+    }
   };
 
   if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-bold text-slate-500">Auditing Ledgers...</div></DashboardLayout>;
@@ -87,16 +139,24 @@ export default function Accounting() {
       <div className="space-y-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Financial Ledger</h1>
-            <p className="text-slate-500 font-medium mt-1">General accounting, expense tracking, and vendor management.</p>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+              {accStats.isPlatform ? 'Platform Revenue Overview' : 'Financial Ledger'}
+            </h1>
+            <p className="text-slate-500 font-medium mt-1">
+              {accStats.isPlatform 
+                ? 'Global subscription analytics and platform profitability tracking.' 
+                : 'General accounting, expense tracking, and vendor management.'}
+            </p>
           </div>
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
-          >
-            <PlusCircle className="h-5 w-5" />
-            Post Ledger Entry
-          </button>
+          {!accStats.isPlatform && (
+            <button 
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+            >
+              <PlusCircle className="h-5 w-5" />
+              Post Ledger Entry
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
@@ -126,20 +186,24 @@ export default function Accounting() {
            <div className="lg:col-span-2 space-y-6">
               <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
                  <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Recent Transactions</h3>
-                    <div className="flex gap-2">
-                       {['All', 'Paid', 'Pending'].map(s => (
-                          <button 
-                            key={s}
-                            onClick={() => setFilterType(s)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
-                              ${filterType === s ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
-                            `}
-                          >
-                             {s}
-                          </button>
-                       ))}
-                    </div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                      {accStats.isPlatform ? 'Global Organization Growth' : 'Recent Transactions'}
+                    </h3>
+                    {!accStats.isPlatform && (
+                      <div className="flex gap-2">
+                         {['All', 'Paid', 'Pending'].map(s => (
+                            <button 
+                              key={s}
+                              onClick={() => setFilterType(s)}
+                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                                ${filterType === s ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
+                              `}
+                            >
+                               {s}
+                            </button>
+                         ))}
+                      </div>
+                    )}
                  </div>
 
                  <div className="overflow-x-auto">

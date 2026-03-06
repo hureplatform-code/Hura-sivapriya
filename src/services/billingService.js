@@ -1,4 +1,5 @@
 import firestoreService from './firestoreService';
+import accountingService from './accountingService';
 
 const billingService = {
   collection: firestoreService.collections.billing,
@@ -28,8 +29,24 @@ const billingService = {
     return invoice;
   },
 
-  async updatePaymentStatus(id, status) {
-    return firestoreService.update(this.collection, id, { paymentStatus: status });
+  async updatePaymentStatus(id, status, invoiceData = null) {
+     const result = await firestoreService.update(this.collection, id, { paymentStatus: status });
+     
+     // AUTOMATIC LEDGER POSTING
+     if (status === 'paid' && invoiceData) {
+        await accountingService.createEntry({
+           name: `Payment for Invoice #${invoiceData.invoiceNo || id}`,
+           vendor: invoiceData.patientName || 'Patient',
+           category: 'Patient Payment',
+           amount: invoiceData.totalAmount || 0,
+           status: 'Paid',
+           type: 'Income',
+           date: new Date().toISOString(),
+           facilityId: invoiceData.facilityId
+        });
+     }
+     
+     return result;
   },
 
   async getFinancialStats() {

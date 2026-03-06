@@ -12,8 +12,11 @@ import {
 } from 'lucide-react';
 import { PERMISSION_MODULES } from '../../constants/permissions';
 import userService from '../../services/userService';
+import auditService from '../../services/auditService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function PermissionsEditor({ userId, userName, onClose }) {
+  const { userData } = useAuth();
   const [permissions, setPermissions] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,6 +67,17 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
     try {
       setSaving(true);
       await userService.updateUser(userId, { permissions });
+      
+      const activeCount = Object.values(permissions).filter(v => v).length;
+      await auditService.logActivity({
+        userId: userData?.uid,
+        userName: userData?.name || 'Admin',
+        action: 'UPDATE_PERMISSIONS',
+        module: 'GOVERNANCE',
+        description: `Modified granular security matrix for ${userName} (${activeCount} nodes active)`,
+        metadata: { targetUserId: userId, permissionsCount: activeCount }
+      });
+
       onClose();
     } catch (error) {
       console.error('Error saving permissions:', error);

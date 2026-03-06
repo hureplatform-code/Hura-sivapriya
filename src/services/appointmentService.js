@@ -26,6 +26,14 @@ const appointmentService = {
     return firestoreService.update(this.collection, id, { status });
   },
 
+  async updateAppointment(id, data) {
+    return firestoreService.update(this.collection, id, data);
+  },
+
+  async deleteAppointment(id) {
+    return firestoreService.delete(this.collection, id);
+  },
+
   async getAppointmentsByDoctor(doctorId) {
     const q = [where('provider', '==', doctorId)];
     const results = await firestoreService.getAll(this.collection, q);

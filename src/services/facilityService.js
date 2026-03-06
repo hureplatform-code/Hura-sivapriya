@@ -1,5 +1,6 @@
 import firestoreService from './firestoreService';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { where } from 'firebase/firestore';
 import { storage } from '../firebase';
 
 const facilityService = {
@@ -31,20 +32,31 @@ const facilityService = {
             logoUrl = await getDownloadURL(snapshot.ref);
         }
 
+        let limitStaff = 10;
+        let limitLocations = 1;
+
+        if (facilityData.subscriptionPlan === 'Professional') {
+            limitStaff = 30;
+            limitLocations = 2;
+        } else if (facilityData.subscriptionPlan === 'Enterprise') {
+            limitStaff = 75;
+            limitLocations = 5;
+        }
+
         const newProfile = {
             ...facilityData,
             id: newFacilityId,
             logoUrl: logoUrl,
             createdAt: new Date().toISOString(),
-            status: 'active',
+            status: 'trial',
             subscription: {
-              planId: 'trial',
-              planName: 'Free Trial',
-              maxStaff: 5,
-              maxLocations: 1,
+              planId: facilityData.subscriptionPlan?.toLowerCase() || 'essential',
+              planName: facilityData.subscriptionPlan || 'Essential',
+              maxStaff: limitStaff,
+              maxLocations: limitLocations,
               startDate: new Date().toISOString(),
-              expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days
-              status: 'active'
+              expiryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(), // 10-day trial
+              status: 'trial'
             }
         };
 
@@ -103,13 +115,15 @@ const facilityService = {
   },
 
   // Branch Management
-  async getBranches() {
-    return firestoreService.getAll(this.branchesCollection);
+  async getBranches(facilityId) {
+    if (!facilityId) return [];
+    return firestoreService.getAll(this.branchesCollection, [where('facilityId', '==', facilityId)]);
   },
 
-  async addBranch(branchData) {
+  async addBranch(facilityId, branchData) {
     return firestoreService.create(this.branchesCollection, {
       ...branchData,
+      facilityId,
       status: branchData.status || 'Active',
       createdAt: new Date().toISOString()
     });

@@ -3,7 +3,8 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  signOut 
+  signOut,
+  sendEmailVerification
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -44,6 +45,13 @@ export function AuthProvider({ children }) {
   async function signup(email, password, additionalData) {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     const user = result.user;
+
+    // Send email verification link
+    try {
+      await sendEmailVerification(user);
+    } catch (err) {
+      console.error("Failed to send verification email:", err);
+    }
 
     // Create user profile in Firestore
     const profileData = {

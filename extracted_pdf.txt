@@ -1,0 +1,277 @@
+1 
+ 
+Software Requirements Specification (SRS) 
+Project: HURE Care — Small/Medium Hospital System (≤20 Beds) 
+Version: 1.0 
+Date: 19 Feb 2026 
+ 
+1. Purpose 
+This document defines the functional and non-functional requirements for HURE Care, a 
+hospital system designed for small/medium facilities (up to 20 beds) that need strong 
+OPD + Inpatient workflows, specialty clinics (e.g., Dental, Gyna), and billing/insurance 
+readiness, including assistive AI features. 
+ 
+2. Goals and Objectives 
+Primary Goals 
+1. Provide a complete OPD workflow: registration → triage → consultation → orders → 
+pharmacy → billing → close visit. 
+2. Provide a complete Inpatient workflow: admission → bed management → ward care 
+→ orders → billing → discharge. 
+3. Make documentation safer and faster using assistive AI (clinician review + sign 
+required). 
+4. Make billing insurance-claims ready (manual submission now, integrations later). 
+5. Ensure the system is audit-safe, access-controlled, and practical for Kenya/East 
+Africa operations. 
+ 
+3. Scope 
+In Scope (Core Modules) 
+• User & role management with permissions 
+• Patient registration and demographics 
+• OPD visits + triage + queue management 
+2 
+ 
+• Clinical documentation (SOAP notes) with AI assistance 
+• ICD-10 suggestion workflow (manual selection only) 
+• Referrals (AI-assisted) with PDF export 
+• Appointment scheduling + confirmation badges 
+• Pharmacy dispensing (OPD + IPD) 
+• Lab/Imaging orders + results tracking (basic workflow) 
+• Billing & receipts + insurance snapshots 
+• Inpatient admissions + beds + ward notes + discharge 
+• Intake forms via secure patient link (pending review) 
+• End-of-day closure: incomplete notes reminders + admin reporting 
+• Reports (operational + billing + clinical summary) 
+• Audit trail across clinical + billing actions 
+ 
+4. Users and Roles 
+Standard Roles (Minimum) 
+1. System Admin: configuration, users, permissions, full reporting, audit access. 
+2. Receptionist: register patients, create OPD visits, manage appointments/queue. 
+3. Nurse (Triage/OPD): vitals, triage notes, route patients. 
+4. Clinician/Doctor: clinical notes, orders, prescriptions, admit/discharge. 
+5. Dentist: procedures + prescriptions. 
+6. Gyna Clinician: gyna notes + follow-ups. 
+7. Ward Nurse (Inpatient): ward notes, vitals round, medication administration record 
+(MAR). 
+8. Lab Technician: samples, test processing, results entry. 
+9. Imaging Staff: imaging request fulfillment + report attachment. 
+10. Pharmacist/Dispenser: dispensing + stock deductions. 
+3 
+ 
+11. Cashier/Billing Officer: invoices, receipts, claim draft prep, daily close. 
+Permission Rules (High-level) 
+• Clinical signing is only allowed for clinicians/dentists/gyna roles. 
+• Billing edits are restricted to billing staff. 
+• Admin/Employer sees incomplete note status after 24h but not note content 
+(unless explicitly granted). 
+ 
+5. Key Workflows 
+5.1 OPD Workflow (Day/Outpatient) 
+1. Patient arrives → receptionist searches/creates patient. 
+2. Receptionist creates OPD visit (clinic type, payer type) → patient placed in queue. 
+3. Nurse triage captures vitals + chief complaint → routes to clinician queue. 
+4. Clinician consults, documents (SOAP), orders labs/imaging, prescribes. 
+5. Patient proceeds to lab/imaging/pharmacy as needed. 
+6. Billing auto-aggregates services + dispensed meds → cashier receives 
+payment/creates insurance bill. 
+7. Visit closed with summary and follow-up appointment (if needed). 
+5.2 Inpatient Workflow (≤20 Beds) 
+1. Clinician admits patient from OPD or direct admission. 
+2. Ward nurse completes admission intake checklist and starts care notes. 
+3. Ward rounds: clinician updates progress notes and orders; nurse records vitals and 
+MAR. 
+4. Billing accumulates bed-days + services + pharmacy/labs. 
+5. Clinician discharges: discharge summary + final prescriptions + follow-up. 
+6. Bed is released and inpatient episode closed. 
+ 
+ 
+4 
+ 
+6. Functional Requirements 
+6.1 Patient Registration & Demographics 
+• System shall create and manage patient master records: 
+o Name, gender, DOB/age, phone(s), address/town, next of kin, allergies, 
+chronic conditions, email, id number 
+o Insurance details (scheme, member number, principal, payer type) 
+• System shall allow fast patient search by phone, ID, or name. 
+• System shall store attachments (referrals, IDs, prior reports). 
+6.2 Appointments + Confirmation Badges 
+• System shall support appointment scheduling by clinic and provider. 
+• Appointment status shall include: Scheduled, Confirmed, Cancelled, No-show, 
+Completed. 
+• System shall automatically set booking type: 
+o SD (Same Day) if created date equals appointment date 
+o ADV (Advance) otherwise 
+• System shall display confirmation badges: 
+o C (Confirmed), NC (Not confirmed), LM (Left message) 
+• System shall log confirmation attempts (time, method, staff). 
+6.3 OPD Visit + Queue Management 
+• System shall create visits and assign them to clinics/providers. 
+• System shall display real-time queues by clinic/provider. 
+• System shall track visit progression statuses (e.g., waiting triage, in consultation, 
+sent to lab). 
+6.4 Triage (Nursing) 
+• System shall capture vitals: BP , pulse, temp, weight, height, SpO2 (optional). 
+• System shall allow triage notes and urgency flags. 
+ 
+5 
+ 
+6.5 Clinical Notes (SOAP) + Assistive AI (Clinician Safe) 
+• System shall allow clinical notes via Text-only or Audio → Transcript. 
+• If Audio mode is used: 
+o transcript shall appear immediately after recording 
+o clinician shall edit transcript 
+o clinician must click Mark transcript reviewed before Save & Sign 
+• System shall support: 
+o generating SOAP from transcript 
+o parsing single note into SOAP fields 
+o rewriting for clarity (assist only; no meaning change) 
+• Notes shall support: 
+o Save Draft 
+o Save & Sign (final) 
+• Notes shall display origin label: Created via Audio or Text-only. 
+6.6 ICD-10 Suggestions (Assistive Only) 
+• System shall provide AI-suggested ICD-10 codes for clinician review. 
+• System shall require clinician manual selection; no auto assignment. 
+• System shall store selected ICD-10 codes linked to the signed note. 
+6.7 Incomplete Notes Control (End-of-Day Closure) 
+• System shall show clinicians same-day reminders: 
+o count of incomplete notes 
+o list of encounters with “No note started” or “Draft not signed” 
+• Admin/Employer shall see completion status only after a 24-hour grace period. 
+• Admin view shall include aging buckets: 24–48h, 48–72h, 72h+. 
+6.8 Orders: Lab / Imaging (Basic) 
+• System shall allow clinicians to order lab tests and imaging. 
+6 
+ 
+• Lab/imaging shall update status: ordered → collected/in progress → results ready. 
+• Results shall appear in the encounter and patient history. 
+• Critical results flag is optional but recommended. 
+6.9 Pharmacy (OPD + Inpatient Dispensing) 
+• System shall receive prescriptions electronically from clinicians. 
+• System shall support dispensing: 
+o full, partial, or unavailable 
+• System shall reduce stock quantities upon dispensing (basic inventory). 
+• System shall link dispensed items to billing. 
+6.10 Inpatient: Beds + Ward Notes + Discharge 
+• System shall manage wards and beds (availability, assignment, release). 
+• System shall record: 
+o admission reason/diagnosis 
+o ward nursing notes and vitals rounds 
+o medication administration record (MAR) 
+• System shall generate discharge summary and discharge prescription. 
+6.11 Referral Notes (AI-Assisted, Editable, Downloadable) 
+• System shall support a new note type: Referral Note. 
+• System shall generate referral note from a selected visit note source: 
+o default: most recent signed SOAP in that visit 
+o fallback: draft with warning if no signed note exists 
+• Referral note output shall support: 
+o Save Draft / Save & Sign 
+o Download PDF , Print, Copy email text 
+• System shall store a PDF snapshot for audit and history. 
+6.12 Patient Intake Forms (Secure Link, Pending Review) 
+7 
+ 
+• System shall allow staff to send intake forms via secure link: 
+o link expires in 24 hours 
+o patient verifies identity using last 4 digits of phone 
+• Submissions shall be marked Pending Review. 
+• Staff shall review and Accept or Reject. 
+• Accepting insurance form updates Demographics (single source of truth). 
+• System shall store PDF snapshot of submitted form for audit. 
+6.13 Billing + Insurance Claims-Ready 
+• System shall generate invoices automatically from services, procedures, labs, and 
+dispensed meds. 
+• System shall support payments: card, mobile money (for accountability only no 
+cash) 
+• If payer is Insurance: 
+o show insurance summary read-only from Demographics 
+o allow Prepare Insurance Claim 
+• System shall create Claim Draft: 
+o insurance snapshot 
+o selected ICD-10 list 
+o itemized bill snapshot 
+o attachments references 
+• System shall generate a Claim Pack PDF for manual submission. 
+ 
+7. Data Requirements (What Must Be Collected) 
+Patient Demographics 
+• Name, gender, DOB/age, phone, address/town, id, email(not a must) 
+• Next of kin + contact 
+• Allergies, chronic conditions 
+8 
+ 
+• Insurance fields (scheme, member no., principal, payer type) 
+Encounter (OPD/IPD) 
+• Date/time, clinic/provider, payer type 
+• Triage vitals + triage notes 
+• Clinical note content (transcript + SOAP fields) 
+• ICD-10 selected codes 
+• Orders + results 
+• Prescriptions + dispensing records 
+• Billing items + payments 
+• Discharge summary (IPD) 
+Audit (mandatory) 
+• all major events: recording started/stopped, transcript edited/reviewed, AI 
+generated SOAP , ICD-10 suggested/selected, signed, referral generated, claim pack 
+generated, etc. 
+ 
+8. Non-Functional Requirements 
+Security & Privacy 
+• Role-based access control (RBAC) 
+• Automatic screen warning at 90 seconds inactivity; lock at 2 minutes 
+• Track “last accessed” and “last edited” 
+• Data encryption at rest and in transit (TLS) 
+• Access logs and audit logs must be immutable (append-only) 
+Clinician Safety 
+• AI outputs are always suggestions; clinician reviews + signs final record 
+• Block signing if transcript not reviewed (for audio notes) 
+• Allow “edit after sign” only with reason + audit trail 
+Performance 
+9 
+ 
+• OPD queue pages must load quickly (<3 seconds typical). 
+• Search and check-in should be optimized for busy front desk usage. 
+Reliability 
+• Automatic backups 
+• Graceful handling of unstable internet (recommended caching/retry strategy) 
+ 
+9. Reporting Requirements (Minimum) 
+• Daily OPD attendance 
+• Revenue by day/service/provider 
+• Appointment status summary (confirmed/cancelled/no-show) 
+• Inpatient occupancy (beds used vs available) 
+• Incomplete notes report (admin view after 24h) 
+• Claims list report and download claim pack 
+ 
+10. Acceptance Criteria (Client Verification) 
+The system will be accepted when: 
+1. Clinician cannot Save & Sign an audio note without marking transcript reviewed. 
+2. Notes clearly show “Created via Audio” vs “Text-only” . 
+3. ICD-10 suggestions require manual selection (no auto-assign). 
+4. Providers see same-day incomplete notes; employers/admin see only after 24h and 
+without note content. 
+5. Referral notes can be generated from selected visits, saved, signed, and 
+downloaded as PDF . 
+6. Appointment badges SD/ADV and C/NC/LM render and update correctly with audit 
+logs. 
+7. Intake form links expire in 24h; last-4 phone verification works; submissions follow 
+Pending Review → Accept/Reject flow. 
+10 
+ 
+8. Claim drafts can be created from bills; claim pack PDF downloads; claim snapshots 
+do not change when demographics is updated later. 
+9. Audit logs exist for all major clinical, billing, and claims actions. 
+ 
+11. Implementation Phases (Recommended) 
+Phase 1: Core OPD + Billing 
+• Users/Roles, Patient registration, OPD visits, Triage, Consultation, Pharmacy, Billing, 
+basic reports 
+Phase 2: Inpatient 
+• Admissions, beds, ward notes, MAR, discharge, inpatient billing 
+Phase 3: AI + Workflow Enhancements 
+• AI SOAP + ICD-10, end-of-day incomplete notes, referral note generation + PDF 
+Phase 4: Claims-Ready + Intake Forms 
+• intake forms + pending review, claim drafts + claim pack, appointment badges + 
+reminders (messaging connectors later) 
+ 

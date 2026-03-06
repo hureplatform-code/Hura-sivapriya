@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
 // ... rest of imports ...
 import { 
   Calendar as CalendarIcon, 
@@ -22,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AppointmentModal from '../../components/modals/AppointmentModal';
 import appointmentService from '../../services/appointmentService';
 import AppointmentSummaryModal from '../../components/modals/AppointmentSummaryModal';
+import medicalRecordService from '../../services/medicalRecordService';
 
 export default function Appointments() {
   const navigate = useNavigate();
@@ -31,10 +33,35 @@ export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isTriageOpen, setIsTriageOpen] = useState(false);
+  const [triageApt, setTriageApt] = useState(null);
+  const { userData } = useAuth();
   const [activeMenu, setActiveMenu] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [specialtyFilter, setSpecialtyFilter] = useState('All');
   const [notification, setNotification] = useState(null);
+
+  if (userData?.role === 'superadmin') {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+           <div className="h-20 w-20 bg-primary-50 rounded-3xl flex items-center justify-center text-primary-600 mb-6 shadow-inner">
+              <CalendarIcon className="h-10 w-10" />
+           </div>
+           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Access Restricted</h2>
+           <p className="text-slate-500 max-w-md mt-2 font-medium">
+             Individual clinic appointment schedules are managed by facility staff. Platform governance access is restricted to adoption and resource utilization metrics.
+           </p>
+           <button 
+             onClick={() => navigate('/')}
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+           >
+             Return to Platform Dashboard
+           </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
   // Calendar State
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -90,14 +117,29 @@ export default function Appointments() {
     noShows: appointments.filter(a => a.status === 'cancelled' || a.status === 'no-show').length
   };
 
-  const handleArrive = async (id) => {
+  const handleStatusUpdate = async (id, status, message) => {
     try {
-      await appointmentService.updateAppointmentStatus(id, 'arrived');
+      await appointmentService.updateAppointmentStatus(id, status);
       fetchAppointments();
-      setNotification({ type: 'success', message: 'Patient marked as Arrived.' });
+      setNotification({ type: 'success', message });
       setTimeout(() => setNotification(null), 3000);
     } catch (error) {
-      console.error("Error arriving patient:", error);
+      console.error(`Error updating status to ${status}:`, error);
+    }
+  };
+
+  const handleConfirmationUpdate = async (id, currentStatus) => {
+    // Cycle through: NC (Not Confirmed) -> LM (Left Message) -> C (Confirmed) -> NC
+    const nextStatusMap = { 'NC': 'LM', 'LM': 'C', 'C': 'NC' };
+    const nextStatus = nextStatusMap[currentStatus || 'NC'] || 'NC';
+    try {
+      // In a real app we would log the staff id/time for audit here.
+      await appointmentService.updateAppointment(id, { confirmationStatus: nextStatus });
+      fetchAppointments();
+      setNotification({ type: 'success', message: `Confirmation status updated to ${nextStatus}.` });
+      setTimeout(() => setNotification(null), 3000);
+    } catch (error) {
+      console.error('Error updating confirmation:', error);
     }
   };
 
@@ -132,7 +174,41 @@ export default function Appointments() {
     setIsModalOpen(true);
   };
 
+  const handlePerformTriage = (apt) => {
+    setTriageApt(apt);
+    setIsTriageOpen(true);
+  };
+
+  const handleSaveTriage = async (vitals) => {
+    try {
+      // 1. Update Appointment Status
+      await appointmentService.updateAppointmentStatus(triageApt.id, 'triage');
+      
+      // 2. Save Vitals to Medical Records (Type: triage)
+      await medicalRecordService.createRecord({
+        patientId: triageApt.patientId,
+        patientName: triageApt.patient,
+        appointmentId: triageApt.id,
+        doctorName: userData?.name || 'Nurse',
+        type: 'triage',
+        specialty: 'general',
+        title: 'Triage Assessment',
+        status: 'signed',
+        vitals
+      }, { id: userData?.uid, name: userData?.name });
+
+      fetchAppointments();
+      setIsTriageOpen(false);
+      setNotification({ type: 'success', message: 'Triage data recorded and patient queued for doctor.' });
+      setTimeout(() => setNotification(null), 3000);
+    } catch (error) {
+      console.error('Error saving triage:', error);
+      setNotification({ type: 'error', message: 'Failed to save triage data.' });
+    }
+  };
+
   const handleStartConsultation = (apt) => {
+    handleStatusUpdate(apt.id, 'in-session', 'Session Started.');
     navigate('/notes', { 
       state: { 
         autoCreate: true,
@@ -190,10 +266,9 @@ export default function Appointments() {
       return matchesSearch && matchesStatus && matchesSpecialty && matchesDate;
     })
     .sort((a, b) => {
-      // Prioritize Arrived status first
-      if (a.status === 'arrived' && b.status !== 'arrived') return -1;
-      if (a.status !== 'arrived' && b.status === 'arrived') return 1;
-      return 0;
+      // Prioritize Arrived/Triage/In-Session status first
+      const priority = { 'in-session': 1, 'triage': 2, 'arrived': 3, 'scheduled': 4, 'completed': 5, 'cancelled': 6 };
+      return (priority[a.status?.toLowerCase()] || 99) - (priority[b.status?.toLowerCase()] || 99);
     });
 
   const monthName = currentMonth.toLocaleString('default', { month: 'long' });
@@ -295,7 +370,9 @@ export default function Appointments() {
                 >
                   <option value="All">All Status</option>
                   <option value="Scheduled">Scheduled</option>
-                  <option value="Arrived">Arrived</option>
+                  <option value="Arrived">Arrived (Checked In)</option>
+                  <option value="Triage">Triage</option>
+                  <option value="In-Session">In Session</option>
                   <option value="Completed">Completed</option>
                 </select>
                 <button className="p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
@@ -335,6 +412,11 @@ export default function Appointments() {
                         <h3 className="font-extrabold text-slate-900 flex items-center gap-2">
                           {apt.patient}
                           <span className={`h-2 w-2 rounded-full ${apt.priority === 'High' ? 'bg-red-500 animate-pulse' : apt.priority === 'Normal' ? 'bg-blue-500' : 'bg-slate-300'}`} />
+                          
+                          {/* Booking Type Badge */}
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${apt.bookingType === 'SD' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                             {apt.bookingType || 'ADV'}
+                          </span>
                         </h3>
                         <p className="text-sm text-slate-500 font-medium flex items-center gap-2 mt-0.5">
                           <User className="h-3.5 w-3.5" />
@@ -345,9 +427,19 @@ export default function Appointments() {
 
                     <div className="flex flex-wrap items-center gap-4">
                       <div className="flex flex-col items-end">
+                        <button
+                          onClick={() => handleConfirmationUpdate(apt.id, apt.confirmationStatus)}
+                          title="Click to toggle confirmation status (NC -> LM -> C)"
+                          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-all cursor-pointer border ${apt.confirmationStatus === 'C' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' : apt.confirmationStatus === 'LM' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
+                        >
+                           {apt.confirmationStatus === 'C' ? 'C' : apt.confirmationStatus === 'LM' ? 'LM' : 'NC'}
+                        </button>
+
                         <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2
                           ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-600' : 
-                            apt.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 
+                            apt.status === 'triage' ? 'bg-blue-50 text-blue-600' :
+                            apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
+                            apt.status === 'completed' ? 'bg-purple-50 text-purple-600' : 
                             apt.status === 'cancelled' ? 'bg-red-50 text-red-600' : 
                             'bg-amber-50 text-amber-600'}
                         `}>
@@ -359,21 +451,43 @@ export default function Appointments() {
                       </div>
 
                       <div className="flex gap-2">
-                        {apt.status === 'arrived' ? (
+                        {apt.status === 'scheduled' && (
                           <button 
-                            onClick={() => handleStartConsultation(apt)}
-                            className="px-5 py-2.5 bg-primary-600 text-white text-xs font-black rounded-lg hover:bg-primary-700 transition-all shadow-lg shadow-primary-50 active:scale-95"
-                          >
-                            START CONSULTATION
-                          </button>
-                        ) : (apt.status === 'scheduled') ? (
-                          <button 
-                            onClick={() => handleArrive(apt.id)}
+                            onClick={() => handleStatusUpdate(apt.id, 'arrived', 'Patient Checked In.')}
                             className="px-5 py-2.5 bg-slate-900 text-white text-xs font-black rounded-lg hover:bg-slate-800 transition-all active:scale-95"
                           >
-                            ARRIVE PATIENT
+                            CHECK IN
                           </button>
-                        ) : (
+                        )}
+                        
+                        {apt.status === 'arrived' && ['nurse', 'doctor', 'clinic_owner'].includes(userData?.role) && (
+                          <button 
+                            onClick={() => handlePerformTriage(apt)}
+                            className="px-5 py-2.5 bg-blue-600 text-white text-xs font-black rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 active:scale-95"
+                          >
+                            PERFORM TRIAGE
+                          </button>
+                        )}
+
+                        {(apt.status === 'triage' || apt.status === 'arrived') && ['doctor', 'clinic_owner'].includes(userData?.role) && (
+                          <button 
+                            onClick={() => handleStartConsultation(apt)}
+                            className="px-5 py-2.5 bg-emerald-600 text-white text-xs font-black rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50 active:scale-95"
+                          >
+                            START SESSION
+                          </button>
+                        )}
+
+                        {apt.status === 'in-session' && ['doctor', 'clinic_owner'].includes(userData?.role) && (
+                           <button 
+                             onClick={() => handleStatusUpdate(apt.id, 'completed', 'Patient Discharged.')}
+                             className="px-5 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-50 active:scale-95"
+                           >
+                             DISCHARGE
+                           </button>
+                        )}
+
+                        {['completed', 'cancelled'].includes(apt.status) && (
                           <button 
                             onClick={() => handleViewSummary(apt)}
                             className="px-5 py-2.5 bg-slate-50 text-slate-600 text-xs font-black rounded-lg hover:bg-slate-100 transition-all active:scale-95 border border-slate-100"
@@ -435,6 +549,17 @@ export default function Appointments() {
         onClose={() => setIsSummaryOpen(false)}
         appointment={selectedApt}
       />
+
+      <AnimatePresence>
+        {isTriageOpen && (
+          <TriageModal 
+            appointment={triageApt}
+            onClose={() => setIsTriageOpen(false)}
+            onSave={handleSaveTriage}
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {notification && (
           <motion.div 
@@ -453,3 +578,118 @@ export default function Appointments() {
     </DashboardLayout>
   );
 }
+
+function TriageModal({ appointment, onClose, onSave }) {
+  const [vitals, setVitals] = useState({
+    temp: '',
+    bp_sys: '',
+    bp_dia: '',
+    heart_rate: '',
+    resp_rate: '',
+    spo2: '',
+    weight: '',
+    height: '',
+    rbs: '',
+    complaint: ''
+  });
+
+  const [bmi, setBmi] = useState(null);
+
+  useEffect(() => {
+    if (vitals.weight && vitals.height) {
+      const h_m = vitals.height / 100;
+      const res = (vitals.weight / (h_m * h_m)).toFixed(1);
+      setBmi(res);
+    }
+  }, [vitals.weight, vitals.height]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({ ...vitals, bmi });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-white"
+      >
+        <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-4">
+             <div className="h-14 w-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl">
+                <Thermometer className="h-7 w-7" />
+             </div>
+             <div>
+               <h3 className="text-2xl font-black text-slate-900 tracking-tight">Clinical Triage</h3>
+               <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Vitals Collection: {appointment?.patient}</p>
+             </div>
+          </div>
+          <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-sm">
+            <XCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <TriageField label="Temp (°C)" value={vitals.temp} onChange={(val) => setVitals({...vitals, temp: val})} icon={<Thermometer className="h-4 w-4" />} placeholder="36.5" />
+            <TriageField label="BP Systolic" value={vitals.bp_sys} onChange={(val) => setVitals({...vitals, bp_sys: val})} icon={<Heart className="h-4 w-4" />} placeholder="120" />
+            <TriageField label="BP Diastolic" value={vitals.bp_dia} onChange={(val) => setVitals({...vitals, bp_dia: val})} icon={<Heart className="h-4 w-4 text-emerald-500" />} placeholder="80" />
+            <TriageField label="Heart Rate (BPM)" value={vitals.heart_rate} onChange={(val) => setVitals({...vitals, heart_rate: val})} icon={<Activity className="h-4 w-4" />} placeholder="72" />
+            <TriageField label="RR (per min)" value={vitals.resp_rate} onChange={(val) => setVitals({...vitals, resp_rate: val})} icon={<Clock className="h-4 w-4" />} placeholder="16" />
+            <TriageField label="SpO2 (%)" value={vitals.spo2} onChange={(val) => setVitals({...vitals, spo2: val})} icon={<CheckCircle2 className="h-4 w-4" />} placeholder="98" />
+            <TriageField label="Weight (kg)" value={vitals.weight} onChange={(val) => setVitals({...vitals, weight: val})} icon={<BarChart3 className="h-4 w-4" />} placeholder="70" />
+            <TriageField label="Height (cm)" value={vitals.height} onChange={(val) => setVitals({...vitals, height: val})} icon={<ArrowUpRight className="h-4 w-4" />} placeholder="175" />
+            <TriageField label="RBS (mmol/L)" value={vitals.rbs} onChange={(val) => setVitals({...vitals, rbs: val})} icon={<Zap className="h-4 w-4" />} placeholder="5.4" />
+          </div>
+
+          <div className="flex gap-4">
+            <div className={`p-4 rounded-2xl flex-1 flex flex-col justify-center items-center ${bmi ? 'bg-primary-50 border border-primary-100' : 'bg-slate-50'}`}>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Calculated BMI</p>
+               <p className="text-2xl font-black text-primary-600">{bmi || '--'}</p>
+            </div>
+            <div className="flex-[2] space-y-2">
+               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Patient's Chief Complaint</label>
+               <textarea 
+                 value={vitals.complaint}
+                 onChange={(e) => setVitals({...vitals, complaint: e.target.value})}
+                 className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-2xl text-xs font-bold outline-none resize-none h-20 shadow-inner"
+                 placeholder="Briefly describe patient's reason for visit..."
+               />
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+             <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-50 text-slate-500 font-bold rounded-2xl text-xs uppercase tracking-widest hover:bg-slate-100 transition-all">Discard</button>
+             <button type="submit" className="flex-1 py-4 bg-blue-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all">Submit Vitals</button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function TriageField({ label, value, onChange, icon, placeholder, type = "text" }) {
+  return (
+    <div className="space-y-2">
+       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-1.5">
+         {icon} {label}
+       </label>
+       <input 
+         type={type}
+         placeholder={placeholder}
+         value={value}
+         onChange={(e) => onChange(e.target.value)}
+         className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-200 rounded-2xl text-sm font-bold shadow-inner outline-none transition-all"
+       />
+    </div>
+  );
+}
+
+// Add the missing imports for icons if they are not already at the top
+import { Thermometer, Heart as HeartIcon, Activity as ActivityIcon, Zap as ZapIcon } from 'lucide-react';

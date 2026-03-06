@@ -16,7 +16,9 @@ import {
   FileBarChart,
   UserPlus,
   Building2,
-  ListRestart
+  ListRestart,
+  History,
+  Database
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -38,38 +40,39 @@ const menuItems = [
     label: 'Master Setup',
     roles: ['superadmin', 'clinic_owner'],
     subItems: [
-      { label: 'Facility Profile', path: '/master/profile' },
-      { label: 'Patient Registry', path: '/master/patients' },
-      { label: 'Users & Staff', path: '/master/users' },
-      { label: 'Security Matrix', path: '/master/permissions' },
-      { label: 'Branch Management', path: '/master/branches' },
+      { label: 'Facility Profile', path: '/master/profile', roles: ['clinic_owner'] },
+      { label: 'Patient Registry', path: '/master/patients', roles: ['clinic_owner', 'doctor', 'nurse', 'receptionist'] },
+      { label: 'Users & Staff', path: '/master/users', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'Security Matrix', path: '/master/permissions', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'Branch Management', path: '/master/branches', roles: ['clinic_owner'] },
     ]
   },
   {
     id: 'facility-config',
     icon: ShieldCheck,
-    label: 'Facility Config',
+    label: 'Configurations',
     roles: ['superadmin', 'clinic_owner'],
     subItems: [
-      { label: 'Practice Type', path: '/config/practice' },
-      { label: 'Specialty', path: '/config/specialty' },
-      { label: 'Clinical Note Setup', path: '/config/notes' },
-      { label: 'Medicine Config', path: '/config/medicine' },
-      { label: 'Procedure Master', path: '/config/procedures' },
-      { label: 'Pharmacy Setup', path: '/config/pharmacy' },
+      { label: 'Practice Type', path: '/config/practice', roles: ['clinic_owner'] },
+      { label: 'Specialty', path: '/config/specialty', roles: ['clinic_owner'] },
+      { label: 'Clinical Note Setup', path: '/config/notes', roles: ['clinic_owner'] },
+      { label: 'Medicine Config', path: '/config/medicine', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'Procedure Master', path: '/config/procedures', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'Pharmacy Setup', path: '/config/pharmacy', roles: ['clinic_owner'] },
     ]
   },
   {
     id: 'clinical',
     icon: Stethoscope,
     label: 'Clinical Ops',
-    roles: ['superadmin', 'doctor', 'clinic_owner', 'nurse', 'receptionist'],
+    roles: ['doctor', 'clinic_owner', 'nurse', 'receptionist'],
     subItems: [
       { label: 'Appointments', path: '/appointments' },
-      { label: 'Clinical Notes', path: '/notes' },
-      { label: 'Clinical Forms', path: '/clinical-forms' },
-      { label: 'Investigation', path: '/investigation' },
-      { label: 'Ward / In-Patient', path: '/ward' },
+      { label: 'Clinical Notes', path: '/notes', roles: ['doctor', 'clinic_owner', 'nurse'] },
+      { label: 'Clinical Forms', path: '/clinical-forms', roles: ['doctor', 'clinic_owner', 'nurse'] },
+      { label: 'Investigation', path: '/investigation', roles: ['doctor', 'clinic_owner', 'nurse', 'lab_tech'] },
+      { label: 'Ward / In-Patient', path: '/ward', roles: ['doctor', 'clinic_owner', 'nurse'] },
+      { label: 'Waitlist TV', path: '/waitlist-tv', roles: ['receptionist', 'clinic_owner', 'admin'] },
     ]
   },
   {
@@ -77,37 +80,46 @@ const menuItems = [
     icon: Store,
     label: 'Pharmacy & Store',
     path: '/pharmacy',
-    roles: ['superadmin', 'clinic_owner', 'pharmacist']
+    roles: ['clinic_owner', 'pharmacist']
   },
   {
     id: 'financial',
     icon: CreditCard,
     label: 'Financials',
-    roles: ['superadmin', 'clinic_owner'],
+    roles: ['superadmin', 'clinic_owner', 'admin', 'receptionist'],
     subItems: [
-      { label: 'Billing / Invoices', path: '/billing' },
-      { label: 'General Ledger', path: '/accounting' },
+      { label: 'Billing / Invoices', path: '/billing', roles: ['clinic_owner', 'admin', 'receptionist'] },
+      { label: 'General Ledger', path: '/accounting', roles: ['clinic_owner', 'admin'] },
+      { label: 'Platform Revenue', path: '/accounting', roles: ['superadmin'] },
     ]
   },
   {
     id: 'subscriptions',
-    icon: CreditCard,
-    label: 'Subscriptions',
+    icon: Building2,
+    label: 'Organizations',
     path: '/superadmin/subscriptions',
+    roles: ['superadmin']
+  },
+  {
+    id: 'audit-trail',
+    icon: History,
+    label: 'Global Audit Logs',
+    path: '/superadmin/audit',
+    roles: ['superadmin']
+  },
+  {
+    id: 'system-codes',
+    icon: Database,
+    label: 'System Codes',
+    path: '/superadmin/codes',
     roles: ['superadmin']
   },
   {
     id: 'reports',
     icon: FileBarChart,
     label: 'Reports',
-    roles: ['superadmin', 'clinic_owner'],
-    subItems: [
-      { label: 'Out Patient Report', path: '/reports/outpatient' },
-      { label: 'Daily Visits', path: '/reports/daily' },
-      { label: 'Diagnosis Trend', path: '/reports/diagnosis' },
-      { label: 'Consultant Outcomes', path: '/reports/outcomes' },
-      { label: 'Service Utilization', path: '/reports/utilization' },
-    ]
+    path: '/master/reports',
+    roles: ['superadmin', 'clinic_owner', 'doctor', 'nurse', 'receptionist', 'pharmacist']
   },
   {
     id: 'subscription',

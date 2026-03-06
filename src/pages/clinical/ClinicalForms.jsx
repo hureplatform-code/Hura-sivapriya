@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   FileText, 
   ClipboardCheck, 
@@ -14,16 +16,47 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 const formTemplates = [
+  { id: 'intake', label: 'Patient Intake Form', description: 'Secure digital questionnaire & health history.' },
   { id: 'consent', label: 'Patient Consent Form', description: 'General surgical and treatment consent.' },
   { id: 'admission', label: 'Admission Form', description: 'Internal ward admission request.' },
   { id: 'discharge', label: 'Discharge Summary', description: 'Final clinical summary for home care.' },
-  { id: 'referral', label: 'Referral Letter', description: 'External specialist referral documentation.' }
+  { id: 'referral', label: 'Referral & Claims Pack', description: 'External specialist referral and insurance claim documentation.' }
 ];
 
 export default function ClinicalForms() {
+  const navigate = useNavigate();
+  const { userData } = useAuth();
   const [selectedForm, setSelectedForm] = useState(null);
   const [patientSearch, setPatientSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showLink, setShowLink] = useState(false);
+
+  if (userData?.role === 'superadmin') {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+           <div className="h-20 w-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 shadow-inner">
+              <FileText className="h-10 w-10" />
+           </div>
+           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Access Restricted</h2>
+           <p className="text-slate-500 max-w-md mt-2 font-medium">
+             Clinical documentation and form generation are restricted to facility clinical staff. Platform governance access is restricted to global audit and revenue analytics.
+           </p>
+           <button 
+             onClick={() => navigate('/')}
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+           >
+             Return to Dashboard
+           </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+  
+  const mockIntakeQueue = [
+     { id: 'INT-4091', patient: 'Sarah Jenkins', age: 34, phone: '+1 555-0198', status: 'Pending Review', submitted: '10 mins ago' },
+     { id: 'INT-4088', patient: 'Michael Chang', age: 45, phone: '+1 555-0211', status: 'Verified', submitted: '1 hour ago' }
+  ];
 
   const handlePrint = (formId) => {
     window.print();
@@ -107,8 +140,73 @@ export default function ClinicalForms() {
                              <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm text-slate-300">
                                 <User className="h-8 w-8" />
                              </div>
-                             <p className="text-sm font-bold text-slate-400">Search for a patient to auto-populate the <span className="text-slate-900">{selectedForm.label}</span>.</p>
+                             <p className="text-sm font-bold text-slate-400">Search for a patient to {selectedForm.id === 'intake' ? 'generate a secure intake link' : 'auto-populate the form'}.</p>
+                             
+                             {selectedForm.id === 'intake' && (
+                                <button 
+                                  onClick={() => setShowLink(true)}
+                                  className="mt-4 px-6 py-3 bg-primary-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
+                                >
+                                  Generate Secure Link for Patient
+                                </button>
+                             )}
+                             
+                             {selectedForm.id === 'referral' && (
+                                <div className="mt-4 flex flex-col md:flex-row gap-4 items-center justify-center">
+                                   <button 
+                                     onClick={() => window.print()}
+                                     className="px-6 py-3 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-slate-200 hover:bg-slate-800 transition"
+                                   >
+                                     Generate Referral Letter (PDF)
+                                   </button>
+                                   <button 
+                                     onClick={() => window.print()}
+                                     className="px-6 py-3 bg-primary-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
+                                   >
+                                     Generate Claims Pack (PDF)
+                                   </button>
+                                </div>
+                             )}
                          </div>
+
+                         {showLink && selectedForm.id === 'intake' && (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-emerald-50 border border-emerald-100 rounded-3xl space-y-3">
+                               <div className="flex items-center gap-2 text-emerald-700 font-bold mb-2">
+                                  <CheckCircle2 className="h-5 w-5" /> 
+                                  Link Generated Successfully!
+                               </div>
+                               <p className="text-sm text-slate-600 font-medium">The patient has received an SMS with the secure Intake Form link and OTP instruction.</p>
+                               <div className="p-4 bg-white rounded-xl border border-emerald-100 font-mono text-xs text-slate-500 flex items-center justify-between mt-2">
+                                  https://patient.hure.care/intake?token=X8A9B2M
+                                  <button className="text-primary-600 font-bold hover:underline">Copy Link</button>
+                               </div>
+                            </motion.div>
+                         )}
+
+                         {selectedForm.id === 'intake' && (
+                            <div className="mt-8 space-y-4 pt-8 border-t border-slate-100">
+                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Pending Intakes Queue</h4>
+                               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                                  <table className="w-full text-left">
+                                     <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400">
+                                        <tr><th className="p-4">Patient</th><th className="p-4">Contact</th><th className="p-4">Submitted</th><th className="p-4 text-right">Action</th></tr>
+                                     </thead>
+                                     <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-600">
+                                        {mockIntakeQueue.map(item => (
+                                           <tr key={item.id} className="hover:bg-slate-50/50">
+                                              <td className="p-4 text-slate-900">{item.patient} <span className="text-xs text-slate-400">({item.age}y)</span></td>
+                                              <td className="p-4">{item.phone}</td>
+                                              <td className="p-4">{item.submitted}</td>
+                                              <td className="p-4 text-right">
+                                                 <button className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] uppercase tracking-widest hover:bg-slate-800">Review</button>
+                                              </td>
+                                           </tr>
+                                        ))}
+                                     </tbody>
+                                  </table>
+                               </div>
+                            </div>
+                         )}
 
                          <div className="pt-12 border-t border-slate-50 flex items-start gap-4 text-slate-400">
                             <FileSearch className="h-6 w-6 mt-1" />
