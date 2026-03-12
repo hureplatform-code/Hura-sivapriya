@@ -313,6 +313,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   const [transcriptReviewed, setTranscriptReviewed] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [fakeTranscript, setFakeTranscript] = useState('');
+  const [icdSuggestions, setIcdSuggestions] = useState([]);
 
   useEffect(() => {
     fetchPatients();
@@ -337,6 +338,22 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     } finally {
       setLoadingPatients(false);
     }
+  };
+
+  const generateIcdSuggestions = (text) => {
+    if (!text) return;
+    const textLower = text.toLowerCase();
+    const suggestions = [];
+    if(textLower.includes('headache') || textLower.includes('migraine')) suggestions.push('G43.909');
+    if(textLower.includes('cough') || textLower.includes('fever') || textLower.includes('cold')) suggestions.push('J06.9');
+    if(textLower.includes('sugar') || textLower.includes('diabet')) suggestions.push('E11.9');
+    if(textLower.includes('blood pressure') || textLower.includes('hypertens') || textLower.includes('bp')) suggestions.push('I10');
+    if(textLower.includes('pregnant') || textLower.includes('baby')) suggestions.push('Z34.90');
+    if(textLower.includes('stomach') || textLower.includes('pain') || textLower.includes('abd')) suggestions.push('R10.9');
+    if(textLower.includes('malaria') || textLower.includes('mosquito')) suggestions.push('B54');
+    
+    if(suggestions.length === 0) suggestions.push('R69', 'Z10.8'); // defaults if nothing matches
+    setIcdSuggestions(suggestions);
   };
 
   const toggleSpecialty = (id) => {
@@ -570,13 +587,17 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                                     const subjectiveMatch = transcript.match(/Subjective:(.*?)Objective:/i) || transcript.match(/Subjective:(.*)/i);
                                     const objectiveMatch = transcript.match(/Objective:(.*?)Assessment:/i) || transcript.match(/Objective:(.*)/i);
                                     
-                                    setFormData(prev => ({
-                                       ...prev,
-                                       subjective: subjectiveMatch ? subjectiveMatch[1].trim() : transcript.split('Objective:')[0].trim(),
-                                       objective: objectiveMatch ? objectiveMatch[1].trim() : (transcript.split('Objective:')[1] || '').split('Assessment:')[0].trim() || prev.objective,
-                                       assessment: (transcript.split('Assessment:')[1] || '').split('Plan:')[0].trim() || prev.assessment,
-                                       plan: (transcript.split('Plan:')[1] || '').trim() || prev.plan
-                                    }));
+                                    setFormData(prev => {
+                                       const newData = {
+                                          ...prev,
+                                          subjective: subjectiveMatch ? subjectiveMatch[1].trim() : transcript.split('Objective:')[0].trim(),
+                                          objective: objectiveMatch ? objectiveMatch[1].trim() : (transcript.split('Objective:')[1] || '').split('Assessment:')[0].trim() || prev.objective,
+                                          assessment: (transcript.split('Assessment:')[1] || '').split('Plan:')[0].trim() || prev.assessment,
+                                          plan: (transcript.split('Plan:')[1] || '').trim() || prev.plan
+                                       };
+                                       generateIcdSuggestions(newData.subjective + ' ' + newData.objective + ' ' + newData.assessment);
+                                       return newData;
+                                    });
                                  }
                               };
 
@@ -926,6 +947,13 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                 </div>
                 <button 
                   type="button"
+                  onClick={() => generateIcdSuggestions(formData.subjective + ' ' + formData.objective + ' ' + formData.assessment)}
+                  className="px-6 bg-indigo-50 text-indigo-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center gap-2"
+                >
+                  🤖 Auto-Suggest
+                </button>
+                <button 
+                  type="button"
                   onClick={() => {
                     if (formData.diagnosis) {
                       showNotification('success', `Primary Diagnosis set to: ${formData.diagnosis}`);
@@ -938,6 +966,25 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                   Set Primary Diagnosis
                 </button>
               </div>
+              
+              {/* Suggestions Box */}
+              {icdSuggestions.length > 0 && (
+                 <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 mt-4">
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-3">Assistive AI Suggestions (Select one)</p>
+                    <div className="flex flex-wrap gap-2">
+                       {icdSuggestions.map(code => (
+                          <button 
+                             key={code}
+                             type="button"
+                             onClick={() => setFormData({...formData, diagnosis: code})}
+                             className="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-xl text-xs font-semibold hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                          >
+                             {code}
+                          </button>
+                       ))}
+                    </div>
+                 </div>
+              )}
             </div>
           </div>
         </div>

@@ -254,8 +254,10 @@ export default function Ward() {
                              <span className="text-[10px] font-medium text-slate-500">{bed.doctor || 'Attending Physician'}</span>
                           </div>
                            <div className="flex gap-2">
-                             <button className="flex-1 py-3 bg-slate-100 text-slate-900 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-slate-200 transition-all font-medium">
-                                Vitals
+                             <button 
+                                onClick={() => navigate(`/ward/chart/${selectedWard.id}/${bed.id}`)}
+                                className="flex-1 py-3 bg-slate-100 text-slate-900 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-slate-200 transition-all font-medium">
+                                Chart & Vitals
                              </button>
                              <button 
                                 onClick={async () => {

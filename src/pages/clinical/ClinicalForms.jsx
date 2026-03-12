@@ -11,9 +11,12 @@ import {
   User,
   History,
   CheckCircle2,
-  FileSearch
+  FileSearch,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import patientService from '../../services/patientService';
+import firestoreService from '../../services/firestoreService';
 
 const formTemplates = [
   { id: 'intake', label: 'Patient Intake Form', description: 'Secure digital questionnaire & health history.' },
@@ -28,8 +31,102 @@ export default function ClinicalForms() {
   const { userData } = useAuth();
   const [selectedForm, setSelectedForm] = useState(null);
   const [patientSearch, setPatientSearch] = useState('');
+  const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [showLink, setShowLink] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState(null);
+  const [intakes, setIntakes] = useState([]);
+  const [reviewingIntake, setReviewingIntake] = useState(null);
+
+  React.useEffect(() => {
+    fetchPatients();
+    fetchIntakes();
+  }, []);
+
+  const fetchPatients = async () => {
+    try {
+      const data = await patientService.getAllPatients();
+      setPatients(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchIntakes = async () => {
+    try {
+      const data = await firestoreService.query('intake_forms', ['status', '==', 'Pending Review']);
+      setIntakes(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePatientSearch = (e) => {
+    const term = e.target.value;
+    setPatientSearch(term);
+    if (!term) {
+       setFilteredPatients([]);
+       return;
+    }
+    const filtered = patients.filter(p => p.name.toLowerCase().includes(term.toLowerCase()) || p.id.includes(term));
+    setFilteredPatients(filtered);
+  };
+
+  const handleSelectPatient = (p) => {
+    setSelectedPatient(p);
+    setPatientSearch(p.name);
+    setFilteredPatients([]);
+    setGeneratedLink(null);
+  };
+
+  const generateLink = () => {
+     if(!selectedPatient) return;
+     const token = Math.random().toString(36).substring(2, 9).toUpperCase();
+     // Normally we would save this token to db with an expiry, but for frontend demo, we pass it via url
+     const baseUrl = window.location.origin;
+     setGeneratedLink(`${baseUrl}/intake?token=${token}&pid=${selectedPatient.id}`);
+  };
+
+  const handleAcceptIntake = async () => {
+      try {
+          if (!reviewingIntake) return;
+          
+          // Update patient demographics
+          const patientUpdate = {
+             age: reviewingIntake.data.age || '',
+             gender: reviewingIntake.data.gender || '',
+             address: reviewingIntake.data.address || '',
+             nextOfKin: reviewingIntake.data.nextOfKin || '',
+             kinPhone: reviewingIntake.data.kinPhone || '',
+             allergies: reviewingIntake.data.allergies || '',
+             chronicConditions: reviewingIntake.data.chronicConditions || '',
+             insuranceScheme: reviewingIntake.data.insuranceScheme || '',
+             insuranceMemberNo: reviewingIntake.data.insuranceMemberNo || ''
+          };
+          
+          await firestoreService.update('patients', reviewingIntake.patientId, patientUpdate);
+          
+          // Close intake
+          await firestoreService.update('intake_forms', reviewingIntake.id, { status: 'Accepted', acceptedAt: new Date().toISOString() });
+          
+          setReviewingIntake(null);
+          fetchIntakes();
+      } catch (err) {
+          console.error("Failed to accept intake", err);
+      }
+  };
+
+  const handleRejectIntake = async () => {
+      try {
+          if (!reviewingIntake) return;
+          await firestoreService.update('intake_forms', reviewingIntake.id, { status: 'Rejected' });
+          setReviewingIntake(null);
+          fetchIntakes();
+      } catch (err) {
+          console.error("Failed to reject intake", err);
+      }
+  };
 
   if (userData?.role === 'superadmin') {
     return (
@@ -52,11 +149,6 @@ export default function ClinicalForms() {
       </DashboardLayout>
     );
   }
-  
-  const mockIntakeQueue = [
-     { id: 'INT-4091', patient: 'Sarah Jenkins', age: 34, phone: '+1 555-0198', status: 'Pending Review', submitted: '10 mins ago' },
-     { id: 'INT-4088', patient: 'Michael Chang', age: 45, phone: '+1 555-0211', status: 'Verified', submitted: '1 hour ago' }
-  ];
 
   const handlePrint = (formId) => {
     window.print();
@@ -130,21 +222,34 @@ export default function ClinicalForms() {
                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
                                <input 
                                 type="text"
+                                value={patientSearch}
+                                onChange={handlePatientSearch}
                                 placeholder="Search by Patient Name or Hospital No..."
                                 className="w-full bg-slate-50/50 border-2 border-slate-100 focus:border-primary-500 rounded-3xl py-6 pl-16 pr-8 text-lg font-semibold transition-all outline-none"
                                />
+                               {filteredPatients.length > 0 && (
+                                   <div className="absolute top-[80px] left-0 right-0 bg-white border border-slate-100 rounded-2xl shadow-xl z-10 max-h-48 overflow-y-auto">
+                                      {filteredPatients.map(p => (
+                                         <button key={p.id} type="button" onClick={() => handleSelectPatient(p)} className="w-full text-left p-4 hover:bg-slate-50 transition-all font-medium text-sm border-b border-slate-50 last:border-0 block">
+                                             {p.name} <span className="text-slate-400">({p.id})</span>
+                                         </button>
+                                      ))}
+                                   </div>
+                                )}
                             </div>
                          </div>
 
-                         <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center space-y-4 border-dashed">
+                         <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center space-y-4 border-dashed relative">
                              <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm text-slate-300">
-                                <User className="h-8 w-8" />
+                                {selectedPatient ? <CheckCircle2 className="h-8 w-8 text-emerald-500" /> : <User className="h-8 w-8" />}
                              </div>
-                             <p className="text-sm font-medium text-slate-400">Search for a patient to {selectedForm.id === 'intake' ? 'generate a secure intake link' : 'auto-populate the form'}.</p>
+                             <p className="text-sm font-medium text-slate-400">
+                               {selectedPatient ? `Linked to ${selectedPatient.name}` : `Search for a patient to ${selectedForm.id === 'intake' ? 'generate a secure intake link' : 'auto-populate the form'}.`}
+                             </p>
                              
-                             {selectedForm.id === 'intake' && (
+                             {selectedForm.id === 'intake' && selectedPatient && (
                                 <button 
-                                  onClick={() => setShowLink(true)}
+                                  onClick={generateLink}
                                   className="mt-4 px-6 py-3 bg-primary-600 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
                                 >
                                   Generate Secure Link for Patient
@@ -189,19 +294,22 @@ export default function ClinicalForms() {
                                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                                   <table className="w-full text-left">
                                      <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-semibold uppercase text-slate-400">
-                                        <tr><th className="p-4">Patient</th><th className="p-4">Contact</th><th className="p-4">Submitted</th><th className="p-4 text-right">Action</th></tr>
+                                        <tr><th className="p-4">Submission ID</th><th className="p-4">Linked Patient ID</th><th className="p-4">Time</th><th className="p-4 text-right">Action</th></tr>
                                      </thead>
                                      <tbody className="divide-y divide-slate-50 text-sm font-medium text-slate-600">
-                                        {mockIntakeQueue.map(item => (
+                                        {intakes.length === 0 ? (
+                                             <tr><td colSpan="4" className="p-8 text-center text-slate-400">No pending intake forms.</td></tr>
+                                         ) : (
+                                        intakes.map(item => (
                                            <tr key={item.id} className="hover:bg-slate-50/50">
-                                              <td className="p-4 text-slate-900">{item.patient} <span className="text-xs text-slate-400">({item.age}y)</span></td>
-                                              <td className="p-4">{item.phone}</td>
-                                              <td className="p-4">{item.submitted}</td>
+                                              <td className="p-4 text-slate-900">{item.id.slice(0, 8)}</td>
+                                              <td className="p-4 text-slate-500">{item.patientId}</td>
+                                              <td className="p-4 text-xs">{new Date(item.submittedAt || Date.now()).toLocaleTimeString()}</td>
                                               <td className="p-4 text-right">
-                                                 <button className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] uppercase tracking-widest hover:bg-slate-800">Review</button>
+                                                 <button onClick={() => setReviewingIntake(item)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all">Review</button>
                                               </td>
                                            </tr>
-                                        ))}
+                                        )))}
                                      </tbody>
                                   </table>
                                </div>
@@ -232,6 +340,53 @@ export default function ClinicalForms() {
           </div>
         </div>
       </div>
+      {/* Review Modal */}
+      <AnimatePresence>
+         {reviewingIntake && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+               <motion.div initial={{scale: 0.95, opacity: 0}} animate={{scale: 1, opacity: 1}} exit={{scale: 0.95, opacity: 0}} className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                  <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                     <h3 className="text-lg font-bold text-slate-900">Review Patient Intake</h3>
+                     <button onClick={() => setReviewingIntake(null)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl"><X className="h-5 w-5"/></button>
+                  </div>
+                  <div className="p-8 overflow-y-auto space-y-6">
+                      <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl text-amber-800 text-sm font-medium">
+                         Please review the patient-submitted details below. Accepting this form will directly update the patient's demographic file.
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                         <div className="col-span-2 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Name</span>
+                            <p className="font-semibold text-slate-900">{reviewingIntake.data.name}</p>
+                         </div>
+                         <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Age</span>
+                            <p className="font-semibold text-slate-900">{reviewingIntake.data.age}</p>
+                         </div>
+                         <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gender</span>
+                            <p className="font-semibold text-slate-900">{reviewingIntake.data.gender}</p>
+                         </div>
+                         <div className="col-span-2 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Allergies</span>
+                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl mt-1 text-slate-600 font-medium">{reviewingIntake.data.allergies || 'N/A'}</div>
+                         </div>
+                         <div className="col-span-2 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chronic Conditions</span>
+                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl mt-1 text-slate-600 font-medium">{reviewingIntake.data.chronicConditions || 'N/A'}</div>
+                         </div>
+                      </div>
+                  </div>
+                  <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                     <button onClick={handleRejectIntake} className="px-6 py-3 font-bold text-xs uppercase tracking-widest text-slate-500 hover:text-red-500 transition-colors">Reject Form</button>
+                     <button onClick={handleAcceptIntake} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" /> Accept & Update Record
+                     </button>
+                  </div>
+               </motion.div>
+            </div>
+         )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

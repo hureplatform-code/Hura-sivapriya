@@ -40,3 +40,10 @@ npm run build
 ## Setup Super Admin
 - **URL**: https://hura-sivapriya.vercel.app/setup-superadmin
 - **only one time setup**
+
+## After upgrades the Firebase plan to "Blaze" run this command
+
+```bash
+npx firebase-tools deploy --only functions --project huraplatform
+```
+

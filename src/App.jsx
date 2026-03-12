@@ -29,6 +29,7 @@ import Billing from './pages/financial/Billing';
 import Accounting from './pages/financial/Accounting';
 import Inventory from './pages/operational/Inventory';
 import Ward from './pages/clinical/Ward';
+import InpatientChart from './pages/clinical/InpatientChart';
 import ChangePlan from './pages/subscription/ChangePlan';
 import UserPlan from './pages/subscription/UserPlan';
 import Growth from './pages/subscription/Growth';
@@ -51,6 +52,7 @@ import ResourceUsageReport from './pages/reports/ResourceUsageReport';
 import InsuranceAgingReport from './pages/reports/InsuranceAgingReport';
 import DailyCashflowReport from './pages/reports/DailyCashflowReport';
 import WaitlistTV from './pages/clinical/WaitlistTV';
+import PatientIntake from './pages/public/PatientIntake';
 import './index.css';
 
 function App() {
@@ -63,6 +65,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           {/* Temporary Setup Route */}
           <Route path="/setup-superadmin" element={<SetupSuperadmin />} />
+          <Route path="/intake" element={<PatientIntake />} />
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           
           {/* Master Setup */}
@@ -91,6 +94,7 @@ function App() {
           <Route path="/clinical-forms" element={<PrivateRoute><ClinicalForms /></PrivateRoute>} />
           <Route path="/investigation" element={<PrivateRoute><Investigation /></PrivateRoute>} />
           <Route path="/ward" element={<PrivateRoute><Ward /></PrivateRoute>} />
+          <Route path="/ward/chart/:wardId/:bedId" element={<PrivateRoute><InpatientChart /></PrivateRoute>} />
           <Route path="/waitlist-tv" element={<WaitlistTV />} />
           
           {/* Configuration */}

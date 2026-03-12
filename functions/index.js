@@ -436,3 +436,61 @@ exports.processSmsRetryQueue = functions.pubsub
         functions.logger.info(`Processed ${snap.size} retries.`);
         return null;
     });
+
+// ─────────────────────────────────────────────
+// END OF DAY CLOSURE
+// ─────────────────────────────────────────────
+exports.flagIncompleteNotes = functions.pubsub.schedule('0 23 * * *')
+    .timeZone('Africa/Nairobi')
+    .onRun(async (context) => {
+        // Runs at 11:00 PM EAT Daily to flag old draft notes.
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        
+        const snap = await db.collection('medical_records')
+            .where('status', '==', 'draft')
+            .where('createdAt', '<', twentyFourHoursAgo)
+            .get();
+        
+        if (snap.empty) {
+            functions.logger.info('No incomplete notes found older than 24 hours.');
+            return null;
+        }
+
+        let batch = db.batch();
+        let i = 0;
+        let batchArray = [];
+
+        snap.forEach(doc => {
+            const data = doc.data();
+            // Flag it
+            batch.update(doc.ref, { isFlagged: true, flaggedAt: admin.firestore.FieldValue.serverTimestamp() });
+            
+            // Log as audit alert for admin
+            const alertRef = db.collection('audit_logs').doc();
+            batch.set(alertRef, {
+                action: 'INCOMPLETE_NOTE_FLAG',
+                module: 'CLINICAL',
+                description: `System flagged an incomplete consultation draft by ${data.doctorName || 'Doctor'} for patient ${data.patientName}. It has been unsigned for >24 hours.`,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                userName: 'SYSTEM',
+                metadata: {
+                   recordId: doc.id,
+                   patientId: data.patientId,
+                   doctorName: data.doctorName
+                }
+            });
+
+            i++;
+            if (i === 500) {
+                batchArray.push(batch.commit());
+                batch = db.batch();
+                i = 0;
+            }
+        });
+
+        if (i > 0) batchArray.push(batch.commit());
+        await Promise.all(batchArray);
+
+        functions.logger.info(`Successfully flagged ${snap.size} incomplete clinical notes.`);
+        return null;
+    });
