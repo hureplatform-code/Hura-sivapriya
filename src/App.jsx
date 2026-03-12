@@ -42,6 +42,7 @@ import InvestigationSetup from './pages/config/InvestigationSetup';
 import PharmacySetup from './pages/config/PharmacySetup';
 import MedicineConfig from './pages/config/MedicineConfig';
 import DrugCatalog from './pages/config/DrugCatalog';
+import SmsSettings from './pages/config/SmsSettings';
 import ProcedureMaster from './pages/config/ProcedureMaster';
 import AdoptionReport from './pages/reports/AdoptionReport';
 import ResourceUsageReport from './pages/reports/ResourceUsageReport';
@@ -98,6 +99,7 @@ function App() {
           <Route path="/config/pharmacy" element={<PrivateRoute><PharmacySetup /></PrivateRoute>} />
           <Route path="/config/medicine" element={<PrivateRoute><MedicineConfig /></PrivateRoute>} />
           <Route path="/config/catalog" element={<PrivateRoute><DrugCatalog /></PrivateRoute>} />
+          <Route path="/config/sms" element={<PrivateRoute><SmsSettings /></PrivateRoute>} />
           <Route path="/config/procedures" element={<PrivateRoute><ProcedureMaster /></PrivateRoute>} />
           
           {/* Subscription */}

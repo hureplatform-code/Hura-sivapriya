@@ -126,7 +126,7 @@ export default function MedicineConfig() {
           </div>
         </div>
 
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="space-y-6">
           <div className="flex justify-end pr-4">
             <button 
               onClick={() => {

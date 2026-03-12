@@ -84,9 +84,9 @@ export default function GlobalAudit() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
            {/* Filters Sidebar */}
-           <div className="space-y-6">
+           <div className="lg:col-span-1 space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
                  <div>
                     <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3 block">Search Events</label>
@@ -135,7 +135,12 @@ export default function GlobalAudit() {
            </div>
 
            {/* Logs Feed */}
-           <div className="lg:col-span-3 space-y-4">
+           <div className="lg:col-span-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                  {loading ? 'Loading...' : `${filteredLogs.length} event${filteredLogs.length !== 1 ? 's' : ''} found`}
+                </span>
+              </div>
               {loading ? (
                 <div className="p-20 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs italic">Parsing global event stream...</div>
               ) : filteredLogs.length === 0 ? (

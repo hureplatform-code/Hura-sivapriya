@@ -76,6 +76,18 @@ export default function Reports() {
         { name: 'Stock Consumption', description: 'Item-level usage trends', path: '/reports/inventory' },
         { name: 'Expiry Protocol', description: 'Critical stock expiration alerts', path: '/reports/inventory' }
       ]
+    },
+    {
+      title: 'Operations Analytics',
+      description: 'Visit volumes, service demand, and daily patient flow metrics.',
+      icon: TrendingUp,
+      color: 'text-violet-600',
+      bg: 'bg-violet-50',
+      reports: [
+        { name: 'Daily Visit Logs', description: 'Day-by-day patient attendance', path: '/reports/daily' },
+        { name: 'Diagnosis Trend', description: 'Most frequent ICD-10 diagnoses', path: '/reports/diagnosis' },
+        { name: 'Service Utilization', description: 'Revenue breakdown by procedure', path: '/reports/utilization' }
+      ]
     }
   ];
 

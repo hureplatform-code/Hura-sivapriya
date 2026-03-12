@@ -6,6 +6,7 @@ import patientService from '../../services/patientService';
 import appointmentService from '../../services/appointmentService';
 import medicalRecordService from '../../services/medicalRecordService';
 import facilityService from '../../services/facilityService';
+import inventoryService from '../../services/inventoryService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header() {
@@ -90,45 +91,85 @@ export default function Header() {
             link: '/superadmin/subscriptions'
           };
         });
-      } else if (role === 'admin') { // Clinic Admin
+      } else if (role === 'clinic_owner' || role === 'admin') {
         if (userData.facilityId) {
           const profile = await facilityService.getProfile(userData.facilityId);
           if (profile?.subscription?.expiryDate) {
             const expiry = new Date(profile.subscription.expiryDate);
             const now = new Date();
-            const diffTime = Math.abs(expiry - now);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays <= 7) {
+            const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 14) {
               notes.push({
                 id: 'sub-exp',
-                title: 'Subscription Expiring',
-                message: `Your plan expires in ${diffDays} days. Renew now to avoid interruption.`,
+                title: diffDays <= 0 ? 'Subscription Expired' : 'Subscription Expiring Soon',
+                message: diffDays <= 0
+                  ? 'Your subscription has expired. Renew immediately to restore access.'
+                  : `Your plan expires in ${diffDays} day${diffDays !== 1 ? 's' : ''}. Renew now to avoid interruption.`,
                 time: now,
-                type: 'warning',
+                type: diffDays <= 0 ? 'alert' : 'warning',
                 link: '/master/accounts'
               });
             }
           }
         }
       } else if (role === 'doctor') {
-        // Fetch all appointments and filter for this doctor & today
         const appointments = await appointmentService.getAllAppointments();
         const today = new Date().toISOString().split('T')[0];
-        const doctorAppointments = appointments.filter(apt => 
-          (apt.provider === userData.name || apt.providerId === userData.uid) && 
-          apt.date === today && 
-          apt.status !== 'completed' && apt.status !== 'cancelled'
+        const doctorAppointments = appointments.filter(apt =>
+          (apt.provider === userData.name || apt.providerId === userData.uid) &&
+          apt.date === today && apt.status !== 'completed' && apt.status !== 'cancelled'
         );
-        
         notes = doctorAppointments.map(apt => ({
           id: apt.id,
           title: 'Appointment Today',
-          message: `${apt.patient} at ${apt.time} - ${apt.type}`,
+          message: `${apt.patient} at ${apt.time} — ${apt.type || 'Consultation'}`,
           time: new Date(`${apt.date}T${apt.time}`),
           type: 'info',
           link: '/appointments'
         }));
+      } else if (role === 'nurse') {
+        const appointments = await appointmentService.getAllAppointments();
+        const today = new Date().toISOString().split('T')[0];
+        const todayPts = appointments.filter(a => a.date === today && a.status !== 'cancelled');
+        if (todayPts.length > 0) {
+          notes.push({
+            id: 'nurse-today',
+            title: `${todayPts.length} Patient${todayPts.length > 1 ? 's' : ''} Scheduled Today`,
+            message: 'Check the appointment list and prepare patient rooms.',
+            time: new Date(),
+            type: 'info',
+            link: '/appointments'
+          });
+        }
+      } else if (role === 'receptionist') {
+        const appointments = await appointmentService.getAllAppointments();
+        const today = new Date().toISOString().split('T')[0];
+        const pending = appointments.filter(a => a.date === today && a.status === 'booked');
+        if (pending.length > 0) {
+          notes.push({
+            id: 'reception-pending',
+            title: `${pending.length} Pending Check-in${pending.length > 1 ? 's' : ''}`,
+            message: 'Patients are awaiting check-in for today.',
+            time: new Date(),
+            type: 'info',
+            link: '/appointments'
+          });
+        }
+      } else if (role === 'pharmacist') {
+        try {
+          const items = await inventoryService.getAllItems();
+          const lowStock = items.filter(i => parseInt(i.quantity || i.stock || 0) < 10);
+          if (lowStock.length > 0) {
+            notes.push({
+              id: 'pharma-stock',
+              title: `${lowStock.length} Low-Stock Item${lowStock.length > 1 ? 's' : ''}`,
+              message: `${lowStock.slice(0, 2).map(i => i.name).join(', ')}${lowStock.length > 2 ? ` and ${lowStock.length - 2} more` : ''} need restocking.`,
+              time: new Date(),
+              type: 'warning',
+              link: '/pharmacy'
+            });
+          }
+        } catch (_) { /* inventory may not be set up */ }
       }
 
       setNotifications(notes.sort((a, b) => b.time - a.time));

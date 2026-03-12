@@ -57,8 +57,12 @@ const menuItems = [
       { label: 'Specialty', path: '/config/specialty', roles: ['clinic_owner'] },
       { label: 'Clinical Note Setup', path: '/config/notes', roles: ['clinic_owner'] },
       { label: 'Medicine Config', path: '/config/medicine', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'Drug Catalog', path: '/config/catalog', roles: ['superadmin', 'clinic_owner'] },
       { label: 'Procedure Master', path: '/config/procedures', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'Investigation Catalogue', path: '/config/investigations', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'ICD-10 Catalogue', path: '/config/icd10', roles: ['superadmin', 'clinic_owner'] },
       { label: 'Pharmacy Setup', path: '/config/pharmacy', roles: ['clinic_owner'] },
+      { label: 'SMS Notifications', path: '/config/sms', roles: ['superadmin'] },
     ]
   },
   {

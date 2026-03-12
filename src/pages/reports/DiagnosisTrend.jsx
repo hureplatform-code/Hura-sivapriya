@@ -134,12 +134,10 @@ export default function DiagnosisTrend() {
                       <span className="text-sm font-medium text-slate-900">{t.current} cases</span>
                     </div>
                     <div className="h-4 bg-slate-50 rounded-full overflow-hidden">
-                    <div className="h-4 bg-slate-50 rounded-full overflow-hidden">
                       <div
                         style={{ width: `${(t.current / (trends[0]?.current || 1)) * 100}%` }}
                         className={`h-full rounded-full transition-all duration-1000 ease-out ${t.trend === 'up' ? 'bg-amber-400' : 'bg-primary-500'}`}
                       />
-                    </div>
                     </div>
                   </div>
                 )) : <div className="text-center py-20 text-slate-400">No clinical data recorded to identify trends.</div>}

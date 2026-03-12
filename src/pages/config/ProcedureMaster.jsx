@@ -114,7 +114,7 @@ export default function ProcedureMaster() {
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="space-y-6">
           <div className="flex justify-end pr-4">
             <button 
               onClick={() => {

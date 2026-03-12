@@ -40,4 +40,3 @@ npm run build
 ## Setup Super Admin
 - **URL**: https://hura-sivapriya.vercel.app/setup-superadmin
 - **only one time setup**
-<!-- Set up the login for super admin -->
