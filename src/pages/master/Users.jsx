@@ -229,13 +229,15 @@ export default function Users() {
             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">User Management</h1>
             <p className="text-slate-500 mt-1">Manage hospital staff accounts and access permissions.</p>
           </div>
-          <button 
-            onClick={handleCreateNew}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
-          >
-            <Plus className="h-5 w-5" />
-            Add New User
-          </button>
+          {userData?.role !== 'superadmin' && (
+            <button 
+              onClick={handleCreateNew}
+              className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+            >
+              <Plus className="h-5 w-5" />
+              Add New User
+            </button>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">

@@ -157,7 +157,7 @@ export default function PermissionsEditor() {
                        <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-primary-600">
                           <ShieldCheck className="h-5 w-5" />
                        </div>
-                       <h3 className="font-medium text-slate-900 text-lg">{module.name}</h3>
+                       <h3 className="font-medium text-slate-900 text-lg">{module.label}</h3>
                     </div>
                     <span className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Module Access</span>
                   </div>
