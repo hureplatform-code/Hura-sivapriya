@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import accountingService from '../../services/accountingService';
 import billingService from '../../services/billingService';
 import auditService from '../../services/auditService';
@@ -29,6 +30,7 @@ import userService from '../../services/userService';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Accounting() {
+  const { currency } = useCurrency();
   const { userData } = useAuth();
   const [ledgers, setLedgers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -114,15 +116,15 @@ export default function Accounting() {
   });
 
   const stats = accStats.isPlatform ? [
-    { label: 'Platform Revenue', currency: APP_CONFIG.CURRENCY, value: accStats.revenue.toLocaleString(), change: '+12%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Server/Dev Costs', currency: APP_CONFIG.CURRENCY, value: '45,000', change: '-5.2%', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50' },
+    { label: 'Platform Revenue', currency: currency, value: accStats.revenue.toLocaleString(), change: '+12%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Server/Dev Costs', currency: currency, value: '45,000', change: '-5.2%', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50' },
     { label: 'Total Clinics', currency: '', value: accStats.vendorBalance.toString(), change: 'Active Orgs', icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Platform Profit', currency: APP_CONFIG.CURRENCY, value: accStats.netProfit.toLocaleString(), change: '+20%', icon: DollarSign, color: 'text-slate-900', bg: 'bg-slate-50' },
+    { label: 'Platform Profit', currency: currency, value: accStats.netProfit.toLocaleString(), change: '+20%', icon: DollarSign, color: 'text-slate-900', bg: 'bg-slate-50' },
   ] : [
-    { label: 'Monthly Revenue', currency: APP_CONFIG.CURRENCY, value: accStats.revenue.toLocaleString(), change: '+12%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Total Expenses', currency: APP_CONFIG.CURRENCY, value: accStats.expenses.toLocaleString(), change: '-5.2%', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50' },
-    { label: 'Vendor Balance', currency: APP_CONFIG.CURRENCY, value: accStats.vendorBalance.toLocaleString(), change: 'Active Vendors', icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Net Profit', currency: APP_CONFIG.CURRENCY, value: accStats.netProfit.toLocaleString(), change: '+20%', icon: DollarSign, color: 'text-slate-900', bg: 'bg-slate-50' },
+    { label: 'Monthly Revenue', currency: currency, value: accStats.revenue.toLocaleString(), change: '+12%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Total Expenses', currency: currency, value: accStats.expenses.toLocaleString(), change: '-5.2%', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50' },
+    { label: 'Vendor Balance', currency: currency, value: accStats.vendorBalance.toLocaleString(), change: 'Active Vendors', icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Net Profit', currency: currency, value: accStats.netProfit.toLocaleString(), change: '+20%', icon: DollarSign, color: 'text-slate-900', bg: 'bg-slate-50' },
   ];
 
   const handlePostEntry = async (data) => {
@@ -134,7 +136,7 @@ export default function Accounting() {
         userName: userData?.name || 'Accountant',
         action: 'POST_LEDGER_ENTRY',
         module: 'FINANCIAL',
-        description: `Posted ${data.type} entry: ${data.item} for ${APP_CONFIG.CURRENCY} ${data.amount}`,
+        description: `Posted ${data.type} entry: ${data.item} for ${currency} ${data.amount}`,
         metadata: { entryId: result.id, type: data.type, amount: data.amount }
       });
 
@@ -250,7 +252,7 @@ export default function Accounting() {
                                       {entry.category}
                                    </span>
                                 </td>
-                                <td className="py-5 px-4 text-right text-sm font-medium text-slate-900">{APP_CONFIG.CURRENCY} {parseFloat(entry.amount).toLocaleString()}</td>
+                                <td className="py-5 px-4 text-right text-sm font-medium text-slate-900">{currency} {parseFloat(entry.amount).toLocaleString()}</td>
                                 <td className="py-5 px-4 text-center">
                                    <span className={`px-3 py-1 rounded-full text-[9px] font-medium uppercase tracking-widest
                                       ${entry.status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : 

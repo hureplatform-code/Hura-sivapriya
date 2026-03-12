@@ -21,12 +21,14 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import inventoryService from '../../services/inventoryService';
 
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Inventory() {
+  const { currency } = useCurrency();
   const navigate = useNavigate();
   const { userData } = useAuth();
   const [items, setItems] = useState([]);
@@ -208,7 +210,7 @@ export default function Inventory() {
                        </span>
                     </td>
                     <td className="py-6 px-6 text-right">
-                      <p className="font-medium text-slate-900 text-base">{APP_CONFIG.CURRENCY} {item.price.toFixed(2)}</p>
+                      <p className="font-medium text-slate-900 text-base">{currency} {item.price.toFixed(2)}</p>
                     </td>
                     <td className="py-6 px-6 text-right">
                        <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">

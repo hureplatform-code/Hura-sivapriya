@@ -18,11 +18,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import inventoryService from '../../services/inventoryService';
 
 const inventory = [];
 
 export default function Pharmacy() {
+  const { currency } = useCurrency();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeMenu, setActiveMenu] = useState(null);
@@ -69,7 +71,7 @@ export default function Pharmacy() {
             { label: 'Total Items', value: inventory.length.toLocaleString(), icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Low Stock', value: inventory.filter(i => i.status === 'Low Stock').length.toString(), icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
             { label: 'Out of Stock', value: inventory.filter(i => i.status === 'Out of Stock').length.toString(), icon: Minus, color: 'text-red-600', bg: 'bg-red-50' },
-            { label: 'Daily Revenue', value: APP_CONFIG.CURRENCY + ' 42K', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Daily Revenue', value: currency + ' 42K', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -145,7 +147,7 @@ export default function Pharmacy() {
                       <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-1">Units</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-primary-600">{APP_CONFIG.CURRENCY} {item.price}</p>
+                      <p className="text-sm font-medium text-primary-600">{currency} {item.price}</p>
                       <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-1">per unit</p>
                     </div>
                   </div>

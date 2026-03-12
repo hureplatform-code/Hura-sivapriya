@@ -6,10 +6,12 @@ import facilityService from '../../services/facilityService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function AdoptionReport() {
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [adoptionData, setAdoptionData] = useState([]);
   const [summary, setSummary] = useState({ totalClinics: 0, growthRate: '0%', activeTenants: 0 });
@@ -70,7 +72,7 @@ export default function AdoptionReport() {
     doc.text('Clinic Adoption Velocity Report', 14, 22);
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
-    const tableData = adoptionData.map(d => [d.month, d.count, `${APP_CONFIG.CURRENCY} ${d.revenue}`]);
+    const tableData = adoptionData.map(d => [d.month, d.count, `${currency} ${d.revenue}`]);
     autoTable(doc, { head: [['Month', 'New Clinics', 'Est. Revenue']], body: tableData, startY: 40 });
     doc.save(`Adoption_Report_${Date.now()}.pdf`);
   };
@@ -153,7 +155,7 @@ export default function AdoptionReport() {
               <div>
                 <p className="text-sm font-semibold text-slate-900">Est. Monthly Revenue</p>
                 <p className="text-xl font-semibold text-emerald-600 mt-0.5">
-                  {APP_CONFIG.CURRENCY} {(summary.activeTenants * (APP_CONFIG.BASE_PLAN_PRICE || 250)).toLocaleString()}
+                  {currency} {(summary.activeTenants * (APP_CONFIG.BASE_PLAN_PRICE || 250)).toLocaleString()}
                 </p>
                 <p className="text-xs font-medium text-slate-400">Projected from active subscriptions</p>
               </div>

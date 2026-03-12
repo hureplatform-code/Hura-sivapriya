@@ -6,11 +6,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import medicalMasterService from '../../services/medicalMasterService';
 
 const EMPTY_FORM = { name: '', category: '', code: '', price: '' };
 
 export default function InvestigationSetup() {
+  const { currency } = useCurrency();
   const [activeTab, setActiveTab] = useState('labs');
   const [labs, setLabs] = useState([]);
   const [imaging, setImaging] = useState([]);
@@ -169,7 +171,7 @@ export default function InvestigationSetup() {
                         </div>
                       </td>
                       <td className="py-5 px-4 text-sm font-medium text-slate-500">{item.category || '—'}</td>
-                      <td className="py-5 px-4 font-medium text-slate-900 text-sm">{item.price ? `${APP_CONFIG.CURRENCY} ${item.price}` : '—'}</td>
+                      <td className="py-5 px-4 font-medium text-slate-900 text-sm">{item.price ? `${currency} ${item.price}` : '—'}</td>
                       <td className="py-5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
                           <button onClick={() => openEdit(item)}
@@ -210,7 +212,7 @@ export default function InvestigationSetup() {
                   { label: 'Test / Procedure Name', key: 'name', placeholder: activeTab === 'labs' ? 'e.g. Full Blood Count (FBC)' : 'e.g. Chest X-Ray', required: true },
                   { label: 'Code / Reference No.', key: 'code', placeholder: activeTab === 'labs' ? 'e.g. L001' : 'e.g. I001' },
                   { label: 'Department', key: 'category', placeholder: activeTab === 'labs' ? 'e.g. Hematology' : 'e.g. Radiology' },
-                  { label: `Price (${APP_CONFIG.CURRENCY})`, key: 'price', placeholder: 'e.g. 1200' },
+                  { label: `Price (${currency})`, key: 'price', placeholder: 'e.g. 1200' },
                 ].map(f => (
                   <div key={f.key} className="space-y-1.5">
                     <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>

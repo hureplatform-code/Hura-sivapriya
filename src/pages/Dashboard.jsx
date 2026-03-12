@@ -26,8 +26,10 @@ import medicalRecordService from '../services/medicalRecordService';
 import facilityService from '../services/facilityService';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_CONFIG } from '../config';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 export default function Dashboard() {
+  const { currency } = useCurrency();
   const { userData } = useAuth();
   const role = userData?.role || 'clinic_owner';
   const [stats, setStats] = useState([]);
@@ -83,7 +85,7 @@ export default function Dashboard() {
         setStats([
           { label: 'Total Clinics', value: totalOrganizations.toString(), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Active Orgs', value: activeSubscribers.toString(), icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Platform Revenue', value: `${APP_CONFIG.CURRENCY} ${totalRevenueEstimate.toLocaleString()}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Platform Revenue', value: `${currency} ${totalRevenueEstimate.toLocaleString()}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
           { label: 'Global Audit Logs', value: logs.length.toString(), icon: History, color: 'text-slate-600', bg: 'bg-slate-50' },
         ]);
         setArrears([]); // Hide clinic arrears
@@ -103,7 +105,7 @@ export default function Dashboard() {
         setStats([
           { label: 'Overdue Notes (>24h)', value: overdueNotes.toString(), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
           { label: 'Active Doctors', value: users.filter(u => u.role === 'doctor').length.toString(), icon: Stethoscope, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Monthly Revenue', value: `${APP_CONFIG.CURRENCY} ${billingStats.revenue.toLocaleString()}`, icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Monthly Revenue', value: `${currency} ${billingStats.revenue.toLocaleString()}`, icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50' },
           { label: 'Arrears Rate', value: arrearsRate, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
         ]);
         setArrears(invoices.filter(i => i.paymentStatus !== 'paid').slice(0, 4));

@@ -6,8 +6,10 @@ import billingService from '../../services/billingService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 export default function DailyCashflowReport() {
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
   const [metrics, setMetrics] = useState({ cash: 0, digital: 0, insurance: 0, total: 0 });
@@ -62,7 +64,7 @@ export default function DailyCashflowReport() {
     doc.text('Daily Cashflow & Liquidity Summary', 14, 22);
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
-    const tableData = transactions.map(t => [t.time, t.ref, t.patient, t.mode, `${APP_CONFIG.CURRENCY} ${t.amt.toLocaleString()}`, t.status]);
+    const tableData = transactions.map(t => [t.time, t.ref, t.patient, t.mode, `${currency} ${t.amt.toLocaleString()}`, t.status]);
     autoTable(doc, { head: [['Time', 'Reference', 'Patient', 'Mode', 'Amount', 'Status']], body: tableData, startY: 40 });
     doc.save(`Cashflow_${Date.now()}.pdf`);
   };
@@ -99,7 +101,7 @@ export default function DailyCashflowReport() {
               </div>
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
               <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-xs font-semibold text-slate-400">{APP_CONFIG.CURRENCY}</span>
+                <span className="text-xs font-semibold text-slate-400">{currency}</span>
                 <p className="text-2xl font-semibold text-slate-900 tracking-tighter">{stat.value.toLocaleString()}</p>
               </div>
             </motion.div>
@@ -148,7 +150,7 @@ export default function DailyCashflowReport() {
                         </span>
                       </td>
                       <td className="py-6 px-4 text-right">
-                        <p className="font-medium text-slate-900">{APP_CONFIG.CURRENCY} {tx.amt.toLocaleString()}</p>
+                        <p className="font-medium text-slate-900">{currency} {tx.amt.toLocaleString()}</p>
                         <p className="text-[9px] text-slate-400 uppercase font-medium mt-1">Gross Payment</p>
                       </td>
                       <td className="py-6 px-4 text-center">

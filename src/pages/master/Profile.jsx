@@ -231,14 +231,48 @@ export default function Profile() {
                               className="w-full px-4 py-3.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none"
                             />
                           </div>
-                          <div className="space-y-2">
+                                                    <div className="space-y-2">
                             <label className="text-xs font-medium text-slate-500 ml-1 uppercase tracking-wider">Base Currency</label>
-                             <input 
-                               type="text" 
-                               value={profile.currency}
-                               onChange={(e) => setProfile({...profile, currency: e.target.value})}
-                               className="w-full px-4 py-3.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none"
-                             />
+                            <select
+                              value={profile.currency}
+                              onChange={(e) => setProfile({...profile, currency: e.target.value})}
+                              className="w-full px-4 py-3.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none appearance-none"
+                            >
+                            <option value="USD">USD – US Dollar</option>
+                            <option value="MVR">MVR – Maldivian Rufiyaa</option>
+                            <option value="EUR">EUR – Euro</option>
+                            <option value="GBP">GBP – British Pound</option>
+                            <option value="SGD">SGD – Singapore Dollar</option>
+                            <option value="AED">AED – UAE Dirham</option>
+                            <option value="SAR">SAR – Saudi Riyal</option>
+                            <option value="QAR">QAR – Qatari Riyal</option>
+                            <option value="BHD">BHD – Bahraini Dinar</option>
+                            <option value="KWD">KWD – Kuwaiti Dinar</option>
+                            <option value="OMR">OMR – Omani Rial</option>
+                            <option value="INR">INR – Indian Rupee</option>
+                            <option value="PKR">PKR – Pakistani Rupee</option>
+                            <option value="BDT">BDT – Bangladeshi Taka</option>
+                            <option value="LKR">LKR – Sri Lankan Rupee</option>
+                            <option value="NPR">NPR – Nepalese Rupee</option>
+                            <option value="MYR">MYR – Malaysian Ringgit</option>
+                            <option value="IDR">IDR – Indonesian Rupiah</option>
+                            <option value="PHP">PHP – Philippine Peso</option>
+                            <option value="THB">THB – Thai Baht</option>
+                            <option value="CNY">CNY – Chinese Yuan</option>
+                            <option value="JPY">JPY – Japanese Yen</option>
+                            <option value="HKD">HKD – Hong Kong Dollar</option>
+                            <option value="AUD">AUD – Australian Dollar</option>
+                            <option value="NZD">NZD – New Zealand Dollar</option>
+                            <option value="CAD">CAD – Canadian Dollar</option>
+                            <option value="CHF">CHF – Swiss Franc</option>
+                            <option value="ZAR">ZAR – South African Rand</option>
+                            <option value="NGN">NGN – Nigerian Naira</option>
+                            <option value="KES">KES – Kenyan Shilling</option>
+                            <option value="EGP">EGP – Egyptian Pound</option>
+                            <option value="TRY">TRY – Turkish Lira</option>
+                            <option value="BRL">BRL – Brazilian Real</option>
+                            <option value="MXN">MXN – Mexican Peso</option>
+                            </select>
                           </div>
                         </div>
 

@@ -17,8 +17,10 @@ import inventoryService from '../../services/inventoryService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 export default function InventoryReport() {
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState([]);
   const [lowStock, setLowStock] = useState([]);
@@ -60,7 +62,7 @@ export default function InventoryReport() {
       item.name,
       item.category,
       item.stock,
-      `${APP_CONFIG.CURRENCY} ${item.price}`,
+      `${currency} ${item.price}`,
       item.status
     ]);
 
@@ -94,7 +96,7 @@ export default function InventoryReport() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { label: 'Asset Valuation', value: `${APP_CONFIG.CURRENCY} ${(inventory.reduce((sum, i) => sum + (i.stock * i.price), 0)).toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Asset Valuation', value: `${currency} ${(inventory.reduce((sum, i) => sum + (i.stock * i.price), 0)).toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
             { label: 'Critical SKUs', value: lowStock.length.toString(), icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
             { label: 'Total Stock Units', value: inventory.reduce((sum, i) => sum + parseInt(i.stock), 0).toLocaleString(), icon: Box, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Medication Categories', value: new Set(inventory.map(i => i.category)).size.toString(), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },

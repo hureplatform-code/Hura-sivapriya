@@ -1,77 +1,101 @@
-import firestoreService from './firestoreService';
-
-// Stores Twilio credentials in Firestore at: settings/sms_config
-// Credentials are scoped per facility (facilityId)
-
-const SMS_CONFIG_DOC = 'sms_config';
-const SETTINGS_COLLECTION = 'settings';
+import { db } from '../firebase';
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc, increment, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const smsSettingsService = {
 
   /**
-   * Get SMS config for a facility
+   * Get SMS Wallet and Preferences for a facility
    */
-  async getConfig(facilityId) {
+  async getWallet(facilityId) {
+    if (!facilityId) return null;
     try {
-      const docId = facilityId ? `sms_${facilityId}` : SMS_CONFIG_DOC;
-      return await firestoreService.getById(SETTINGS_COLLECTION, docId);
+      const snap = await getDoc(doc(db, 'hospital_profile', facilityId));
+      if (!snap.exists()) return null;
+      const data = snap.data();
+      return {
+        balance: data.smsWalletBalance || 0,
+        language: data.smsLanguage || 'English'
+      };
     } catch (error) {
-      console.error('Error fetching SMS config:', error);
+      console.error('Error fetching SMS wallet:', error);
       return null;
     }
   },
 
   /**
-   * Save / update SMS config for a facility
+   * Update SMS Language Preference
    */
-  async saveConfig(facilityId, config) {
+  async updateLanguage(facilityId, language) {
+    if (!facilityId) return false;
     try {
-      const docId = facilityId ? `sms_${facilityId}` : SMS_CONFIG_DOC;
-      await firestoreService.set(SETTINGS_COLLECTION, docId, {
-        ...config,
-        facilityId: facilityId || null,
+      await updateDoc(doc(db, 'hospital_profile', facilityId), {
+        smsLanguage: language
       });
       return true;
     } catch (error) {
-      console.error('Error saving SMS config:', error);
+      console.error('Error updating SMS language:', error);
       throw error;
     }
   },
 
   /**
-   * Delete SMS config (wipe credentials)
+   * Purchase SMS Bundle
    */
-  async deleteConfig(facilityId) {
+  async buyBundle(facilityId, amount) {
+    if (!facilityId) return false;
     try {
-      const docId = facilityId ? `sms_${facilityId}` : SMS_CONFIG_DOC;
-      await firestoreService.delete(SETTINGS_COLLECTION, docId);
+      // In a real app, this would hit a payment gateway first.
+      // For now, we instantly top-up the wallet.
+      await updateDoc(doc(db, 'hospital_profile', facilityId), {
+        smsWalletBalance: increment(amount)
+      });
       return true;
     } catch (error) {
-      console.error('Error deleting SMS config:', error);
+      console.error('Error buying SMS bundle:', error);
       throw error;
+    }
+  },
+
+  /**
+   * Fetch recent SMS Logs for a facility
+   */
+  async getLogs(facilityId, num = 50) {
+    if (!facilityId) return [];
+    try {
+      const q = query(
+        collection(db, 'sms_logs'),
+        where('facilityId', '==', facilityId),
+        orderBy('sentAt', 'desc'),
+        limit(num)
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+        // If sorting index is missing, fallback cleanly
+        if (error.message.includes('index')) {
+            console.warn("Index missing for sms_logs, falling back to un-ordered fetch");
+            const q = query(collection(db, 'sms_logs'), where('facilityId', '==', facilityId), limit(num));
+            const snap = await getDocs(q);
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+      console.error('Error fetching SMS logs:', error);
+      return [];
     }
   },
 
   /**
    * Send a test SMS via the Cloud Function endpoint
-   * Called from Settings page to validate credentials
    */
-  async sendTestSms(facilityId, toPhone) {
+  async sendTestSms(facilityId, toPhone, message = "Test message from HURA platform. Africa's Talking API is working!") {
     try {
-      // The Cloud Function HTTP endpoint to trigger test
-      const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || '';
-      const region = 'us-central1';
-      const url = `https://${region}-${projectId}.cloudfunctions.net/sendAppointmentSms`;
+      const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'huraplatform';
+      // In production, get dynamic region. Assuming us-central1 default.
+      const functionUrl = `https://us-central1-${projectId}.cloudfunctions.net/sendManualSms`;
       
-      const res = await fetch(url, {
+      const res = await fetch(functionUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          test: true,
-          facilityId,
-          to: toPhone,
-          body: 'Test message from HURA platform. Your Twilio SMS integration is working correctly!'
-        })
+        body: JSON.stringify({ facilityId, to: toPhone, message })
       });
       return res.ok;
     } catch (error) {

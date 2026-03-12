@@ -6,8 +6,10 @@ import billingService from '../../services/billingService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 export default function InsuranceAgingReport() {
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [claimsData, setClaimsData] = useState([]);
   const [summary, setSummary] = useState({ pendingValue: 0, avgAging: '0 days', denialRate: '0%' });
@@ -68,7 +70,7 @@ export default function InsuranceAgingReport() {
     doc.text('Insurance Aging & Claim Performance', 14, 22);
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
-    const tableData = claimsData.map(c => [c.patient, c.provider, `${APP_CONFIG.CURRENCY} ${c.amount.toLocaleString()}`, `${c.days}d`, c.status]);
+    const tableData = claimsData.map(c => [c.patient, c.provider, `${currency} ${c.amount.toLocaleString()}`, `${c.days}d`, c.status]);
     autoTable(doc, { head: [['Patient Subject', 'Insurance Provider', 'Claim Amt', 'Aging', 'Status']], body: tableData, startY: 40 });
     doc.save(`Insurance_Aging_${Date.now()}.pdf`);
   };
@@ -93,7 +95,7 @@ export default function InsuranceAgingReport() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: 'Pending Receivables', value: `${APP_CONFIG.CURRENCY} ${summary.pendingValue.toLocaleString()}`, icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
+            { label: 'Pending Receivables', value: `${currency} ${summary.pendingValue.toLocaleString()}`, icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
             { label: 'Avg Claim Cycle', value: summary.avgAging, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Claim Denial Rate', value: summary.denialRate, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
           ].map((stat, i) => (
@@ -143,7 +145,7 @@ export default function InsuranceAgingReport() {
                         <span className="text-sm font-medium text-slate-600">{claim.provider}</span>
                       </td>
                       <td className="py-6 px-4">
-                        <p className="font-semibold text-slate-900">{APP_CONFIG.CURRENCY} {claim.amount.toLocaleString()}</p>
+                        <p className="font-semibold text-slate-900">{currency} {claim.amount.toLocaleString()}</p>
                       </td>
                       <td className="py-6 px-4">
                         <div className="flex items-center gap-2">

@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import billingService from '../../services/billingService';
 import patientService from '../../services/patientService';
 import auditService from '../../services/auditService';
@@ -42,6 +43,7 @@ const BILL_TYPES = [
 ];
 
 export default function Billing() {
+  const { currency } = useCurrency();
   const [isCreating, setIsCreating] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,12 +120,12 @@ export default function Billing() {
     const tableData = inv.items?.map(item => [
       item.description,
       item.qty,
-      `${APP_CONFIG.CURRENCY} ${parseFloat(item.price).toLocaleString()}`,
-      `${APP_CONFIG.CURRENCY} ${parseFloat(item.amount).toLocaleString()}`
+      `${currency} ${parseFloat(item.price).toLocaleString()}`,
+      `${currency} ${parseFloat(item.amount).toLocaleString()}`
     ]) || [];
 
     if (inv.payAmount && parseFloat(inv.payAmount) > 0) {
-      tableData.push(['Base Service Fee', '1', `${APP_CONFIG.CURRENCY} ${parseFloat(inv.payAmount).toLocaleString()}`, `${APP_CONFIG.CURRENCY} ${parseFloat(inv.payAmount).toLocaleString()}`]);
+      tableData.push(['Base Service Fee', '1', `${currency} ${parseFloat(inv.payAmount).toLocaleString()}`, `${currency} ${parseFloat(inv.payAmount).toLocaleString()}`]);
     }
 
     autoTable(doc, {
@@ -133,7 +135,7 @@ export default function Billing() {
     });
 
     const finalY = doc.lastAutoTable.finalY + 10;
-    doc.text(`Total Amount: ${APP_CONFIG.CURRENCY} ${parseFloat(inv.totalAmount).toLocaleString()}`, 14, finalY);
+    doc.text(`Total Amount: ${currency} ${parseFloat(inv.totalAmount).toLocaleString()}`, 14, finalY);
 
     doc.save(`Invoice_${inv.invoiceNo}.pdf`);
   };
@@ -214,7 +216,7 @@ export default function Billing() {
               <div>
                 <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-semibold text-slate-900">{APP_CONFIG.CURRENCY} {stat.value}</span>
+                  <span className="text-2xl font-semibold text-slate-900">{currency} {stat.value}</span>
                   <span className={`text-[10px] font-medium ${stat.color} flex items-center gap-0.5`}>
                   </span>
                 </div>
@@ -278,7 +280,7 @@ export default function Billing() {
                       </span>
                     </td>
                     <td className="py-5 px-4 font-medium text-slate-900 text-sm">
-                      {APP_CONFIG.CURRENCY} {parseFloat(inv.totalAmount || inv.payAmount || 0).toLocaleString()}
+                      {currency} {parseFloat(inv.totalAmount || inv.payAmount || 0).toLocaleString()}
                     </td>
                     <td className="py-5 px-4">
                       <span className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest
@@ -484,7 +486,7 @@ function BillGenerator({ onClose, onSave }) {
       userName: userData?.name || 'Receptionist',
       action: 'GENERATE_INVOICE',
       module: 'FINANCIAL',
-      description: `Generated Invoice #${invoiceData.invoiceNo} for ${patient?.name || 'Patient'} - Total: ${APP_CONFIG.CURRENCY} ${invoiceData.totalAmount}`,
+      description: `Generated Invoice #${invoiceData.invoiceNo} for ${patient?.name || 'Patient'} - Total: ${currency} ${invoiceData.totalAmount}`,
       metadata: {
         invoiceId: result?.id,
         invoiceNo: invoiceData.invoiceNo,
@@ -608,7 +610,7 @@ function BillGenerator({ onClose, onSave }) {
                   <p className="text-xs text-slate-500 mt-1">Standard clinic service charge</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">{APP_CONFIG.CURRENCY}</span>
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">{currency}</span>
                   <input 
                     type="number"
                     value={formData.payAmount}
@@ -690,7 +692,7 @@ function BillGenerator({ onClose, onSave }) {
                 />
              </div>
              <div className="flex justify-between items-center text-slate-500">
-                <span className="text-[10px] font-semibold uppercase tracking-widest">Discount ({APP_CONFIG.CURRENCY})</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest">Discount ({currency})</span>
                 <input 
                   type="number" 
                   value={formData.discount}
@@ -699,7 +701,7 @@ function BillGenerator({ onClose, onSave }) {
                 />
              </div>
              <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
-                <span className="text-sm font-medium text-slate-900 uppercase tracking-widest">Total Due ({APP_CONFIG.CURRENCY})</span>
+                <span className="text-sm font-medium text-slate-900 uppercase tracking-widest">Total Due ({currency})</span>
                 <span className="text-2xl font-semibold text-slate-900 leading-none tracking-tight">
                   {calculateTotal()}
                 </span>

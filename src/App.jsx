@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { CurrencyProvider } from './contexts/CurrencyContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import SetupSuperadmin from './pages/SetupSuperadmin';
@@ -43,6 +44,7 @@ import PharmacySetup from './pages/config/PharmacySetup';
 import MedicineConfig from './pages/config/MedicineConfig';
 import DrugCatalog from './pages/config/DrugCatalog';
 import SmsSettings from './pages/config/SmsSettings';
+import SmsLogs from './pages/config/SmsLogs';
 import ProcedureMaster from './pages/config/ProcedureMaster';
 import AdoptionReport from './pages/reports/AdoptionReport';
 import ResourceUsageReport from './pages/reports/ResourceUsageReport';
@@ -54,6 +56,7 @@ import './index.css';
 function App() {
   return (
     <AuthProvider>
+      <CurrencyProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -100,6 +103,7 @@ function App() {
           <Route path="/config/medicine" element={<PrivateRoute><MedicineConfig /></PrivateRoute>} />
           <Route path="/config/catalog" element={<PrivateRoute><DrugCatalog /></PrivateRoute>} />
           <Route path="/config/sms" element={<PrivateRoute><SmsSettings /></PrivateRoute>} />
+          <Route path="/config/sms-logs" element={<PrivateRoute><SmsLogs /></PrivateRoute>} />
           <Route path="/config/procedures" element={<PrivateRoute><ProcedureMaster /></PrivateRoute>} />
           
           {/* Subscription */}
@@ -122,6 +126,7 @@ function App() {
           <Route path="/master/patients/:id" element={<PrivateRoute><PatientDetails /></PrivateRoute>} />
         </Routes>
       </Router>
+      </CurrencyProvider>
     </AuthProvider>
   );
 }
