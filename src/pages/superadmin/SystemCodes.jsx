@@ -111,12 +111,12 @@ export default function SystemCodes() {
       <div className="space-y-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">System Codes Master</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">System Codes Master</h1>
             <p className="text-slate-500 font-medium mt-1">Global ICD-10 and CDT terminology management for platform-wide clinical accuracy.</p>
           </div>
           <button 
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+            className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
           >
             <Plus className="h-5 w-5" />
             Inject New Code
@@ -132,7 +132,7 @@ export default function SystemCodes() {
                 placeholder="Search by code identifier or clinical description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-16 pr-8 py-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-bold outline-none transition-all"
+                className="w-full pl-16 pr-8 py-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium outline-none transition-all"
               />
             </div>
             <div className="flex bg-slate-100 p-1.5 rounded-2xl">
@@ -140,7 +140,7 @@ export default function SystemCodes() {
                 <button
                   key={type}
                   onClick={() => setActiveType(type)}
-                  className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                  className={`px-8 py-3 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all
                     ${activeType === type ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}
                   `}
                 >
@@ -154,27 +154,27 @@ export default function SystemCodes() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50">
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Code Type</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Identifier</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Description</th>
-                  <th className="pb-6 text-[10px) font-black text-slate-400 uppercase tracking-widest px-4">Category</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 text-center">Actions</th>
+                  <th className="pb-6 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Code Type</th>
+                  <th className="pb-6 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Identifier</th>
+                  <th className="pb-6 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Description</th>
+                  <th className="pb-6 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Category</th>
+                  <th className="pb-6 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filteredCodes.map((code) => (
                   <tr key={code.id} className="group hover:bg-slate-50/50 transition-colors">
                     <td className="py-6 px-4">
-                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-semibold uppercase tracking-widest
                         ${code.type === 'ICD-10' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}
                       `}>
                         {code.type}
                       </span>
                     </td>
-                    <td className="py-6 px-4 font-black text-slate-900 text-sm tracking-tight">{code.code}</td>
-                    <td className="py-6 px-4 text-xs font-bold text-slate-600 max-w-md">{code.description}</td>
+                    <td className="py-6 px-4 font-medium text-slate-900 text-sm tracking-tight">{code.code}</td>
+                    <td className="py-6 px-4 text-xs font-medium text-slate-600 max-w-md">{code.description}</td>
                     <td className="py-6 px-4">
-                       <span className="px-3 py-1 bg-slate-100 text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                       <span className="px-3 py-1 bg-slate-100 text-slate-400 rounded-lg text-[9px] font-semibold uppercase tracking-widest">
                          {code.category}
                        </span>
                     </td>
@@ -196,7 +196,7 @@ export default function SystemCodes() {
               </tbody>
             </table>
             {loading && codes.length === 0 && (
-               <div className="py-20 text-center font-bold text-slate-400 animate-pulse">Synchronizing Global Lexicon...</div>
+               <div className="py-20 text-center font-medium text-slate-400 animate-pulse">Synchronizing Global Lexicon...</div>
             )}
           </div>
         </div>
@@ -207,59 +207,59 @@ export default function SystemCodes() {
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden">
                   <div className="p-8 border-b border-slate-100">
-                     <h3 className="text-xl font-black text-slate-900 uppercase">Inject Master Code</h3>
-                     <p className="text-xs text-slate-500 font-bold mt-1">Add verified ICD-10 or CDT terminology.</p>
+                     <h3 className="text-xl font-semibold text-slate-900 uppercase">Inject Master Code</h3>
+                     <p className="text-xs text-slate-500 font-medium mt-1">Add verified ICD-10 or CDT terminology.</p>
                   </div>
                   <form onSubmit={handleInject} className="p-8 space-y-6">
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Code Type</label>
+                           <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">Code Type</label>
                            <select 
                             value={newCode.type}
                             onChange={e => setNewCode({...newCode, type: e.target.value})}
-                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold appearance-none"
+                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-medium appearance-none"
                            >
                               <option>ICD-10</option>
                               <option>CDT</option>
                            </select>
                         </div>
                         <div className="space-y-1">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label>
+                           <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">Category</label>
                            <input 
                             type="text"
                             required
                             placeholder="e.g. Respiratory"
                             value={newCode.category}
                             onChange={e => setNewCode({...newCode, category: e.target.value})}
-                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold"
+                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-medium"
                            />
                         </div>
                      </div>
                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Code Identifier</label>
+                        <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">Code Identifier</label>
                         <input 
                           type="text"
                           required
                           placeholder="e.g. A00.1"
                           value={newCode.code}
                           onChange={e => setNewCode({...newCode, code: e.target.value})}
-                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold"
+                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-medium"
                         />
                      </div>
                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Clinical Description</label>
+                        <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">Clinical Description</label>
                         <textarea 
                           rows={3}
                           required
                           placeholder="Full medical terminology description..."
                           value={newCode.description}
                           onChange={e => setNewCode({...newCode, description: e.target.value})}
-                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold resize-none"
+                          className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-medium resize-none"
                         />
                      </div>
                      <div className="flex gap-3 pt-4">
-                        <button type="button" onClick={() => setIsAdding(false)} className="flex-1 py-4 bg-slate-50 font-black text-[10px] uppercase tracking-widest text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
-                        <button type="submit" className="flex-1 py-4 bg-slate-900 font-black text-[10px] uppercase tracking-widest text-white rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all">Commit Injection</button>
+                        <button type="button" onClick={() => setIsAdding(false)} className="flex-1 py-4 bg-slate-50 font-medium text-[10px] uppercase tracking-widest text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
+                        <button type="submit" className="flex-1 py-4 bg-slate-900 font-medium text-[10px] uppercase tracking-widest text-white rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all">Commit Injection</button>
                      </div>
                   </form>
                </motion.div>
@@ -272,8 +272,8 @@ export default function SystemCodes() {
             <AlertTriangle className="h-6 w-6" />
           </div>
           <div className="space-y-2">
-            <h4 className="text-sm font-black text-amber-900 uppercase tracking-widest">Global Synchronization Protocol</h4>
-            <p className="text-xs font-bold text-amber-700 leading-relaxed">
+            <h4 className="text-sm font-medium text-amber-900 uppercase tracking-widest">Global Synchronization Protocol</h4>
+            <p className="text-xs font-medium text-amber-700 leading-relaxed">
               Modifying these codes impacts billing and clinical documentation across ALL organizations. 
               Changes are versioned and logged in the Global Audit Trail. Only use verified WHO and ADA terminology.
             </p>

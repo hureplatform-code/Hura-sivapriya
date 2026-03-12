@@ -81,13 +81,13 @@ export default function Notes() {
            <div className="h-20 w-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-600 mb-6 shadow-inner">
               <ClipboardList className="h-10 w-10" />
            </div>
-           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Clinical Governance Notice</h2>
+           <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Clinical Governance Notice</h2>
            <p className="text-slate-500 max-w-md mt-2 font-medium">
              Individual clinical observations and consultation notes are restricted to medical practitioners. Superadmins have access to system-wide audit logs but not private patient records.
            </p>
            <button 
              onClick={() => window.history.back()}
-             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Go Back
            </button>
@@ -118,12 +118,12 @@ export default function Notes() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Clinical Notes</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Clinical Notes</h1>
             <p className="text-slate-500 mt-1">Review patient history and document new clinical observations.</p>
           </div>
           <button 
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
           >
             <Plus className="h-5 w-5" />
             New Clinical Note
@@ -147,13 +147,13 @@ export default function Notes() {
 
             <div className="space-y-4">
               {loading ? (
-                <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">Loading records...</div>
+                <div className="p-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Loading records...</div>
               ) : filteredNotes.length === 0 ? (
                 <div className="bg-white p-12 rounded-2xl border border-slate-100 shadow-sm text-center">
                   <div className="h-16 w-16 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-4 text-slate-300">
                     <FileText className="h-8 w-8" />
                   </div>
-                  <h3 className="text-slate-900 font-black">No notes found</h3>
+                  <h3 className="text-slate-900 font-medium">No notes found</h3>
                   <p className="text-slate-500 text-sm mt-1">Start by creating a new clinical note for a patient.</p>
                 </div>
               ) : (
@@ -175,25 +175,25 @@ export default function Notes() {
                           )}
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-900">{note.title || 'Untitled Note'}</h3>
+                          <h3 className="font-medium text-slate-900">{note.title || 'Untitled Note'}</h3>
                           <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
                             <User className="h-3 w-3" /> {note.patientName} • <Calendar className="h-3 w-3" /> {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-2 items-center">
-                        <span className={`px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest capitalize`}>
+                        <span className={`px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[10px] font-semibold uppercase tracking-widest capitalize`}>
                           {note.specialty}
                         </span>
                         {note.status === 'draft' ? (
-                          <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-widest">Draft</span>
+                          <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-semibold uppercase tracking-widest">Draft</span>
                         ) : (
-                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1">
                             <CheckCircle2 className="h-3 w-3" /> Signed
                           </span>
                         )}
                         {note.entryMode === 'audio' && (
-                          <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-widest" title="Created via Audio">
+                          <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-semibold uppercase tracking-widest" title="Created via Audio">
                              Dictated
                           </span>
                         )}
@@ -205,20 +205,20 @@ export default function Notes() {
                         {note.subjective || note.objective || note.assessment || note.plan || 'No observations documented.'}
                       </p>
                       {note.diagnosis && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-black w-fit uppercase border border-amber-100 italic">
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-medium w-fit uppercase border border-amber-100 italic">
                           Dx: {note.diagnosis}
                         </div>
                       )}
                     </div>
                     
                     <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                      <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
                         <ClipboardList className="h-3.5 w-3.5" />
                         Signed by {note.doctorName || 'Attending Physician'}
                       </div>
                       <button 
                         onClick={() => setViewingNote(note)}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all font-bold text-xs"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all font-medium text-xs"
                       >
                         View Full Note
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -233,7 +233,7 @@ export default function Notes() {
           <div className="space-y-6">
 
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h4 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+              <h4 className="text-sm font-medium text-slate-900 mb-6 flex items-center gap-2">
                 <History className="h-4 w-4 text-slate-400" />
                 Recent Activity
               </h4>
@@ -243,8 +243,8 @@ export default function Notes() {
                     <div className="absolute left-0 top-1 h-6 w-6 bg-slate-50 rounded-lg border-2 border-white flex items-center justify-center z-10 shadow-sm">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary-500" />
                     </div>
-                    <p className="text-xs font-bold text-slate-900 leading-none">{note.title}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-black">
+                    <p className="text-xs font-medium text-slate-900 leading-none">{note.title}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-medium">
                       {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'} • {note.doctorName}
                     </p>
                   </div>
@@ -280,7 +280,7 @@ export default function Notes() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
           >
              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
                 {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <div className="h-5 w-5 rounded-full border-2 border-white" />}
@@ -444,7 +444,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
               <Stethoscope className="h-8 w-8" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">New Consultation</h3>
+              <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">New Consultation</h3>
               <p className="text-sm text-slate-500 font-medium">Capture exact specialty-specific observations</p>
             </div>
           </div>
@@ -459,12 +459,12 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
         <div className="flex-1 flex overflow-hidden">
           {/* Specialty Sidebar */}
           <div className="w-64 bg-slate-50/50 border-r border-slate-100 overflow-y-auto p-4 space-y-1">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-4">Specialty Template</p>
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 mb-4">Specialty Template</p>
             {SPECIALTIES.map((spec) => (
               <button
                 key={spec.id}
                 onClick={() => toggleSpecialty(spec.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                   ${activeSpecialties.includes(spec.id) 
                     ? 'bg-white text-primary-600 shadow-sm shadow-slate-200/50' 
                     : 'text-slate-500 hover:bg-white/50 hover:text-slate-900'}
@@ -481,14 +481,14 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             {/* Patient Selection */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
-                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
+                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
                    <User className="h-4 w-4" />
                    Patient Information
                  </label>
                  <select 
                    value={patientId}
                    onChange={(e) => setPatientId(e.target.value)}
-                   className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-3xl text-sm font-bold transition-all outline-none"
+                   className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-3xl text-sm font-medium transition-all outline-none"
                  >
                    <option value="">Select Patient...</option>
                    {patients.map(p => (
@@ -497,14 +497,14 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                  </select>
               </div>
               <div className="space-y-4">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
+                <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
                    <Calendar className="h-4 w-4" />
                    Date of Consultation
                 </label>
                 <input 
                   type="date" 
                   defaultValue={new Date().toISOString().split('T')[0]}
-                  className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold outline-none" 
+                  className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-medium outline-none" 
                 />
               </div>
             </div>
@@ -512,13 +512,13 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             <div className="bg-slate-100 p-2 rounded-3xl inline-flex w-fit mb-4">
                <button 
                  onClick={() => setEntryMode('text')}
-                 className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${entryMode === 'text' ? 'bg-white shadow-lg text-slate-900 border border-slate-200' : 'text-slate-500 hover:text-slate-900 border border-transparent'}`}
+                 className={`px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all ${entryMode === 'text' ? 'bg-white shadow-lg text-slate-900 border border-slate-200' : 'text-slate-500 hover:text-slate-900 border border-transparent'}`}
                >
                  Text-Only
                </button>
                <button 
                  onClick={() => setEntryMode('audio')}
-                 className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${entryMode === 'audio' ? 'bg-white shadow-lg text-indigo-600 border border-slate-200' : 'text-slate-500 hover:text-slate-900 border border-transparent'}`}
+                 className={`px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all ${entryMode === 'audio' ? 'bg-white shadow-lg text-indigo-600 border border-slate-200' : 'text-slate-500 hover:text-slate-900 border border-transparent'}`}
                >
                  Audio & AI
                </button>
@@ -528,8 +528,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                 <div className="bg-indigo-50/50 border border-indigo-100 rounded-3xl p-8 space-y-6">
                    <div className="flex items-center justify-between">
                       <div>
-                         <h4 className="text-lg font-black text-indigo-900">Audio Dictation</h4>
-                         <p className="text-xs text-indigo-600 font-bold mt-1">Record your note and AI will generate the transcript and SOAP.</p>
+                         <h4 className="text-lg font-semibold text-indigo-900">Audio Dictation</h4>
+                         <p className="text-xs text-indigo-600 font-medium mt-1">Record your note and AI will generate the transcript and SOAP.</p>
                       </div>
                       <button 
                         type="button"
@@ -588,7 +588,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                               }
                            }
                         }}
-                        className={`px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                        className={`px-6 py-4 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all flex items-center gap-2 ${
                           isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-indigo-600 text-white hover:bg-indigo-700'
                         }`}
                       >
@@ -599,7 +599,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                    {fakeTranscript && (
                       <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100">
                          <div className="flex items-center justify-between mb-4">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Transcript</p>
+                            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Real-time Transcript</p>
                             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                          </div>
                          <p className="text-sm font-medium text-slate-700 leading-relaxed mb-6 bg-slate-50 p-6 rounded-xl italic border border-slate-100 shadow-inner">"{fakeTranscript}"</p>
@@ -607,7 +607,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                             <div className={`h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all ${transcriptReviewed ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 group-hover:border-emerald-300'}`}>
                                <CheckCircle2 className={`h-4 w-4 text-white transition-opacity ${transcriptReviewed ? 'opacity-100' : 'opacity-0'}`} />
                             </div>
-                            <span className="text-xs font-bold text-slate-600 uppercase tracking-widest group-hover:text-slate-900">Mark transcript reviewed</span>
+                            <span className="text-xs font-medium text-slate-600 uppercase tracking-widest group-hover:text-slate-900">Mark transcript reviewed</span>
                             <input 
                               type="checkbox"
                               className="hidden" 
@@ -631,7 +631,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                         <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
                           {React.createElement(spec.icon, { className: 'h-6 w-6' })}
                         </div>
-                        <h4 className="text-xl font-black text-slate-900 tracking-tight uppercase tracking-wider">{spec.name} Examination</h4>
+                        <h4 className="text-xl font-semibold text-slate-900 tracking-tight uppercase tracking-wider">{spec.name} Examination</h4>
                       </div>
                       <button 
                         onClick={() => toggleSpecialty(specId)}
@@ -654,21 +654,21 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                       {specId === 'dental' && (
                         <>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tooth Number (1-32)</label>
-                            <select className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold"
+                            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Tooth Number (1-32)</label>
+                            <select className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium"
                               onChange={(e) => updateSpecialtyField('tooth', e.target.value)}>
                               <option value="">Select</option>
                               {Array.from({length: 32}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}
                             </select>
                           </div>
                           <div className="space-y-2 col-span-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Surfaces</label>
+                            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Surfaces</label>
                             <div className="flex gap-2">
                               {['O', 'M', 'D', 'L', 'B'].map(s => (
                                 <button 
                                   key={s} 
                                   onClick={() => toggleSurface(s)}
-                                  className={`h-10 w-10 rounded-xl border flex items-center justify-center font-black text-xs transition-all
+                                  className={`h-10 w-10 rounded-xl border flex items-center justify-center font-medium text-xs transition-all
                                     ${(formData.specialtyData.surfaces || '').split(',').includes(s)
                                       ? 'bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-200'
                                       : 'bg-white border-slate-100 text-slate-500 hover:bg-primary-50 hover:text-primary-600'}
@@ -697,7 +697,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                           <Field label="Percentile (Weight)" field="cn_percentile_wt" value={formData.specialtyData.cn_percentile_wt} onChange={updateSpecialtyField} />
                           <Field label="Percentile (Height)" field="cn_percentile_ht" value={formData.specialtyData.cn_percentile_ht} onChange={updateSpecialtyField} />
                           <div className="col-span-full space-y-4">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Immunizations</label>
+                            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Immunizations</label>
                             <div className="flex gap-4">
                               {[
                                 { id: 'ped_bcg', label: 'BCG' },
@@ -708,7 +708,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                                 <button 
                                   key={id} 
                                   onClick={() => toggleChecklist(id)}
-                                  className={`px-6 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm
+                                  className={`px-6 py-2 rounded-full border text-[10px] font-semibold uppercase tracking-widest transition-all shadow-sm
                                     ${formData.specialtyData[id]
                                       ? 'bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-200'
                                       : 'bg-white border-slate-100 text-slate-500 hover:bg-primary-50 hover:text-primary-600'}
@@ -751,16 +751,16 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                                 `}>
                                   <CheckCircle2 className={`h-4 w-4 text-white transition-opacity ${formData.specialtyData[id] ? 'opacity-100' : 'opacity-0'}`} />
                                 </div>
-                                <span className="text-xs font-bold text-slate-600">{label}</span>
+                                <span className="text-xs font-medium text-slate-600">{label}</span>
                               </label>
                             ))}
                           </div>
                           <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ASA Class</label>
+                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">ASA Class</label>
                              <select 
                                value={formData.specialtyData.srg_asa || ''}
                                onChange={(e) => updateSpecialtyField('srg_asa', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold shadow-sm focus:border-primary-200 transition-all"
+                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
                              >
                                 <option value="">Select ASA</option>
                                 {['I', 'II', 'III', 'IV', 'V'].map(c => <option key={c} value={c}>{c}</option>)}
@@ -789,11 +789,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                         <>
                           <Field label="Lesion Location & Description" field="der_lesion" value={formData.specialtyData.der_lesion} onChange={updateSpecialtyField} isTextArea />
                           <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Morphology</label>
+                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Morphology</label>
                              <select 
                                value={formData.specialtyData.der_mophology || ''}
                                onChange={(e) => updateSpecialtyField('der_mophology', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold shadow-sm focus:border-primary-200 transition-all"
+                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
                              >
                                 <option value="">Select morphology</option>
                                 {['Macule', 'Papule', 'Plaque', 'Nodule', 'Vesicle/Bulla', 'Ulcer'].map(m => <option key={m} value={m}>{m}</option>)}
@@ -807,11 +807,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                       {specId === 'radiology' && (
                         <>
                           <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modality</label>
+                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Modality</label>
                              <select 
                                value={formData.specialtyData.rdo_modality || ''}
                                onChange={(e) => updateSpecialtyField('rdo_modality', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold shadow-sm focus:border-primary-200 transition-all"
+                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
                              >
                                 <option value="">Select modality</option>
                                 <option>X-Ray</option><option>CT Scan</option><option>MRI</option><option>Ultrasound</option>
@@ -836,11 +836,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                       {specId === 'orthopedics' && (
                         <>
                           <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Injury Side</label>
+                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Injury Side</label>
                              <select 
                                value={formData.specialtyData.ortho_injury_side || ''}
                                onChange={(e) => updateSpecialtyField('ortho_injury_side', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold shadow-sm focus:border-primary-200 transition-all"
+                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
                              >
                                 <option value="">Select side</option>
                                 {['Left', 'Right', 'Bilateral'].map(s => <option key={s} value={s}>{s}</option>)}
@@ -849,11 +849,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                           <Field label="ROM Notes" field="ortho_rom" value={formData.specialtyData.ortho_rom} onChange={updateSpecialtyField} />
                           <Field label="Special Tests" field="ortho_specialtest" value={formData.specialtyData.ortho_specialtest} onChange={updateSpecialtyField} isTextArea />
                           <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Immobilization</label>
+                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Immobilization</label>
                              <select 
                                value={formData.specialtyData.ortho_immobilization || ''}
                                onChange={(e) => updateSpecialtyField('ortho_immobilization', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold shadow-sm focus:border-primary-200 transition-all"
+                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
                              >
                                 <option value="">Select immobilization</option>
                                 {['Splint', 'Cast', 'Brace', 'Sling'].map(i => <option key={i} value={i}>{i}</option>)}
@@ -869,11 +869,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                           <Field label="GAD-7 Score" field="psy_gad" value={formData.specialtyData.psy_gad} onChange={updateSpecialtyField} />
                           <Field label="Mental State Examination (MSE)" field="psy_mental_state" value={formData.specialtyData.psy_mental_state} onChange={updateSpecialtyField} isTextArea />
                           <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Risk Assessment</label>
+                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Risk Assessment</label>
                              <select 
                                value={formData.specialtyData.psy_risk || ''}
                                onChange={(e) => updateSpecialtyField('psy_risk', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold shadow-sm focus:border-primary-200 transition-all"
+                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
                              >
                                 <option value="">Select risk</option>
                                 {['Low', 'Moderate', 'High'].map(r => <option key={r} value={r}>{r}</option>)}
@@ -909,7 +909,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 
             {/* ICD-10 Linked */}
             <div className="space-y-4">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
                 <SearchIcon className="h-4 w-4" />
                 Diagnosis (ICD-10)
               </label>
@@ -921,7 +921,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                     placeholder="Enter Diagnosis (e.g., Hypertension, Malaria)..." 
                     value={formData.diagnosis}
                     onChange={(e) => setFormData({...formData, diagnosis: e.target.value})}
-                    className="w-full pl-16 pr-6 py-6 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm font-bold transition-all outline-none" 
+                    className="w-full pl-16 pr-6 py-6 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm font-medium transition-all outline-none" 
                   />
                 </div>
                 <button 
@@ -933,7 +933,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                       showNotification('error', 'Please enter a diagnosis first.');
                     }
                   }}
-                  className="px-8 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                  className="px-8 bg-slate-900 text-white rounded-2xl font-medium text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
                 >
                   Set Primary Diagnosis
                 </button>
@@ -943,20 +943,20 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
         </div>
 
         <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-white z-10">
-          <div className="flex items-center gap-4 text-slate-400 text-xs font-black uppercase tracking-widest">
+          <div className="flex items-center gap-4 text-slate-400 text-xs font-semibold uppercase tracking-widest">
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             Auto-save active
           </div>
           <div className="flex gap-4 items-center">
             <button
               onClick={onClose}
-              className="px-8 py-4 bg-slate-50 text-slate-500 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all font-bold"
+              className="px-8 py-4 bg-slate-50 text-slate-500 font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all font-medium"
             >
               Discard
             </button>
             <button
                onClick={() => handleSave('draft')}
-               className="px-8 py-4 bg-slate-800 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-900 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center gap-2"
+               className="px-8 py-4 bg-slate-800 text-white font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-900 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center gap-2"
             >
                Save Draft
             </button>
@@ -964,7 +964,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                 <button
                   disabled={entryMode === 'audio' && !transcriptReviewed}
                   onClick={() => handleSave('signed')}
-                  className={`px-12 py-4 font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-2xl active:scale-95 flex items-center gap-2 ${
+                  className={`px-12 py-4 font-medium text-xs uppercase tracking-widest rounded-2xl transition-all shadow-2xl active:scale-95 flex items-center gap-2 ${
                      (entryMode === 'audio' && !transcriptReviewed) 
                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' 
                      : 'bg-primary-600 text-white hover:bg-primary-700 shadow-primary-200'
@@ -988,14 +988,14 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 function Field({ label, field, value, onChange, isTextArea = false, type = "text", placeholder = "" }) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{label}</label>
+      <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-1">{label}</label>
       {isTextArea ? (
         <textarea 
           value={value || ''}
           onChange={(e) => onChange(field, e.target.value)}
           placeholder={placeholder}
           rows="1"
-          className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold focus:border-primary-200 transition-all resize-none"
+          className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium focus:border-primary-200 transition-all resize-none"
         />
       ) : (
         <input 
@@ -1003,7 +1003,7 @@ function Field({ label, field, value, onChange, isTextArea = false, type = "text
           value={value || ''}
           onChange={(e) => onChange(field, e.target.value)}
           placeholder={placeholder}
-          className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-bold focus:border-primary-200 transition-all"
+          className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium focus:border-primary-200 transition-all"
         />
       )}
     </div>
@@ -1014,10 +1014,10 @@ function SOAPBox({ label, icon, value, onChange }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 pl-2">
-        <div className="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs shadow-lg">
+        <div className="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-medium text-xs shadow-lg">
           {icon}
         </div>
-        <h5 className="font-black text-slate-900 text-sm uppercase tracking-widest">{label}</h5>
+        <h5 className="font-medium text-slate-900 text-sm uppercase tracking-widest">{label}</h5>
       </div>
       <textarea 
         value={value}
@@ -1047,8 +1047,8 @@ function NoteViewer({ note, onClose }) {
               <FileText className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-slate-900">{note.title}</h3>
-              <p className="text-sm text-slate-500 font-bold">{note.patientName} • {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString() : 'Recent'}</p>
+              <h3 className="text-xl font-semibold text-slate-900">{note.title}</h3>
+              <p className="text-sm text-slate-500 font-medium">{note.patientName} • {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString() : 'Recent'}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition-all">
@@ -1059,17 +1059,17 @@ function NoteViewer({ note, onClose }) {
         <div className="flex-1 overflow-y-auto p-10 space-y-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="p-6 bg-slate-50 rounded-3xl">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Doctor</p>
-              <p className="text-sm font-black text-slate-900">{note.doctorName}</p>
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Doctor</p>
+              <p className="text-sm font-medium text-slate-900">{note.doctorName}</p>
             </div>
             <div className="p-6 bg-slate-50 rounded-3xl">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Specialty</p>
-              <p className="text-sm font-black text-slate-900 capitalize">{note.specialties?.join(', ') || note.specialty || 'General'}</p>
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Specialty</p>
+              <p className="text-sm font-medium text-slate-900 capitalize">{note.specialties?.join(', ') || note.specialty || 'General'}</p>
             </div>
             {note.diagnosis && (
               <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 col-span-2">
-                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1 italic">Diagnosis (ICD-10)</p>
-                <p className="text-sm font-black text-amber-900">{note.diagnosis}</p>
+                <p className="text-[10px] font-medium text-amber-500 uppercase tracking-widest mb-1 italic">Diagnosis (ICD-10)</p>
+                <p className="text-sm font-medium text-amber-900">{note.diagnosis}</p>
               </div>
             )}
           </div>
@@ -1083,12 +1083,12 @@ function NoteViewer({ note, onClose }) {
 
           {note.specialtyData && Object.keys(note.specialtyData).length > 0 && (
             <div className="space-y-6">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Examination Details</h4>
+              <h4 className="text-xs font-medium text-slate-400 uppercase tracking-widest px-2">Examination Details</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Object.entries(note.specialtyData).map(([key, value]) => (
                   <div key={key} className="p-6 bg-primary-50/30 rounded-3xl border border-primary-50">
-                    <p className="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-1">{key.replace('cn_', '').replace('med_', '').replace('_', ' ')}</p>
-                    <p className="text-sm font-bold text-slate-700">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</p>
+                    <p className="text-[10px] font-medium text-primary-400 uppercase tracking-widest mb-1">{key.replace('cn_', '').replace('med_', '').replace('_', ' ')}</p>
+                    <p className="text-sm font-medium text-slate-700">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</p>
                   </div>
                 ))}
               </div>
@@ -1097,7 +1097,7 @@ function NoteViewer({ note, onClose }) {
         </div>
 
         <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
-          <button onClick={onClose} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest">Close Viewer</button>
+          <button onClick={onClose} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-medium text-xs uppercase tracking-widest">Close Viewer</button>
         </div>
       </motion.div>
     </motion.div>
@@ -1109,8 +1109,8 @@ function ViewerBox({ label, icon, content }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 px-2">
-        <div className="h-6 w-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black">{icon}</div>
-        <h5 className="text-xs font-black text-slate-900 uppercase tracking-widest">{label}</h5>
+        <div className="h-6 w-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-medium">{icon}</div>
+        <h5 className="text-xs font-medium text-slate-900 uppercase tracking-widest">{label}</h5>
       </div>
       <div className="p-6 bg-white border border-slate-100 rounded-[2rem] text-sm text-slate-600 leading-relaxed min-h-[100px] whitespace-pre-wrap font-medium">
         {content}

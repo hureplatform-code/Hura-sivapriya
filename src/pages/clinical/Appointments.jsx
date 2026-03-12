@@ -48,13 +48,13 @@ export default function Appointments() {
            <div className="h-20 w-20 bg-primary-50 rounded-3xl flex items-center justify-center text-primary-600 mb-6 shadow-inner">
               <CalendarIcon className="h-10 w-10" />
            </div>
-           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Access Restricted</h2>
+           <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Access Restricted</h2>
            <p className="text-slate-500 max-w-md mt-2 font-medium">
              Individual clinic appointment schedules are managed by facility staff. Platform governance access is restricted to adoption and resource utilization metrics.
            </p>
            <button 
              onClick={() => navigate('/')}
-             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Return to Platform Dashboard
            </button>
@@ -279,12 +279,12 @@ export default function Appointments() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Appointments</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Appointments</h1>
             <p className="text-slate-500 mt-1">Manage patient bookings, scheduling, and clinical arrivals.</p>
           </div>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+              className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
             >
             <Plus className="h-5 w-5" />
             Book Appointment
@@ -295,13 +295,13 @@ export default function Appointments() {
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-slate-900">{monthName} {year}</h3>
+                <h3 className="font-medium text-slate-900">{monthName} {year}</h3>
                 <div className="flex gap-1">
                   <button onClick={prevMonth} className="p-1.5 hover:bg-slate-50 rounded-lg"><ChevronLeft className="h-4 w-4 text-slate-400" /></button>
                   <button onClick={nextMonth} className="p-1.5 hover:bg-slate-50 rounded-lg"><ChevronRight className="h-4 w-4 text-slate-400" /></button>
                 </div>
               </div>
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-2">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d}>{d}</div>)}
               </div>
               <div className="grid grid-cols-7 gap-1">
@@ -316,7 +316,7 @@ export default function Appointments() {
                     <button 
                       key={dateStr}
                       onClick={() => setSelectedDate(dateStr)}
-                      className={`h-8 w-8 text-xs font-bold rounded-xl flex items-center justify-center transition-all
+                      className={`h-8 w-8 text-xs font-medium rounded-xl flex items-center justify-center transition-all
                         ${isSelected ? 'bg-primary-600 text-white shadow-lg shadow-primary-100' : 
                           isToday ? 'bg-primary-50 text-primary-600' : 'hover:bg-slate-50 text-slate-600'}
                       `}
@@ -330,19 +330,19 @@ export default function Appointments() {
 
             <div className="bg-slate-900 rounded-2xl p-6 text-white overflow-hidden relative group">
               <div className="relative z-10">
-                <h4 className="font-bold text-lg mb-2 text-left">Daily Summary</h4>
+                <h4 className="font-medium text-lg mb-2 text-left">Daily Summary</h4>
                 <div className="space-y-4 mt-4">
                   <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl">
                     <span className="text-sm text-slate-400 font-medium">Total Booked</span>
-                    <span className="font-black text-emerald-400">{stats.total}</span>
+                    <span className="font-medium text-emerald-400">{stats.total}</span>
                   </div>
                   <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl">
                     <span className="text-sm text-slate-400 font-medium">Completed</span>
-                    <span className="font-black text-blue-400">{stats.completed}</span>
+                    <span className="font-medium text-blue-400">{stats.completed}</span>
                   </div>
                   <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl">
                     <span className="text-sm text-slate-400 font-medium">No Shows</span>
-                    <span className="font-black text-red-400">{stats.noShows}</span>
+                    <span className="font-medium text-red-400">{stats.noShows}</span>
                   </div>
                 </div>
               </div>
@@ -366,7 +366,7 @@ export default function Appointments() {
                 <select 
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-3 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-xl text-sm transition-all outline-none text-slate-600 font-bold appearance-none min-w-[140px]"
+                  className="px-4 py-3 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-xl text-sm transition-all outline-none text-slate-600 font-medium appearance-none min-w-[140px]"
                 >
                   <option value="All">All Status</option>
                   <option value="Scheduled">Scheduled</option>
@@ -385,14 +385,14 @@ export default function Appointments() {
               {loading ? (
                 <div className="text-center text-slate-500 py-12 bg-white rounded-2xl border border-slate-50">
                   <div className="h-8 w-8 border-2 border-primary-100 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
-                  <p className="font-bold text-xs uppercase tracking-widest text-slate-400">Loading appointments...</p>
+                  <p className="font-medium text-xs uppercase tracking-widest text-slate-400">Loading appointments...</p>
                 </div>
               ) : filteredAppointments.length === 0 ? (
                 <div className="text-center text-slate-500 py-12 bg-white rounded-2xl border border-slate-50">
                    <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
                       <CalendarIcon className="h-8 w-8" />
                    </div>
-                   <p className="font-bold text-xs uppercase tracking-widest text-slate-400">No appointments for {new Date(selectedDate).toLocaleDateString()}.</p>
+                   <p className="font-medium text-xs uppercase tracking-widest text-slate-400">No appointments for {new Date(selectedDate).toLocaleDateString()}.</p>
                 </div>
               ) : (
                 filteredAppointments.map((apt, i) => (
@@ -405,16 +405,16 @@ export default function Appointments() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 rounded-xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100 group-hover:border-primary-200 transition-colors">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{apt.time?.split(':')[0] || '0'}</span>
-                        <span className="text-lg font-black text-slate-900 leading-none">{apt.time?.split(':')[1] || '00'}</span>
+                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{apt.time?.split(':')[0] || '0'}</span>
+                        <span className="text-lg font-semibold text-slate-900 leading-none">{apt.time?.split(':')[1] || '00'}</span>
                       </div>
                       <div className="text-left">
-                        <h3 className="font-extrabold text-slate-900 flex items-center gap-2">
+                        <h3 className="font-medium text-slate-900 flex items-center gap-2">
                           {apt.patient}
                           <span className={`h-2 w-2 rounded-full ${apt.priority === 'High' ? 'bg-red-500 animate-pulse' : apt.priority === 'Normal' ? 'bg-blue-500' : 'bg-slate-300'}`} />
                           
                           {/* Booking Type Badge */}
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${apt.bookingType === 'SD' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-semibold uppercase tracking-widest ${apt.bookingType === 'SD' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
                              {apt.bookingType || 'ADV'}
                           </span>
                         </h3>
@@ -430,12 +430,12 @@ export default function Appointments() {
                         <button
                           onClick={() => handleConfirmationUpdate(apt.id, apt.confirmationStatus)}
                           title="Click to toggle confirmation status (NC -> LM -> C)"
-                          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-all cursor-pointer border ${apt.confirmationStatus === 'C' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' : apt.confirmationStatus === 'LM' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
+                          className={`px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1 transition-all cursor-pointer border ${apt.confirmationStatus === 'C' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' : apt.confirmationStatus === 'LM' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
                         >
                            {apt.confirmationStatus === 'C' ? 'C' : apt.confirmationStatus === 'LM' ? 'LM' : 'NC'}
                         </button>
 
-                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2
+                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2
                           ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-600' : 
                             apt.status === 'triage' ? 'bg-blue-50 text-blue-600' :
                             apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
@@ -454,7 +454,7 @@ export default function Appointments() {
                         {apt.status === 'scheduled' && (
                           <button 
                             onClick={() => handleStatusUpdate(apt.id, 'arrived', 'Patient Checked In.')}
-                            className="px-5 py-2.5 bg-slate-900 text-white text-xs font-black rounded-lg hover:bg-slate-800 transition-all active:scale-95"
+                            className="px-5 py-2.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-all active:scale-95"
                           >
                             CHECK IN
                           </button>
@@ -463,7 +463,7 @@ export default function Appointments() {
                         {apt.status === 'arrived' && ['nurse', 'doctor', 'clinic_owner'].includes(userData?.role) && (
                           <button 
                             onClick={() => handlePerformTriage(apt)}
-                            className="px-5 py-2.5 bg-blue-600 text-white text-xs font-black rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 active:scale-95"
+                            className="px-5 py-2.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 active:scale-95"
                           >
                             PERFORM TRIAGE
                           </button>
@@ -472,7 +472,7 @@ export default function Appointments() {
                         {(apt.status === 'triage' || apt.status === 'arrived') && ['doctor', 'clinic_owner'].includes(userData?.role) && (
                           <button 
                             onClick={() => handleStartConsultation(apt)}
-                            className="px-5 py-2.5 bg-emerald-600 text-white text-xs font-black rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50 active:scale-95"
+                            className="px-5 py-2.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50 active:scale-95"
                           >
                             START SESSION
                           </button>
@@ -481,7 +481,7 @@ export default function Appointments() {
                         {apt.status === 'in-session' && ['doctor', 'clinic_owner'].includes(userData?.role) && (
                            <button 
                              onClick={() => handleStatusUpdate(apt.id, 'completed', 'Patient Discharged.')}
-                             className="px-5 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-50 active:scale-95"
+                             className="px-5 py-2.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-50 active:scale-95"
                            >
                              DISCHARGE
                            </button>
@@ -490,7 +490,7 @@ export default function Appointments() {
                         {['completed', 'cancelled'].includes(apt.status) && (
                           <button 
                             onClick={() => handleViewSummary(apt)}
-                            className="px-5 py-2.5 bg-slate-50 text-slate-600 text-xs font-black rounded-lg hover:bg-slate-100 transition-all active:scale-95 border border-slate-100"
+                            className="px-5 py-2.5 bg-slate-50 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-100 transition-all active:scale-95 border border-slate-100"
                           >
                             VIEW SUMMARY
                           </button>
@@ -507,20 +507,20 @@ export default function Appointments() {
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
                               <button 
                                 onClick={() => { handleEditAppointment(apt); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-bold flex items-center gap-2"
+                                className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
                               >
                                 <ExternalLink className="h-4 w-4" /> Edit Appointment
                               </button>
                               <button 
                                 onClick={() => { handleCancelAppointment(apt.id); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-sm text-amber-600 hover:bg-slate-50 font-bold flex items-center gap-2"
+                                className="w-full text-left px-4 py-2 text-sm text-amber-600 hover:bg-slate-50 font-medium flex items-center gap-2"
                               >
                                 <Clock className="h-4 w-4" /> Cancel Appointment
                               </button>
                               <div className="h-px bg-slate-100 my-1" />
                               <button 
                                 onClick={() => { handleDeleteAppointment(apt.id); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 font-bold flex items-center gap-2"
+                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 font-medium flex items-center gap-2"
                               >
                                 <Trash2 className="h-4 w-4" /> Delete Appointment
                               </button>
@@ -566,7 +566,7 @@ export default function Appointments() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
           >
              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
                 {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
@@ -626,8 +626,8 @@ function TriageModal({ appointment, onClose, onSave }) {
                 <Thermometer className="h-7 w-7" />
              </div>
              <div>
-               <h3 className="text-2xl font-black text-slate-900 tracking-tight">Clinical Triage</h3>
-               <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Vitals Collection: {appointment?.patient}</p>
+               <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Clinical Triage</h3>
+               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">Vitals Collection: {appointment?.patient}</p>
              </div>
           </div>
           <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-sm">
@@ -650,23 +650,23 @@ function TriageModal({ appointment, onClose, onSave }) {
 
           <div className="flex gap-4">
             <div className={`p-4 rounded-2xl flex-1 flex flex-col justify-center items-center ${bmi ? 'bg-primary-50 border border-primary-100' : 'bg-slate-50'}`}>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Calculated BMI</p>
-               <p className="text-2xl font-black text-primary-600">{bmi || '--'}</p>
+               <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Calculated BMI</p>
+               <p className="text-2xl font-semibold text-primary-600">{bmi || '--'}</p>
             </div>
             <div className="flex-[2] space-y-2">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Patient's Chief Complaint</label>
+               <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Patient's Chief Complaint</label>
                <textarea 
                  value={vitals.complaint}
                  onChange={(e) => setVitals({...vitals, complaint: e.target.value})}
-                 className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-2xl text-xs font-bold outline-none resize-none h-20 shadow-inner"
+                 className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-2xl text-xs font-medium outline-none resize-none h-20 shadow-inner"
                  placeholder="Briefly describe patient's reason for visit..."
                />
             </div>
           </div>
 
           <div className="flex gap-4 pt-4">
-             <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-50 text-slate-500 font-bold rounded-2xl text-xs uppercase tracking-widest hover:bg-slate-100 transition-all">Discard</button>
-             <button type="submit" className="flex-1 py-4 bg-blue-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all">Submit Vitals</button>
+             <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium rounded-2xl text-xs uppercase tracking-widest hover:bg-slate-100 transition-all">Discard</button>
+             <button type="submit" className="flex-1 py-4 bg-blue-600 text-white font-medium rounded-2xl text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all">Submit Vitals</button>
           </div>
         </form>
       </motion.div>
@@ -677,7 +677,7 @@ function TriageModal({ appointment, onClose, onSave }) {
 function TriageField({ label, value, onChange, icon, placeholder, type = "text" }) {
   return (
     <div className="space-y-2">
-       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-1.5">
+       <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-1.5">
          {icon} {label}
        </label>
        <input 
@@ -685,7 +685,7 @@ function TriageField({ label, value, onChange, icon, placeholder, type = "text" 
          placeholder={placeholder}
          value={value}
          onChange={(e) => onChange(e.target.value)}
-         className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-200 rounded-2xl text-sm font-bold shadow-inner outline-none transition-all"
+         className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-200 rounded-2xl text-sm font-medium shadow-inner outline-none transition-all"
        />
     </div>
   );

@@ -85,7 +85,7 @@ export default function PracticeType() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Practice Types</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Practice Types</h1>
             <p className="text-slate-500 mt-1">Define and manage different types of medical practices in your facility.</p>
           </div>
           <button 
@@ -94,7 +94,7 @@ export default function PracticeType() {
               setNewType({ name: '', status: 'active' });
               setIsAdding(true);
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
           >
             <Plus className="h-5 w-5" />
             Add New Type
@@ -115,7 +115,7 @@ export default function PracticeType() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {types.length === 0 && !loading && (
-              <div className="col-span-full py-12 text-center text-slate-400 font-bold">
+              <div className="col-span-full py-12 text-center text-slate-400 font-medium">
                 No practice types registered yet.
               </div>
             )}
@@ -128,7 +128,7 @@ export default function PracticeType() {
                 className="p-6 bg-white border border-slate-100 rounded-3xl hover:shadow-md transition-all group relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-4">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${type.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest ${type.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                     {type.status}
                   </span>
                 </div>
@@ -137,7 +137,7 @@ export default function PracticeType() {
                   <Stethoscope className="h-6 w-6" />
                 </div>
                 
-                <h3 className="font-bold text-slate-900 group-hover:text-primary-600 transition-colors">{type.name}</h3>
+                <h3 className="font-medium text-slate-900 group-hover:text-primary-600 transition-colors">{type.name}</h3>
                 <p className="text-sm text-slate-500 mt-1">{type.count || 0} Connected Facilities</p>
                 
                 <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-end gap-2">
@@ -170,7 +170,7 @@ export default function PracticeType() {
               className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden"
             >
               <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                <h2 className="text-2xl font-black text-slate-900">{editingItem ? 'Update' : 'Add'} Practice Type</h2>
+                <h2 className="text-2xl font-semibold text-slate-900">{editingItem ? 'Update' : 'Add'} Practice Type</h2>
                 <button onClick={() => setIsAdding(false)} className="p-2 hover:bg-white rounded-xl transition-all">
                   <X className="h-5 w-5" />
                 </button>
@@ -178,23 +178,23 @@ export default function PracticeType() {
 
               <form onSubmit={handleSave} className="p-8 space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Type Name</label>
+                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">Type Name</label>
                   <input 
                     required
                     type="text"
                     value={newType.name}
                     onChange={(e) => setNewType({...newType, name: e.target.value})}
                     placeholder="e.g. Specialized Clinic"
-                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-bold outline-none ring-primary-100 focus:ring-2 transition-all"
+                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-medium outline-none ring-primary-100 focus:ring-2 transition-all"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">Status</label>
                   <select 
                     value={newType.status}
                     onChange={(e) => setNewType({...newType, status: e.target.value})}
-                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-bold outline-none ring-primary-100 focus:ring-2 transition-all"
+                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-medium outline-none ring-primary-100 focus:ring-2 transition-all"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -204,7 +204,7 @@ export default function PracticeType() {
                 <button 
                   disabled={loading}
                   type="submit"
-                  className="w-full h-14 bg-primary-600 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all active:scale-95 disabled:opacity-50"
+                  className="w-full h-14 bg-primary-600 text-white rounded-2xl flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-widest shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {loading ? 'Saving...' : <>{editingItem ? 'Update' : 'Save'} Practice Type</>}
                 </button>
@@ -223,20 +223,20 @@ export default function PracticeType() {
               <div className="h-20 w-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
                 <Trash2 className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Confirm Deletion</h3>
+              <h3 className="text-xl font-semibold text-slate-900 tracking-tight mb-2">Confirm Deletion</h3>
               <p className="text-sm text-slate-500 font-medium mb-8">
                 Are you sure you want to delete <b>{deleteConfirmation.name}</b>? This action cannot be undone.
               </p>
               <div className="flex gap-4">
                 <button 
                   onClick={() => setDeleteConfirmation(null)}
-                  className="flex-1 py-4 bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
+                  className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleDelete}
-                  className="flex-1 py-4 bg-red-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100"
+                  className="flex-1 py-4 bg-red-500 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100"
                 >
                   Delete Now
                 </button>

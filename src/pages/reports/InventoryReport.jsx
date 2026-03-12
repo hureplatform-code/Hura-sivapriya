@@ -15,7 +15,7 @@ import {
 import { motion } from 'framer-motion';
 import inventoryService from '../../services/inventoryService';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
 
 export default function InventoryReport() {
@@ -64,7 +64,7 @@ export default function InventoryReport() {
       item.status
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Item Name', 'Category', 'Quantity', 'Price/Unit', 'Status']],
       body: tableData,
       startY: 40,
@@ -73,19 +73,19 @@ export default function InventoryReport() {
     doc.save('Inventory_Report.pdf');
   };
 
-  if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-screen text-slate-400 font-bold uppercase tracking-widest">Generating Stock Analytics...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-screen text-slate-400 font-semibold uppercase tracking-widest">Generating Stock Analytics...</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="space-y-12 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Inventory Intelligence</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Inventory Intelligence</h1>
             <p className="text-slate-500 font-medium mt-1">Pharmacy consumption trends and critical stock alerts.</p>
           </div>
           <button 
             onClick={handleExportPDF}
-            className="flex items-center gap-2 px-10 py-5 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+            className="flex items-center gap-2 px-10 py-5 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
           >
             <Download className="h-5 w-5" />
             Export Monthly Ledger
@@ -109,8 +109,8 @@ export default function InventoryReport() {
               <div className={`h-12 w-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-6`}>
                 <stat.icon className="h-6 w-6" />
               </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">{stat.value}</h3>
             </motion.div>
           ))}
         </div>
@@ -118,7 +118,7 @@ export default function InventoryReport() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
+              <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight flex items-center gap-3">
                  <Package className="h-6 w-6 text-primary-500" />
                  Highest Stock Distribution
               </h3>
@@ -127,8 +127,8 @@ export default function InventoryReport() {
                {topItems.map((item, i) => (
                  <div key={item.id} className="group">
                     <div className="flex items-center justify-between mb-3">
-                       <span className="text-sm font-black text-slate-800 uppercase tracking-tight">{item.name}</span>
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.stock} Units left</span>
+                       <span className="text-sm font-medium text-slate-800 uppercase tracking-tight">{item.name}</span>
+                       <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{item.stock} Units left</span>
                     </div>
                     <div className="h-3 bg-slate-50 rounded-full overflow-hidden">
                        <motion.div 
@@ -143,7 +143,7 @@ export default function InventoryReport() {
           </div>
 
           <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
-            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
+            <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight flex items-center gap-3">
                <AlertTriangle className="h-6 w-6 text-red-500" />
                Critical Stock Alerts
             </h3>
@@ -155,19 +155,19 @@ export default function InventoryReport() {
                           <Package className="h-5 w-5" />
                        </div>
                        <div>
-                          <p className="text-sm font-black text-red-900">{item.name}</p>
-                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">{item.category}</p>
+                          <p className="text-sm font-medium text-red-900">{item.name}</p>
+                          <p className="text-[10px] font-medium text-red-600 uppercase tracking-widest">{item.category}</p>
                        </div>
                     </div>
                     <div className="text-right">
-                       <p className="text-sm font-black text-red-900">{item.stock}</p>
-                       <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Units Left</p>
+                       <p className="text-sm font-medium text-red-900">{item.stock}</p>
+                       <p className="text-[10px] font-medium text-red-400 uppercase tracking-widest">Units Left</p>
                     </div>
                  </div>
                )) : (
                  <div className="py-20 text-center text-slate-400 space-y-4">
                     <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-100" />
-                    <p className="text-sm font-bold">All stock levels are optimal.</p>
+                    <p className="text-sm font-medium">All stock levels are optimal.</p>
                  </div>
                )}
             </div>

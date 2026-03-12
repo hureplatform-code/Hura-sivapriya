@@ -57,7 +57,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
             className="relative bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-white"
           >
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="text-xl font-bold text-slate-900">{user ? 'Edit User' : 'Add New User'}</h3>
+              <h3 className="text-xl font-semibold text-slate-900">{user ? 'Edit User' : 'Add New User'}</h3>
               <button 
                 onClick={onClose}
                 className="p-2 text-slate-400 hover:text-slate-900 hover:bg-white rounded-xl transition-all"
@@ -69,7 +69,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
               <div className="space-y-4">
                 <div className="relative">
-                  <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Full Name</label>
+                  <label className="text-xs font-medium text-slate-500 ml-1 uppercase tracking-wider">Full Name</label>
                   <div className="mt-1 relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <User className="h-5 w-5 text-slate-400" />
@@ -86,7 +86,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
                 </div>
 
                 <div className="relative">
-                  <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Email Address</label>
+                  <label className="text-xs font-medium text-slate-500 ml-1 uppercase tracking-wider">Email Address</label>
                   <div className="mt-1 relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Mail className="h-5 w-5 text-slate-400" />
@@ -104,7 +104,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
 
                 {!user && (
                     <div className="relative">
-                    <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Initial Password</label>
+                    <label className="text-xs font-medium text-slate-500 ml-1 uppercase tracking-wider">Initial Password</label>
                     <div className="mt-1 relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <Lock className="h-5 w-5 text-slate-400" />
@@ -124,7 +124,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="relative">
-                    <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">User Role</label>
+                    <label className="text-xs font-medium text-slate-500 ml-1 uppercase tracking-wider">User Role</label>
                     <div className="mt-1 relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <Shield className="h-5 w-5 text-slate-400" />
@@ -152,7 +152,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
                   </div>
 
                   <div className="relative">
-                    <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Account Status</label>
+                    <label className="text-xs font-medium text-slate-500 ml-1 uppercase tracking-wider">Account Status</label>
                     <div className="mt-1 relative">
                       <select
                         value={formData.status}
@@ -176,14 +176,14 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 px-6 py-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-slate-100 transition-all border border-slate-100"
+                  className="flex-1 px-6 py-4 bg-slate-50 text-slate-600 font-medium rounded-2xl hover:bg-slate-100 transition-all border border-slate-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-6 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 disabled:opacity-70 active:scale-95 flex items-center justify-center"
+                  className="flex-1 px-6 py-4 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 disabled:opacity-70 active:scale-95 flex items-center justify-center"
                 >
                   {loading ? (
                     <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

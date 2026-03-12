@@ -37,17 +37,17 @@ export default function WaitlistTV() {
               <Activity className="h-10 w-10" />
            </div>
            <div>
-              <h1 className="text-5xl font-black tracking-tighter uppercase">Live Patient Flow</h1>
-              <p className="text-blue-400 font-bold tracking-[0.3em] text-sm mt-1 flex items-center gap-2">
+              <h1 className="text-5xl font-medium tracking-tighter uppercase">Live Patient Flow</h1>
+              <p className="text-blue-400 font-medium tracking-[0.3em] text-sm mt-1 flex items-center gap-2">
                  <Radio className="h-4 w-4 animate-pulse" /> Real-time Queue Status
               </p>
            </div>
         </div>
         <div className="text-right">
-           <p className="text-6xl font-black tabular-nums tracking-tighter">
+           <p className="text-6xl font-medium tabular-nums tracking-tighter">
              {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
            </p>
-           <p className="text-slate-500 font-bold uppercase tracking-widest text-sm mt-2">
+           <p className="text-slate-500 font-semibold uppercase tracking-widest text-sm mt-2">
              {time.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
            </p>
         </div>
@@ -57,9 +57,9 @@ export default function WaitlistTV() {
         {/* Main List */}
         <div className="lg:col-span-2 bg-[#12151c] rounded-[4rem] p-12 border border-white/5 shadow-2xl relative overflow-hidden">
            <div className="flex items-center justify-between mb-12 px-4">
-              <h3 className="text-2xl font-black text-slate-400 uppercase tracking-widest">Active Queue</h3>
+              <h3 className="text-2xl font-semibold text-slate-400 uppercase tracking-widest">Active Queue</h3>
               <div className="flex gap-4">
-                 <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-6 py-2 rounded-full text-xs font-black uppercase">
+                 <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-6 py-2 rounded-full text-xs font-semibold uppercase">
                     <Users className="h-4 w-4" /> {appointments.length} Present
                  </div>
               </div>
@@ -81,26 +81,26 @@ export default function WaitlistTV() {
                     `}
                   >
                     <div className="flex items-center gap-8">
-                       <div className={`h-16 w-16 rounded-2xl flex items-center justify-center font-black text-2xl
+                       <div className={`h-16 w-16 rounded-2xl flex items-center justify-center font-medium text-2xl
                          ${apt.status === 'in-session' ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-400'}
                        `}>
                           {i + 1}
                        </div>
                        <div>
-                          <p className={`text-4xl font-black tracking-tight ${apt.status === 'in-session' ? 'text-white' : 'text-slate-100'}`}>
+                          <p className={`text-3xl font-semibold tracking-tight ${apt.status === 'in-session' ? 'text-white' : 'text-slate-100'}`}>
                             {apt.patient?.split(' ')[0]} {apt.patient?.split(' ')[1]?.[0] || ''}.
                           </p>
-                          <p className={`text-sm font-bold uppercase tracking-widest mt-1 ${apt.status === 'in-session' ? 'text-blue-100' : 'text-slate-500'}`}>
+                          <p className={`text-sm font-semibold uppercase tracking-widest mt-1 ${apt.status === 'in-session' ? 'text-blue-100' : 'text-slate-500'}`}>
                              Ref: {apt.id?.slice(-6).toUpperCase()} • {apt.type}
                           </p>
                        </div>
                     </div>
                     <div className="flex items-center gap-6">
                        <div className="text-right">
-                          <p className={`text-sm font-black uppercase tracking-widest ${apt.status === 'in-session' ? 'text-emerald-300' : 'text-slate-400'}`}>
+                          <p className={`text-sm font-semibold uppercase tracking-widest ${apt.status === 'in-session' ? 'text-emerald-300' : 'text-slate-400'}`}>
                              Status
                           </p>
-                          <p className={`text-xl font-black uppercase ${apt.status === 'in-session' ? 'text-white' : 'text-blue-400'}`}>
+                          <p className={`text-xl font-semibold uppercase ${apt.status === 'in-session' ? 'text-white' : 'text-blue-400'}`}>
                              {apt.status === 'in-session' ? 'Consulting' : apt.status === 'triage' ? 'In Triage' : 'Waiting'}
                           </p>
                        </div>
@@ -117,7 +117,7 @@ export default function WaitlistTV() {
            <div className="bg-emerald-600 rounded-[3.5rem] p-12 shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
               <div className="relative z-10">
                  <Heart className="h-12 w-12 text-emerald-200 mb-6" />
-                 <h4 className="text-3xl font-black mb-2">Health Notice</h4>
+                 <h4 className="text-2xl font-semibold mb-2">Health Notice</h4>
                  <p className="text-emerald-100 font-medium leading-relaxed">Please ensure you have your token and ID ready. Our team will assist you shortly.</p>
               </div>
               <div className="absolute -right-12 -bottom-12 h-64 w-64 bg-white/10 rounded-full blur-3xl" />
@@ -125,18 +125,18 @@ export default function WaitlistTV() {
 
            <div className="bg-[#12151c] rounded-[3.5rem] p-10 border border-white/5 flex-1 flex flex-col items-center justify-center text-center">
               <Thermometer className="h-16 w-16 text-blue-500 mb-6" />
-              <h5 className="text-slate-400 font-black uppercase tracking-widest text-sm mb-4">AVG. WAIT TIME</h5>
-              <p className="text-7xl font-black text-white tracking-tighter">18</p>
-              <p className="text-lg font-bold text-slate-500 uppercase tracking-widest">MINUTES</p>
+              <h5 className="text-slate-400 font-semibold uppercase tracking-widest text-sm mb-4">AVG. WAIT TIME</h5>
+              <p className="text-7xl font-medium text-white tracking-tighter">18</p>
+              <p className="text-lg font-semibold text-slate-500 uppercase tracking-widest">MINUTES</p>
               
               <div className="mt-12 w-full pt-10 border-t border-white/5 grid grid-cols-2 gap-8">
                  <div>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Doctors In</p>
-                    <p className="text-2xl font-black text-emerald-400">04</p>
+                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest mb-1">Doctors In</p>
+                    <p className="text-2xl font-semibold text-emerald-400">04</p>
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">In Session</p>
-                    <p className="text-2xl font-black text-blue-400">03</p>
+                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest mb-1">In Session</p>
+                    <p className="text-2xl font-semibold text-blue-400">03</p>
                  </div>
               </div>
            </div>

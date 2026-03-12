@@ -70,9 +70,9 @@ export default function PrivateRoute({ children }) {
              return (
                 <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-6 text-center">
                     <Lock className="h-16 w-16 text-red-500 mb-6" />
-                    <h1 className="text-3xl font-black mb-2">Access Suspended</h1>
+                    <h1 className="text-2xl font-semibold mb-2 tracking-tight">Access Suspended</h1>
                     <p className="text-slate-400 max-w-md">The subscription for this facility has expired. Please contact your administrator.</p>
-                    <button onClick={logout} className="mt-8 px-6 py-3 bg-white text-slate-900 font-bold rounded-xl">Back to Login</button>
+                    <button onClick={logout} className="mt-8 px-6 py-3 bg-white text-slate-900 font-medium rounded-xl">Back to Login</button>
                 </div>
              );
           }
@@ -91,7 +91,7 @@ export default function PrivateRoute({ children }) {
                             <div className="h-16 w-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <AlertTriangle className="h-8 w-8" />
                             </div>
-                            <h2 className="text-2xl font-black text-slate-900">Plan Limit Exceeded</h2>
+                            <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Plan Limit Exceeded</h2>
                             <p className="text-slate-500 mt-2 font-medium">
                                 You have <strong>{activeStaffCount}</strong> active staff members, but your current plan only supports <strong>{subscriptionStatus.maxStaff}</strong>.
                             </p>
@@ -99,8 +99,8 @@ export default function PrivateRoute({ children }) {
                                 Please deactivate {activeStaffCount - subscriptionStatus.maxStaff} user accounts or upgrade your plan to continue.
                             </p>
                             <div className="flex gap-3 mt-8 justify-center">
-                                <button onClick={() => navigate('/master/users')} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl">Manage Users</button>
-                                <button onClick={() => navigate('/master/accounts')} className="px-6 py-3 bg-slate-100 text-slate-900 font-bold rounded-xl">View Plans</button>
+                                <button onClick={() => navigate('/master/users')} className="px-6 py-3 bg-slate-900 text-white font-medium rounded-xl">Manage Users</button>
+                                <button onClick={() => navigate('/master/accounts')} className="px-6 py-3 bg-slate-100 text-slate-900 font-medium rounded-xl">View Plans</button>
                             </div>
                         </div>
                     </div>
@@ -111,9 +111,9 @@ export default function PrivateRoute({ children }) {
                return (
                 <div className="h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 p-6 text-center">
                     <AlertTriangle className="h-16 w-16 text-amber-500 mb-6" />
-                    <h1 className="text-3xl font-black mb-2">Service Temporarily Paused</h1>
+                    <h1 className="text-2xl font-semibold mb-2 tracking-tight">Service Temporarily Paused</h1>
                     <p className="text-slate-500 max-w-md">This facility has exceeded its user license limit. Please contact your clinic administrator.</p>
-                    <button onClick={logout} className="mt-8 px-6 py-3 bg-slate-900 text-white font-bold rounded-xl">Back to Login</button>
+                    <button onClick={logout} className="mt-8 px-6 py-3 bg-slate-900 text-white font-medium rounded-xl">Back to Login</button>
                 </div>
              );
            }

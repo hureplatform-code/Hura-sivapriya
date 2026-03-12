@@ -154,13 +154,13 @@ export default function Sidebar() {
             <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4">
                 <ShieldCheck className="h-6 w-6" />
             </div>
-            <h3 className="text-sm font-black text-slate-900">Profile Missing</h3>
+            <h3 className="text-sm font-medium text-slate-900">Profile Missing</h3>
             <p className="text-xs text-slate-500 mt-2">
                 Your account exists but has no role assigned. Please contact support or re-create your account.
             </p>
              <button 
                 onClick={logout}
-                className="mt-6 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors"
+                className="mt-6 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-lg transition-colors"
             >
                 Log Out
             </button>
@@ -195,7 +195,7 @@ export default function Sidebar() {
             <Stethoscope className="text-white h-6 w-6" />
           )}
         </div>
-        <span className="font-bold text-xl tracking-tight text-slate-900">{facilityProfile?.name || APP_CONFIG.HOSPITAL_NAME}</span>
+        <span className="font-medium text-xl tracking-tight text-slate-900">{facilityProfile?.name || APP_CONFIG.HOSPITAL_NAME}</span>
       </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-2">
@@ -251,7 +251,7 @@ export default function Sidebar() {
                         className={({ isActive }) => `
                           block px-4 py-2 text-sm rounded-xl transition-all
                           ${isActive 
-                            ? 'text-primary-600 font-bold' 
+                            ? 'text-primary-600 font-medium' 
                             : 'text-slate-400 hover:text-slate-900 hover:translate-x-1'}
                         `}
                       >
@@ -269,17 +269,17 @@ export default function Sidebar() {
       <div className="p-4 mt-auto sticky bottom-0 bg-white">
         <div className="bg-slate-50 rounded-3xl p-4 border border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-700 font-bold shadow-inner">
+            <div className="h-10 w-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-700 font-medium shadow-inner">
               {userData?.name?.split(' ').map(n => n[0]).join('') || 'JD'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate text-slate-900">{userData?.name || 'Jon Day'}</p>
+              <p className="text-sm font-medium truncate text-slate-900">{userData?.name || 'Jon Day'}</p>
               <p className="text-xs text-slate-500 truncate capitalize">{role}</p>
             </div>
           </div>
           <button 
             onClick={logout}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all duration-200 text-sm font-bold border border-transparent hover:border-red-100"
+            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all duration-200 text-sm font-medium border border-transparent hover:border-red-100"
           >
             <LogOut className="h-4 w-4" />
             Logout Session

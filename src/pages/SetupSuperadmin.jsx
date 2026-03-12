@@ -42,13 +42,13 @@ export default function SetupSuperadmin() {
                 <div className="h-16 w-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <AlertCircle className="h-8 w-8" />
                 </div>
-                <h1 className="text-2xl font-black text-slate-900">System Already Initialized</h1>
+                <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">System Already Initialized</h1>
                 <p className="text-slate-500 mt-4 font-medium">
                     A Super Administrator account already exists. For security reasons, multiple superadmins cannot be created via this public setup page.
                 </p>
                 <button 
                     onClick={() => navigate('/login')}
-                    className="mt-8 px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all"
+                    className="mt-8 px-8 py-3 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all"
                 >
                     Return to Login
                 </button>
@@ -99,54 +99,54 @@ export default function SetupSuperadmin() {
             <div className="h-16 w-16 bg-primary-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-200">
                 <ShieldCheck className="h-8 w-8" />
             </div>
-            <h1 className="text-2xl font-black text-slate-900">Setup Super Admin</h1>
-            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-2">Initialize System Access</p>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Setup Super Admin</h1>
+            <p className="text-slate-500 font-medium text-xs uppercase tracking-widest mt-2">Initialize System Access</p>
         </div>
 
         {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold mb-6 flex items-center gap-2 border border-red-100">
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium mb-6 flex items-center gap-2 border border-red-100">
                 <AlertCircle className="h-5 w-5" /> {error}
             </div>
         )}
 
         <form onSubmit={handleSetup} className="space-y-4">
             <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Display Name</label>
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wider block mb-1">Display Name</label>
                 <input 
                     type="text" 
                     required 
                     value={name} 
                     onChange={(e) => setName(e.target.value)} 
-                    className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                    className="w-full p-3 bg-slate-50 rounded-xl font-medium text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                     placeholder="System Administrator" 
                 />
             </div>
             <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Email Address</label>
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wider block mb-1">Email Address</label>
                 <input 
                     type="email" 
                     required 
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)} 
-                    className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                    className="w-full p-3 bg-slate-50 rounded-xl font-medium text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                     placeholder="admin@hurecare.com" 
                 />
             </div>
             <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Password</label>
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wider block mb-1">Password</label>
                 <input 
                     type="password" 
                     required 
                     minLength={6} 
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
-                    className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                    className="w-full p-3 bg-slate-50 rounded-xl font-medium text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                     placeholder="Roughly secure password" 
                 />
             </div>
             <button 
                 disabled={loading}
-                className="w-full py-4 bg-primary-600 text-white font-black uppercase text-sm tracking-widest rounded-xl hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200 disabled:opacity-50 mt-4"
+                className="w-full py-4 bg-primary-600 text-white font-semibold uppercase text-sm tracking-widest rounded-xl hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200 disabled:opacity-50 mt-4"
             >
                 {loading ? 'Creating...' : 'Create Super Admin'}
             </button>

@@ -48,13 +48,13 @@ export default function Investigation() {
            <div className="h-20 w-20 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-600 mb-6 shadow-inner">
               <Beaker className="h-10 w-10" />
            </div>
-           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Diagnostic Governance</h2>
+           <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Diagnostic Governance</h2>
            <p className="text-slate-500 max-w-md mt-2 font-medium">
              Individual lab results and diagnostic investigations are private clinical data. Superadmin access is restricted to platform clinical outcome aggregated reports.
            </p>
            <button 
              onClick={() => navigate('/reports/outcome')}
-             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Go to Outcome Reports
            </button>
@@ -102,12 +102,12 @@ export default function Investigation() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Diagnostics Hub</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Diagnostics Hub</h1>
             <p className="text-slate-500 mt-1">Laboratory and Imaging results management system.</p>
           </div>
           <button 
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
+            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
           >
             <Plus className="h-5 w-5" />
             New Investigation Request
@@ -123,11 +123,11 @@ export default function Investigation() {
                 placeholder="Search by Patient, ID or Test..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-xl text-sm font-bold transition-all outline-none"
+                className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-xl text-sm font-medium transition-all outline-none"
               />
             </div>
             <div className="flex gap-2 w-full md:w-auto">
-              <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-all font-bold text-sm">
+              <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-all font-medium text-sm">
                 <Filter className="h-4 w-4" />
                 Filter
               </button>
@@ -138,22 +138,22 @@ export default function Investigation() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50">
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Request Detail</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Patient Info</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Category</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 text-center">Priority</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Status</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 text-right">Actions</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Request Detail</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Patient Info</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Category</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 text-center">Priority</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Status</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {loading ? (
                    <tr>
-                     <td colSpan="6" className="py-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">Analyzing diagnostic baseline...</td>
+                     <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Analyzing diagnostic baseline...</td>
                    </tr>
                 ) : filteredInvestigations.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="py-12 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">No records found.</td>
+                    <td colSpan="6" className="py-12 text-center text-slate-500 font-semibold uppercase tracking-widest text-xs">No records found.</td>
                   </tr>
                 ) : filteredInvestigations.map((inv, i) => (
                   <motion.tr 
@@ -164,20 +164,20 @@ export default function Investigation() {
                   >
                     <td className="py-5 px-4">
                       <div>
-                        <p className="font-black text-slate-900 text-sm">#{inv.id.slice(-6).toUpperCase()}</p>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-tight mt-0.5">{inv.testName}</p>
+                        <p className="font-medium text-slate-900 text-sm">#{inv.id.slice(-6).toUpperCase()}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight mt-0.5">{inv.testName}</p>
                       </div>
                     </td>
                     <td className="py-5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center font-black text-slate-400 text-xs shadow-inner">
+                        <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center font-medium text-slate-400 text-xs shadow-inner">
                           {inv.patientName?.split(' ').map(n => n[0]).join('')}
                         </div>
-                        <p className="text-sm font-bold text-slate-900">{inv.patientName}</p>
+                        <p className="text-sm font-medium text-slate-900">{inv.patientName}</p>
                       </div>
                     </td>
                     <td className="py-5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest
                         ${inv.category === 'Laboratory' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}
                       `}>
                         {inv.category === 'Laboratory' ? <FlaskConical className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
@@ -185,7 +185,7 @@ export default function Investigation() {
                       </span>
                     </td>
                     <td className="py-5 px-4 text-center">
-                       <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest
+                       <span className={`px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest
                          ${inv.priority === 'Emergency (STAT)' ? 'bg-red-50 text-red-600' : 
                            inv.priority === 'Urgent' ? 'bg-amber-50 text-amber-600' : 
                            'bg-slate-50 text-slate-400'}
@@ -194,7 +194,7 @@ export default function Investigation() {
                        </span>
                     </td>
                     <td className="py-5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest
+                      <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest
                         ${inv.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 
                           inv.status === 'pending' ? 'bg-amber-50 text-amber-600' : 
                           'bg-indigo-50 text-indigo-600'}
@@ -224,7 +224,7 @@ export default function Investigation() {
                         ) : (
                           <button 
                              onClick={() => setUpdatingId(inv.id)}
-                             className="px-4 py-2 bg-slate-900 text-white text-[10px] font-black rounded-lg hover:bg-slate-800 transition-all uppercase tracking-widest shadow-lg shadow-slate-200"
+                             className="px-4 py-2 bg-slate-900 text-white text-[10px] font-medium rounded-lg hover:bg-slate-800 transition-all uppercase tracking-widest shadow-lg shadow-slate-200"
                           >
                             Update Result
                           </button>
@@ -252,14 +252,14 @@ export default function Investigation() {
                                 >
                                   <button 
                                     onClick={() => { setUpdatingId(inv.id); setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                                   >
                                     <Activity className="h-4 w-4" />
                                     Update Result
                                   </button>
                                   <button 
                                     onClick={() => { setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                                   >
                                     <FileText className="h-4 w-4" />
                                     View Details
@@ -267,14 +267,14 @@ export default function Investigation() {
                                   <div className="h-px bg-slate-50 my-1"></div>
                                   <button 
                                     onClick={() => { handleCancelRequest(inv); setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-amber-600 hover:bg-amber-50 transition-colors"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
                                   >
                                     <Clock className="h-4 w-4" />
                                     Cancel Request
                                   </button>
                                   <button 
                                     onClick={() => { handleDeleteRequest(inv.id); setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                                   >
                                     <X className="h-4 w-4" />
                                     Delete Record
@@ -327,7 +327,7 @@ export default function Investigation() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
           >
              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
                 {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
@@ -386,8 +386,8 @@ function InvestigationModal({ onClose, onSave }) {
                 <Beaker className="h-6 w-6" />
              </div>
              <div>
-               <h3 className="text-2xl font-black text-slate-900 tracking-tight">Diagnostic Request</h3>
-               <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Clinical Protocol Entry</p>
+               <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Diagnostic Request</h3>
+               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">Clinical Protocol Entry</p>
              </div>
           </div>
           <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all">
@@ -397,12 +397,12 @@ function InvestigationModal({ onClose, onSave }) {
 
         <form onSubmit={handleSubmit} className="p-12 space-y-8">
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Subject Selection</label>
+            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Subject Selection</label>
             <select 
               required
               value={formData.patientId}
               onChange={(e) => setFormData({...formData, patientId: e.target.value})}
-              className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-bold transition-all outline-none"
+              className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-medium transition-all outline-none"
             >
               <option value="">Select Patient Profile...</option>
               {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -411,11 +411,11 @@ function InvestigationModal({ onClose, onSave }) {
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Department</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Department</label>
               <select 
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-bold outline-none"
+                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-medium outline-none"
               >
                 <option>Laboratory</option>
                 <option>Imaging (X-Ray/MRI)</option>
@@ -423,11 +423,11 @@ function InvestigationModal({ onClose, onSave }) {
               </select>
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Urgency Status</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Urgency Status</label>
               <select 
                 value={formData.priority}
                 onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-bold outline-none"
+                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-medium outline-none"
               >
                 <option>Normal</option>
                 <option>Urgent</option>
@@ -437,20 +437,20 @@ function InvestigationModal({ onClose, onSave }) {
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Requested Investigation</label>
+            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Requested Investigation</label>
             <input 
               required
               type="text" 
               placeholder="e.g. Full Blood Count, Chest X-Ray..." 
               value={formData.testName}
               onChange={(e) => setFormData({...formData, testName: e.target.value})}
-              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-bold outline-none" 
+              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-medium outline-none" 
             />
           </div>
 
           <div className="flex gap-4 pt-6">
-            <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all">Abort Request</button>
-            <button type="submit" className="flex-1 px-8 py-5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200">Dispatch Order</button>
+            <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all">Abort Request</button>
+            <button type="submit" className="flex-1 px-8 py-5 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200">Dispatch Order</button>
           </div>
         </form>
       </motion.div>
@@ -499,8 +499,8 @@ function ResultUpdateModal({ investigationId, onClose, onSave, onError }) {
                 <Upload className="h-6 w-6" />
              </div>
              <div>
-               <h3 className="text-2xl font-black text-slate-900 tracking-tight">Finalize Result</h3>
-               <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Technician Documentation Portal</p>
+               <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Finalize Result</h3>
+               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">Technician Documentation Portal</p>
              </div>
           </div>
           <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all">
@@ -510,29 +510,29 @@ function ResultUpdateModal({ investigationId, onClose, onSave, onError }) {
 
         <form onSubmit={handleSubmit} className="p-12 space-y-8">
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Quantitative Finding / Outcome</label>
+            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Quantitative Finding / Outcome</label>
             <input 
               required
               type="text" 
               placeholder="e.g. Normal, Reactive, 5.4 mmol/L..." 
               value={result}
               onChange={(e) => setResult(e.target.value)}
-              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-bold outline-none shadow-inner" 
+              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-medium outline-none shadow-inner" 
             />
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Detailed Technician Notes</label>
+            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Detailed Technician Notes</label>
             <textarea 
               placeholder="Observations or detailed breakdown..." 
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-bold outline-none min-h-[120px] resize-none shadow-inner" 
+              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-medium outline-none min-h-[120px] resize-none shadow-inner" 
             />
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Upload Diagnostic Assets (PDF/Image)</label>
+            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Upload Diagnostic Assets (PDF/Image)</label>
             <div className="relative group">
                <input 
                  type="file" 
@@ -545,18 +545,18 @@ function ResultUpdateModal({ investigationId, onClose, onSave, onError }) {
                  className="flex flex-col items-center justify-center p-12 border-4 border-dashed border-slate-100 rounded-2xl bg-slate-50/50 hover:bg-white hover:border-emerald-200 transition-all cursor-pointer group"
                >
                  <Upload className="h-10 w-10 text-slate-300 group-hover:text-emerald-500 mb-4 transition-colors" />
-                 <p className="text-sm font-black text-slate-900">{file ? file.name : "Select Asset for Upload"}</p>
-                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-2">Max Size: 10MB • PDF, JPG, PNG</p>
+                 <p className="text-sm font-medium text-slate-900">{file ? file.name : "Select Asset for Upload"}</p>
+                 <p className="text-[10px] text-slate-400 uppercase font-medium tracking-widest mt-2">Max Size: 10MB • PDF, JPG, PNG</p>
                </label>
             </div>
           </div>
 
           <div className="flex gap-4 pt-6">
-            <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all">Discard</button>
+            <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all">Discard</button>
             <button 
               disabled={uploading}
               type="submit" 
-              className="flex-1 px-8 py-5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 disabled:opacity-50"
+              className="flex-1 px-8 py-5 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 disabled:opacity-50"
             >
               {uploading ? "Compressing & Syncing..." : "Finalize & Sign Result"}
             </button>

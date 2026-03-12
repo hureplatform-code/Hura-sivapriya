@@ -46,13 +46,13 @@ export default function Inventory() {
            <div className="h-20 w-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-600 mb-6 shadow-inner">
               <Package className="h-10 w-10" />
            </div>
-           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Stock Governance</h2>
+           <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Stock Governance</h2>
            <p className="text-slate-500 max-w-md mt-2 font-medium">
              Clinic clinical stocks and pharmacy inventories are managed at the facility level. Platform governance access is restricted to Resource Utilization analytics.
            </p>
            <button 
              onClick={() => navigate('/reports/usage')}
-             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Go to Resource Reports
            </button>
@@ -92,12 +92,12 @@ export default function Inventory() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Pharmacy Inventory</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Pharmacy Inventory</h1>
             <p className="text-slate-500 font-medium mt-1">Manage stocks, batches, and categorical supplies.</p>
           </div>
           <button 
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+            className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
           >
             <PlusCircle className="h-5 w-5" />
             Stock Inbound
@@ -117,8 +117,8 @@ export default function Inventory() {
                <div className={`h-14 w-14 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-6 shadow-inner`}>
                  <stat.icon className="h-7 w-7" />
                </div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.label}</p>
-               <p className={`text-4xl font-black ${stat.color}`}>{stat.value}</p>
+               <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.label}</p>
+               <p className={`text-3xl font-semibold ${stat.color}`}>{stat.value}</p>
              </motion.div>
           ))}
         </div>
@@ -133,7 +133,7 @@ export default function Inventory() {
                 placeholder="Search inventory by name or batch hash..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-16 pr-8 py-5 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-[2rem] text-sm font-bold transition-all outline-none"
+                className="w-full pl-16 pr-8 py-5 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-[2rem] text-sm font-medium transition-all outline-none"
               />
             </div>
             <div className="flex gap-3 w-full md:w-auto">
@@ -141,7 +141,7 @@ export default function Inventory() {
                  <button
                    key={cat}
                    onClick={() => setCategory(cat)}
-                   className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all
+                   className={`px-6 py-4 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all
                      ${category === cat ? 'bg-slate-900 text-white shadow-xl' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}
                    `}
                  >
@@ -155,12 +155,12 @@ export default function Inventory() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50 text-slate-400">
-                  <th className="pb-6 text-[10px] font-black uppercase tracking-[0.2em] px-6">Product / Dosage</th>
-                  <th className="pb-6 text-[10px] font-black uppercase tracking-[0.2em] px-6 text-center">In Stock</th>
-                  <th className="pb-6 text-[10px] font-black uppercase tracking-[0.2em] px-6">Batch ID</th>
-                  <th className="pb-6 text-[10px] font-black uppercase tracking-[0.2em] px-6">Expiry</th>
-                  <th className="pb-6 text-[10px] font-black uppercase tracking-[0.2em] px-6 text-right">Unit Price</th>
-                  <th className="pb-6 text-[10px] font-black uppercase tracking-[0.2em] px-6 text-right">Actions</th>
+                  <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-6">Product / Dosage</th>
+                  <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-6 text-center">In Stock</th>
+                  <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-6">Batch ID</th>
+                  <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-6">Expiry</th>
+                  <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-6 text-right">Unit Price</th>
+                  <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -179,14 +179,14 @@ export default function Inventory() {
                           {item.category === 'Pharmacological' ? <Activity className="h-6 w-6" /> : <ShoppingBag className="h-6 w-6" />}
                         </div>
                         <div>
-                          <p className="font-black text-slate-900 text-base">{item.name}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{item.category}</p>
+                          <p className="font-medium text-slate-900 text-base">{item.name}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight">{item.category}</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-6 px-6 text-center">
                       <div className="inline-flex flex-col items-center">
-                         <p className={`text-xl font-black ${item.stock < 20 ? 'text-amber-500' : 'text-slate-900'}`}>{item.stock}</p>
+                         <p className={`text-xl font-semibold ${item.stock < 20 ? 'text-amber-500' : 'text-slate-900'}`}>{item.stock}</p>
                          <div className="flex gap-1 mt-1">
                             {[1, 2, 3, 4, 5].map(dot => (
                                <div key={dot} className={`h-1 w-3 rounded-full ${item.stock > (dot * 20) ? 'bg-slate-200' : (item.stock < 20 && dot === 1) ? 'bg-amber-200' : 'bg-slate-100'}`} />
@@ -197,18 +197,18 @@ export default function Inventory() {
                     <td className="py-6 px-6">
                       <div className="flex items-center gap-2">
                         <Hash className="h-3 w-3 text-slate-300" />
-                        <span className="font-bold text-slate-600 text-sm tracking-tighter uppercase">{item.batch || 'UNTRACKED'}</span>
+                        <span className="font-medium text-slate-600 text-sm tracking-tighter uppercase">{item.batch || 'UNTRACKED'}</span>
                       </div>
                     </td>
                     <td className="py-6 px-6">
-                       <span className={`text-xs font-black uppercase tracking-tight
+                       <span className={`text-xs font-semibold uppercase tracking-tight
                          ${new Date(item.expiry) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) ? 'text-red-500' : 'text-slate-500'}
                        `}>
                          {new Date(item.expiry).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                        </span>
                     </td>
                     <td className="py-6 px-6 text-right">
-                      <p className="font-black text-slate-900 text-base">{APP_CONFIG.CURRENCY} {item.price.toFixed(2)}</p>
+                      <p className="font-medium text-slate-900 text-base">{APP_CONFIG.CURRENCY} {item.price.toFixed(2)}</p>
                     </td>
                     <td className="py-6 px-6 text-right">
                        <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -274,8 +274,8 @@ function InboundModal({ onClose, onSave }) {
                  <Package className="h-7 w-7" />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Stock Inbound</h3>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Inventory Logistics Portal</p>
+                <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Stock Inbound</h3>
+                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">Inventory Logistics Portal</p>
               </div>
            </div>
            <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all">
@@ -285,66 +285,66 @@ function InboundModal({ onClose, onSave }) {
 
         <form onSubmit={handleSubmit} className="p-12 space-y-8">
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Product Name & Specifics</label>
+            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Product Name & Specifics</label>
             <input 
               required
               placeholder="e.g. Amoxicillin 500mg (Cap)"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none" 
+              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none" 
             />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Classification</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Classification</label>
               <select 
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none appearance-none"
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none appearance-none"
               >
                 <option>Pharmacological</option>
                 <option>Non-Pharmacological</option>
               </select>
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Quantity (Units)</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Quantity (Units)</label>
               <input 
                 type="number"
                 required
                 value={formData.stock}
                 onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value)})}
-                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none" 
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none" 
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Batch Number</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Batch Number</label>
               <input 
                 required
                 placeholder="B-2026-X"
                 value={formData.batch}
                 onChange={(e) => setFormData({...formData, batch: e.target.value})}
-                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none" 
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none" 
               />
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Expiry Date</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Expiry Date</label>
               <input 
                 type="date"
                 required
                 value={formData.expiry}
                 onChange={(e) => setFormData({...formData, expiry: e.target.value})}
-                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none" 
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none" 
               />
             </div>
           </div>
 
           <div className="flex gap-4 pt-6">
-            <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-100 transition-all">Cancel</button>
-            <button type="submit" className="flex-1 px-8 py-5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200">Commit to Stock</button>
+            <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-100 transition-all">Cancel</button>
+            <button type="submit" className="flex-1 px-8 py-5 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200">Commit to Stock</button>
           </div>
         </form>
       </motion.div>

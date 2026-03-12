@@ -188,15 +188,15 @@ export default function Header() {
                           <res.icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-900 truncate">{res.name || res.title || res.patient}</p>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{res.type} {res.id ? `• ${res.id}` : ''}</p>
+                          <p className="text-sm font-medium text-slate-900 truncate">{res.name || res.title || res.patient}</p>
+                          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{res.type} {res.id ? `• ${res.id}` : ''}</p>
                         </div>
                       </button>
                     ))}
                   </div>
                 ) : (
                   <div className="p-8 text-center">
-                    <p className="text-sm font-bold text-slate-400 italic">No matches for "{query}"</p>
+                    <p className="text-sm font-medium text-slate-400 italic">No matches for "{query}"</p>
                   </div>
                 )}
               </motion.div>
@@ -213,7 +213,7 @@ export default function Header() {
           >
             <Bell className="h-6 w-6" />
             {notifications.length > 0 && (
-              <span className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 h-5 w-5 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+              <span className="absolute top-0 right-0 translate-x-1/4 -translate-y-1/4 h-5 w-5 bg-red-500 text-white text-[10px] font-medium flex items-center justify-center rounded-full border-2 border-white shadow-sm">
                 {notifications.length}
               </span>
             )}
@@ -228,8 +228,8 @@ export default function Header() {
                 className="absolute right-0 mt-4 w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-50 origin-top-right"
               >
                 <div className="p-4 border-b border-slate-50 flex items-center justify-between">
-                  <h3 className="font-black text-slate-900 text-sm">Notifications</h3>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{notifications.length} New</span>
+                  <h3 className="font-medium text-slate-900 text-sm">Notifications</h3>
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{notifications.length} New</span>
                 </div>
                 <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                   {notifications.length > 0 ? (
@@ -250,9 +250,9 @@ export default function Header() {
                             <Bell className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-900 leading-snug group-hover:text-primary-600 transition-colors">{note.title}</p>
+                            <p className="text-xs font-medium text-slate-900 leading-snug group-hover:text-primary-600 transition-colors">{note.title}</p>
                             <p className="text-xs text-slate-500 mt-1 line-clamp-2">{note.message}</p>
-                            <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-wide">
+                            <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-wide">
                               {note.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
@@ -264,7 +264,7 @@ export default function Header() {
                       <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-300">
                         <Bell className="h-6 w-6" />
                       </div>
-                      <p className="text-xs font-bold text-slate-400">No new notifications</p>
+                      <p className="text-xs font-medium text-slate-400">No new notifications</p>
                     </div>
                   )}
                 </div>
@@ -277,10 +277,10 @@ export default function Header() {
 
         <div className="flex items-center gap-3 group cursor-pointer">
           <div className="text-right">
-            <p className="text-sm font-bold text-slate-900">{userData?.name || 'Jon Day'}</p>
+            <p className="text-sm font-medium text-slate-900">{userData?.name || 'Jon Day'}</p>
             <p className="text-xs text-slate-400 capitalize">{role}</p>
           </div>
-          <div className="h-10 w-10 bg-slate-100 rounded-xl overflow-hidden shadow-inner flex items-center justify-center text-primary-600 font-bold border border-slate-200">
+          <div className="h-10 w-10 bg-slate-100 rounded-xl overflow-hidden shadow-inner flex items-center justify-center text-primary-600 font-medium border border-slate-200">
             {userData?.name?.split(' ').map(n => n[0]).join('') || <User className="h-6 w-6 text-slate-400" />}
           </div>
         </div>

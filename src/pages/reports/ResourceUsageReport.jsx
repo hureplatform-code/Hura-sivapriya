@@ -4,7 +4,7 @@ import { Database, Zap, HardDrive, Cpu, ShieldAlert, ArrowUpRight, BarChart3, Cl
 import { motion } from 'framer-motion';
 import facilityService from '../../services/facilityService';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function ResourceUsageReport() {
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function ResourceUsageReport() {
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
 
     const tableData = usageStats.map(s => [s.name, s.storage, s.compute, s.apiCalls, s.status]);
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Organization', 'Storage Used', 'Compute Units', 'API Cycles', 'Status']],
       body: tableData,
       startY: 40,
@@ -53,14 +53,14 @@ export default function ResourceUsageReport() {
     doc.save(`Resource_Usage_${Date.now()}.pdf`);
   };
 
-  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-bold text-slate-500 italic">Querying cloud infrastructure nodes...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-medium text-slate-500 italic">Querying cloud infrastructure nodes...</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="space-y-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
               <Cloud className="h-8 w-8 text-blue-600" />
               Infrastructure Resource Monitoring
             </h1>
@@ -68,7 +68,7 @@ export default function ResourceUsageReport() {
           </div>
           <button 
             onClick={handleExportPDF}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-2200"
+            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-2200"
           >
             <Database className="h-5 w-5" />
             Snapshot Full System
@@ -92,15 +92,15 @@ export default function ResourceUsageReport() {
               <div className={`h-12 w-12 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center mb-4`}>
                 <stat.icon className="h-6 w-6" />
               </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-              <p className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              <p className="text-2xl font-semibold text-slate-900 tracking-tight">{stat.value}</p>
             </motion.div>
           ))}
         </div>
 
         <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-900 tracking-tight flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-blue-500" />
               Tenant Resource Matrix
             </h3>
@@ -110,11 +110,11 @@ export default function ResourceUsageReport() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50">
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Organization</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Cloud Storage</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Compute Logic</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">API Utilization</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Health</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Organization</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Cloud Storage</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Compute Logic</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">API Utilization</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Health</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -127,15 +127,15 @@ export default function ResourceUsageReport() {
                     className="group hover:bg-slate-50 transition-colors"
                   >
                     <td className="py-5 px-4">
-                      <p className="font-bold text-slate-900">{org.name}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">ID: {org.id.slice(-8)}</p>
+                      <p className="font-semibold text-slate-900">{org.name}</p>
+                      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">ID: {org.id.slice(-8)}</p>
                     </td>
                     <td className="py-5 px-4">
-                      <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
+                      <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
                         {org.storage}
                       </div>
                     </td>
-                    <td className="py-5 px-4 font-bold text-slate-600 text-sm">{org.compute}</td>
+                    <td className="py-5 px-4 font-medium text-slate-600 text-sm">{org.compute}</td>
                     <td className="py-5 px-4">
                        <div className="flex flex-col gap-1 w-24">
                           <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -144,11 +144,11 @@ export default function ResourceUsageReport() {
                                style={{ width: `${(parseInt(org.apiCalls) / 1000) * 100}%` }}
                              />
                           </div>
-                          <p className="text-[9px] font-black text-slate-400">{org.apiCalls} Cycles</p>
+                          <p className="text-[9px] font-semibold text-slate-400">{org.apiCalls} Cycles</p>
                        </div>
                     </td>
                     <td className="py-5 px-4">
-                       <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border
+                       <span className={`px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest border
                          ${org.status === 'Healthy' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}
                        `}>
                           {org.status}

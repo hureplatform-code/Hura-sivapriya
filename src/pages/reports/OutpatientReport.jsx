@@ -19,7 +19,7 @@ import patientService from '../../services/patientService';
 import medicalRecordService from '../../services/medicalRecordService';
 import appointmentService from '../../services/appointmentService';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function OutpatientReport() {
   const [loading, setLoading] = useState(true);
@@ -102,7 +102,7 @@ export default function OutpatientReport() {
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
 
     const statsTable = stats.map(s => [s.label, s.value]);
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Metric', 'Value']],
       body: statsTable,
       startY: 40,
@@ -110,7 +110,7 @@ export default function OutpatientReport() {
 
     const diagnosesTable = diagnoses.map(d => [d.name, d.count]);
     doc.text('Common Diagnoses', 14, doc.lastAutoTable.finalY + 10);
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Diagnosis', 'Patient Count']],
       body: diagnosesTable,
       startY: doc.lastAutoTable.finalY + 15,
@@ -119,24 +119,24 @@ export default function OutpatientReport() {
     doc.save('Outpatient_Report.pdf');
   };
 
-  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-bold text-slate-500">Generating Analytics...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-medium text-slate-500">Generating Analytics...</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Outpatient Analytics</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Outpatient Analytics</h1>
             <p className="text-slate-500 mt-1">Detailed reporting and clinical trends for outpatient services.</p>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 font-bold rounded-2xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-all">
+            <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 font-medium rounded-2xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-all">
               <Calendar className="h-5 w-5" />
               {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </button>
             <button 
               onClick={handleExportPDF}
-              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95"
+              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95"
             >
               <Download className="h-5 w-5" />
               Export PDF
@@ -157,14 +157,14 @@ export default function OutpatientReport() {
                 <div className={`h-12 w-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
                   <stat.icon className="h-6 w-6" />
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-black ${stat.trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
+                <div className={`flex items-center gap-1 text-xs font-medium ${stat.trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
                   {stat.change}
                   {stat.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                 </div>
               </div>
               <div className="mt-6">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                <h3 className="text-3xl font-black text-slate-900 mt-1">{stat.value}</h3>
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                <h3 className="text-2xl font-semibold text-slate-900 mt-1">{stat.value}</h3>
               </div>
             </motion.div>
           ))}
@@ -173,19 +173,19 @@ export default function OutpatientReport() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary-500" />
                 Common Diagnoses
               </h3>
-              <button className="text-xs font-bold text-primary-600 hover:text-primary-700">View Data Table</button>
+              <button className="text-xs font-medium text-primary-600 hover:text-primary-700">View Data Table</button>
             </div>
             
             <div className="space-y-6">
               {diagnoses.length > 0 ? diagnoses.map((item) => (
                 <div key={item.name} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-bold text-slate-700">{item.name}</span>
-                    <span className="font-black text-slate-900">{item.count}</span>
+                    <span className="font-medium text-slate-700">{item.name}</span>
+                    <span className="font-medium text-slate-900">{item.count}</span>
                   </div>
                   <div className="h-3 bg-slate-50 rounded-full overflow-hidden">
                     <motion.div 
@@ -202,7 +202,7 @@ export default function OutpatientReport() {
 
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <PieChart className="h-5 w-5 text-primary-500" />
                 Demographics Breakdown
               </h3>
@@ -217,8 +217,8 @@ export default function OutpatientReport() {
                   <circle cx="50" cy="50" r="40" fill="transparent" stroke="#eab308" strokeWidth="20" strokeDasharray="11.2 251" strokeDashoffset="-240" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Growth</span>
-                  <span className="text-2xl font-black text-slate-900">+5.2%</span>
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">Growth</span>
+                  <span className="text-2xl font-semibold text-slate-900">+5.2%</span>
                 </div>
               </div>
               
@@ -226,8 +226,8 @@ export default function OutpatientReport() {
                 {demographics.map((d) => (
                   <div key={d.label} className="flex items-center gap-2">
                     <div className={`h-2.5 w-2.5 rounded-full ${d.color}`} />
-                    <span className="text-xs font-bold text-slate-500">{d.label}</span>
-                    <span className="text-xs font-black text-slate-900 ml-auto">{d.value}</span>
+                    <span className="text-xs font-medium text-slate-500">{d.label}</span>
+                    <span className="text-xs font-medium text-slate-900 ml-auto">{d.value}</span>
                   </div>
                 ))}
               </div>

@@ -42,20 +42,20 @@ export default function DashboardLayout({ children }) {
                  </div>
 
                  <div className="space-y-2">
-                    <h2 className="text-2xl font-black text-slate-900">Security Timeout</h2>
+                    <h2 className="text-2xl font-semibold text-slate-900">Security Timeout</h2>
                     <p className="text-slate-500 font-medium">For patient data protection, your session will lock due to inactivity.</p>
                  </div>
 
                  <div className="bg-slate-50 p-6 rounded-2xl flex items-center justify-between">
-                    <div className="flex items-center gap-3 text-slate-400 font-black text-xs uppercase tracking-widest">
+                    <div className="flex items-center gap-3 text-slate-400 font-medium text-xs uppercase tracking-widest">
                        <Clock className="h-4 w-4" /> Locking in
                     </div>
-                    <span className="text-3xl font-black text-red-600 font-mono">{timeLeft}s</span>
+                    <span className="text-2xl font-semibold text-red-600 font-mono">{timeLeft}s</span>
                  </div>
 
                  <button 
                    onClick={resetTimer}
-                   className="w-full py-5 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                   className="w-full py-5 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
                  >
                    I'm Still Working
                  </button>

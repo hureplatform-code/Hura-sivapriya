@@ -38,13 +38,13 @@ export default function ClinicalForms() {
            <div className="h-20 w-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 shadow-inner">
               <FileText className="h-10 w-10" />
            </div>
-           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Access Restricted</h2>
+           <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Access Restricted</h2>
            <p className="text-slate-500 max-w-md mt-2 font-medium">
              Clinical documentation and form generation are restricted to facility clinical staff. Platform governance access is restricted to global audit and revenue analytics.
            </p>
            <button 
              onClick={() => navigate('/')}
-             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Return to Dashboard
            </button>
@@ -67,11 +67,11 @@ export default function ClinicalForms() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Clinical Forms</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Clinical Forms</h1>
             <p className="text-slate-500 mt-1">Generate professional, pre-filled medical documentation.</p>
           </div>
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
+            <button className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl font-medium text-slate-600 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
                <History className="h-5 w-5" /> Recent Forms
             </button>
           </div>
@@ -81,7 +81,7 @@ export default function ClinicalForms() {
           {/* Templates Grid */}
           <div className="lg:col-span-1 space-y-4">
              <div className="px-4 py-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Template</span>
+                <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Select Template</span>
              </div>
              {formTemplates.map((form) => (
                 <motion.button
@@ -95,8 +95,8 @@ export default function ClinicalForms() {
                         <FileText className="h-6 w-6" />
                      </div>
                      <div className="flex-1">
-                        <p className={`font-black text-lg ${selectedForm?.id === form.id ? 'text-white' : 'text-slate-900'}`}>{form.label}</p>
-                        <p className={`text-xs font-bold leading-relaxed ${selectedForm?.id === form.id ? 'text-slate-400' : 'text-slate-500'}`}>{form.description}</p>
+                        <p className={`font-medium text-lg ${selectedForm?.id === form.id ? 'text-white' : 'text-slate-900'}`}>{form.label}</p>
+                        <p className={`text-xs font-medium leading-relaxed ${selectedForm?.id === form.id ? 'text-slate-400' : 'text-slate-500'}`}>{form.description}</p>
                      </div>
                   </div>
                 </motion.button>
@@ -109,12 +109,12 @@ export default function ClinicalForms() {
                 <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                     <div className="flex items-center gap-3">
                        <ClipboardCheck className="h-6 w-6 text-emerald-500" />
-                       <h3 className="font-black text-slate-900 uppercase tracking-tight">Form Generation Workspace</h3>
+                       <h3 className="font-medium text-slate-900 uppercase tracking-tight">Form Generation Workspace</h3>
                     </div>
                     {selectedForm && (
                        <button 
                         onClick={() => handlePrint(selectedForm.id)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all active:scale-95"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all active:scale-95"
                        >
                           <Printer className="h-4 w-4" /> Print Form
                        </button>
@@ -125,13 +125,13 @@ export default function ClinicalForms() {
                    {selectedForm ? (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12 max-w-2xl mx-auto">
                          <div className="space-y-4">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Step 1: Link to Patient Record</label>
+                            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">Step 1: Link to Patient Record</label>
                             <div className="relative group">
                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
                                <input 
                                 type="text"
                                 placeholder="Search by Patient Name or Hospital No..."
-                                className="w-full bg-slate-50/50 border-2 border-slate-100 focus:border-primary-500 rounded-3xl py-6 pl-16 pr-8 text-lg font-bold transition-all outline-none"
+                                className="w-full bg-slate-50/50 border-2 border-slate-100 focus:border-primary-500 rounded-3xl py-6 pl-16 pr-8 text-lg font-semibold transition-all outline-none"
                                />
                             </div>
                          </div>
@@ -140,12 +140,12 @@ export default function ClinicalForms() {
                              <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm text-slate-300">
                                 <User className="h-8 w-8" />
                              </div>
-                             <p className="text-sm font-bold text-slate-400">Search for a patient to {selectedForm.id === 'intake' ? 'generate a secure intake link' : 'auto-populate the form'}.</p>
+                             <p className="text-sm font-medium text-slate-400">Search for a patient to {selectedForm.id === 'intake' ? 'generate a secure intake link' : 'auto-populate the form'}.</p>
                              
                              {selectedForm.id === 'intake' && (
                                 <button 
                                   onClick={() => setShowLink(true)}
-                                  className="mt-4 px-6 py-3 bg-primary-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
+                                  className="mt-4 px-6 py-3 bg-primary-600 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
                                 >
                                   Generate Secure Link for Patient
                                 </button>
@@ -155,13 +155,13 @@ export default function ClinicalForms() {
                                 <div className="mt-4 flex flex-col md:flex-row gap-4 items-center justify-center">
                                    <button 
                                      onClick={() => window.print()}
-                                     className="px-6 py-3 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-slate-200 hover:bg-slate-800 transition"
+                                     className="px-6 py-3 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-slate-200 hover:bg-slate-800 transition"
                                    >
                                      Generate Referral Letter (PDF)
                                    </button>
                                    <button 
                                      onClick={() => window.print()}
-                                     className="px-6 py-3 bg-primary-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
+                                     className="px-6 py-3 bg-primary-600 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
                                    >
                                      Generate Claims Pack (PDF)
                                    </button>
@@ -171,27 +171,27 @@ export default function ClinicalForms() {
 
                          {showLink && selectedForm.id === 'intake' && (
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-emerald-50 border border-emerald-100 rounded-3xl space-y-3">
-                               <div className="flex items-center gap-2 text-emerald-700 font-bold mb-2">
+                               <div className="flex items-center gap-2 text-emerald-700 font-medium mb-2">
                                   <CheckCircle2 className="h-5 w-5" /> 
                                   Link Generated Successfully!
                                </div>
                                <p className="text-sm text-slate-600 font-medium">The patient has received an SMS with the secure Intake Form link and OTP instruction.</p>
                                <div className="p-4 bg-white rounded-xl border border-emerald-100 font-mono text-xs text-slate-500 flex items-center justify-between mt-2">
                                   https://patient.hure.care/intake?token=X8A9B2M
-                                  <button className="text-primary-600 font-bold hover:underline">Copy Link</button>
+                                  <button className="text-primary-600 font-medium hover:underline">Copy Link</button>
                                </div>
                             </motion.div>
                          )}
 
                          {selectedForm.id === 'intake' && (
                             <div className="mt-8 space-y-4 pt-8 border-t border-slate-100">
-                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Pending Intakes Queue</h4>
+                               <h4 className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2">Pending Intakes Queue</h4>
                                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                                   <table className="w-full text-left">
-                                     <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400">
+                                     <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-semibold uppercase text-slate-400">
                                         <tr><th className="p-4">Patient</th><th className="p-4">Contact</th><th className="p-4">Submitted</th><th className="p-4 text-right">Action</th></tr>
                                      </thead>
-                                     <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-600">
+                                     <tbody className="divide-y divide-slate-50 text-sm font-medium text-slate-600">
                                         {mockIntakeQueue.map(item => (
                                            <tr key={item.id} className="hover:bg-slate-50/50">
                                               <td className="p-4 text-slate-900">{item.patient} <span className="text-xs text-slate-400">({item.age}y)</span></td>
@@ -211,7 +211,7 @@ export default function ClinicalForms() {
                          <div className="pt-12 border-t border-slate-50 flex items-start gap-4 text-slate-400">
                             <FileSearch className="h-6 w-6 mt-1" />
                             <div className="space-y-1">
-                               <p className="font-bold text-sm">Automated Data Mapping</p>
+                               <p className="font-medium text-sm">Automated Data Mapping</p>
                                <p className="text-xs">Connecting patient vitals, diagnosis, and demographic data. This recreates the functionality of legacy `form_cnt.php` for professional documentation.</p>
                             </div>
                          </div>
@@ -222,7 +222,7 @@ export default function ClinicalForms() {
                             <FileText className="h-12 w-12" />
                          </div>
                          <div className="space-y-2">
-                           <h4 className="font-black text-slate-900 text-xl tracking-tight">No Template Selected</h4>
+                           <h4 className="font-medium text-slate-900 text-xl tracking-tight">No Template Selected</h4>
                            <p className="text-slate-500 font-medium max-w-sm mx-auto">Please select a specialized clinical form template from the left panel to begin generation.</p>
                          </div>
                       </div>

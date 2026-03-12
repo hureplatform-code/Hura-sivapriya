@@ -107,20 +107,20 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
               <ShieldCheck className="h-7 w-7" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Security Matrix</h3>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Granular Access Control • {userName}</p>
+              <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Security Matrix</h3>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">Granular Access Control • {userName}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
              <button 
                onClick={handleSelectAll}
-               className="px-5 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+               className="px-5 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-slate-100 transition-all"
              >
                Select All
              </button>
              <button 
                onClick={handleClearAll}
-               className="px-5 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50 hover:text-red-500 transition-all"
+               className="px-5 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-red-50 hover:text-red-500 transition-all"
              >
                Clear All
              </button>
@@ -135,7 +135,7 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
           {loading ? (
              <div className="h-full flex flex-col items-center justify-center text-slate-400">
                 <div className="h-10 w-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-widest">Decrypting permission nodes...</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest">Decrypting permission nodes...</p>
              </div>
           ) : (
             <div className="space-y-4">
@@ -147,7 +147,7 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
                       <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${module.type === 'parent' ? 'bg-white/10' : 'bg-slate-100 text-slate-400'}`}>
                         {module.type === 'parent' ? <Unlock className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </div>
-                      <span className="font-black uppercase tracking-widest text-xs">{module.name}</span>
+                      <span className="font-semibold uppercase tracking-widest text-xs">{module.name}</span>
                     </div>
 
                     {module.key && (
@@ -174,7 +174,7 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
                             }
                           `}
                         >
-                          <span className={`text-[10px] font-black uppercase tracking-widest transition-transform group-active:scale-95`}>
+                          <span className={`text-[10px] font-semibold uppercase tracking-widest transition-transform group-active:scale-95`}>
                             {right.label}
                           </span>
                           {permissions[right.key] ? (
@@ -197,14 +197,14 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
           <button 
             type="button" 
             onClick={onClose} 
-            className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-100 transition-all"
+            className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-100 transition-all"
           >
             Discard Changes
           </button>
           <button 
             disabled={saving}
             onClick={handleSave}
-            className="flex-3 px-12 py-5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-50"
+            className="flex-3 px-12 py-5 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {saving ? (
                <>
@@ -227,7 +227,7 @@ export default function PermissionsEditor({ userId, userName, onClose }) {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
           >
              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
                 {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <div className="h-5 w-5 rounded-full border-2 border-white" />}

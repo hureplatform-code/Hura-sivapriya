@@ -67,7 +67,7 @@ export default function ChangePlan() {
     <DashboardLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Change Plan</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Change Plan</h1>
           <p className="text-slate-500 mt-1">Scale your hospital operations by choosing a plan that fits your needs.</p>
         </div>
 
@@ -81,7 +81,7 @@ export default function ChangePlan() {
               className={`relative bg-white p-8 rounded-[2.5rem] border ${plan.recommended ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-slate-100 shadow-sm'} overflow-hidden group`}
             >
               {plan.recommended && (
-                <div className="absolute top-0 right-0 bg-primary-600 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest">
+                <div className="absolute top-0 right-0 bg-primary-600 text-white text-[10px] font-medium px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest">
                   Popular
                 </div>
               )}
@@ -90,17 +90,17 @@ export default function ChangePlan() {
                 <Zap className="h-8 w-8" />
               </div>
 
-              <h3 className="text-xl font-black text-slate-900">{plan.name}</h3>
+              <h3 className="text-xl font-semibold text-slate-900">{plan.name}</h3>
               <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-3xl font-black text-slate-900">{APP_CONFIG.CURRENCY} {plan.price}</span>
-                <span className="text-sm font-bold text-slate-400">/mo</span>
+                <span className="text-2xl font-semibold text-slate-900">{APP_CONFIG.CURRENCY} {plan.price}</span>
+                <span className="text-sm font-medium text-slate-400">/mo</span>
               </div>
 
               <div className="mt-8 space-y-4">
                 {plan.features.map(feat => (
                   <div key={feat} className="flex items-center gap-3">
                     <CheckCircle2 className={`h-5 w-5 ${plan.recommended ? 'text-primary-500' : 'text-slate-300'}`} />
-                    <span className="text-sm font-bold text-slate-600">{feat}</span>
+                    <span className="text-sm font-medium text-slate-600">{feat}</span>
                   </div>
                 ))}
               </div>
@@ -108,7 +108,7 @@ export default function ChangePlan() {
               <button 
                 disabled={loading}
                 onClick={() => handlePlanSelect(plan.name)}
-                className={`w-full mt-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all 
+                className={`w-full mt-10 py-4 rounded-2xl font-medium text-xs uppercase tracking-widest transition-all 
                   ${plan.name === currentPlan 
                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default' 
                     : 'bg-primary-600 text-white shadow-lg shadow-primary-100 hover:bg-primary-700 active:scale-95 disabled:opacity-50'}`}
@@ -125,10 +125,10 @@ export default function ChangePlan() {
 
         <div className="bg-slate-900 rounded-[2.5rem] p-12 text-white flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="max-w-xl">
-            <h3 className="text-2xl font-black">Need a custom enterprise solution?</h3>
+            <h3 className="text-2xl font-semibold">Need a custom enterprise solution?</h3>
             <p className="text-slate-400 mt-2 font-medium">For large hospital networks with over 10 branches, we offer tailored infrastructure and dedicated support.</p>
           </div>
-          <button className="px-8 py-4 bg-white text-slate-900 font-black text-xs uppercase tracking-widest rounded-2xl whitespace-nowrap hover:bg-slate-50 transition-all flex items-center gap-2">
+          <button className="px-8 py-4 bg-white text-slate-900 font-medium text-xs uppercase tracking-widest rounded-2xl whitespace-nowrap hover:bg-slate-50 transition-all flex items-center gap-2">
             Contact Sales
             <ArrowUpRight className="h-4 w-4" />
           </button>

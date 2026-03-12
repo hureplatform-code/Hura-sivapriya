@@ -17,10 +17,10 @@ export default function ICD10() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">ICD-10 Catalogue</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">ICD-10 Catalogue</h1>
             <p className="text-slate-500 mt-1">Official WHO International Classification of Diseases for clinical diagnosis.</p>
           </div>
-          <button className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200">
+          <button className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200">
             <Plus className="h-5 w-5" />
             Add Custom Code
           </button>
@@ -45,10 +45,10 @@ export default function ICD10() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50">
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-widest px-4">ICD Code</th>
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-widest px-4">Description</th>
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-widest px-4">Category</th>
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-widest px-4 text-right">Actions</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-widest px-4">ICD Code</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-widest px-4">Description</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-widest px-4">Category</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-widest px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -61,13 +61,13 @@ export default function ICD10() {
                     className="group hover:bg-slate-50 transition-colors"
                   >
                     <td className="py-5 px-4">
-                      <span className="px-3 py-1 bg-primary-50 text-primary-600 rounded-lg text-xs font-black">
+                      <span className="px-3 py-1 bg-primary-50 text-primary-600 rounded-lg text-xs font-medium">
                         {icd.code}
                       </span>
                     </td>
-                    <td className="py-5 px-4 font-bold text-slate-700 text-sm max-w-md">{icd.description}</td>
+                    <td className="py-5 px-4 font-medium text-slate-700 text-sm max-w-md">{icd.description}</td>
                     <td className="py-5 px-4">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{icd.category}</span>
+                      <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">{icd.category}</span>
                     </td>
                     <td className="py-5 px-4 text-right">
                       <button className="p-2.5 text-slate-400 hover:text-slate-900 rounded-xl">

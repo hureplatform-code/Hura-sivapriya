@@ -121,16 +121,16 @@ export default function Dashboard() {
       <div className="space-y-8">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
            <div>
-             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
+             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight capitalize">
                {role === 'doctor' ? 'Clinical Overview' : 'Administrative Dashboard'}
              </h1>
              <p className="text-slate-500 mt-1">
-               Welcome back, <span className="font-bold text-slate-900">{userData?.name || 'Jon Day'}</span>. Here's your {role} focus for today.
+               Welcome back, <span className="font-medium text-slate-900">{userData?.name || 'Jon Day'}</span>. Here's your {role} focus for today.
              </p>
            </div>
            <div className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-100 rounded-2xl shadow-sm">
              <Calendar className="h-4 w-4 text-primary-500" />
-             <span className="text-sm font-bold text-slate-700">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+             <span className="text-sm font-medium text-slate-700">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
            </div>
         </header>
         
@@ -147,8 +147,8 @@ export default function Dashboard() {
                 <stat.icon className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900">{stat.value}</h3>
-                <p className="text-slate-500 text-xs font-black uppercase tracking-widest mt-1">{stat.label}</p>
+                <h3 className="text-2xl font-semibold text-slate-900">{stat.value}</h3>
+                <p className="text-slate-500 text-xs font-semibold uppercase tracking-widest mt-1">{stat.label}</p>
               </div>
             </motion.div>
           ))}
@@ -157,25 +157,25 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Main Visual Section */}
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col items-center justify-center relative overflow-hidden group">
-            <h3 className="text-lg font-bold text-slate-900 mb-8 self-start">Operations Efficiency</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-8 self-start">Operations Efficiency</h3>
             <div className="relative h-64 w-64 z-10">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#4f46e5" strokeWidth="12" strokeDasharray="180 251" strokeLinecap="round" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Growth</span>
-                <span className="text-3xl font-black text-slate-900">+72%</span>
+                <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">Growth</span>
+                <span className="text-2xl font-semibold text-slate-900">+72%</span>
               </div>
             </div>
             <div className="flex gap-8 mt-10">
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 rounded-lg bg-indigo-600" />
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Current Quarter</span>
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-widest">Current Quarter</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 rounded-lg bg-slate-100" />
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Previous</span>
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-widest">Previous</span>
               </div>
             </div>
             <div className="absolute -left-20 -top-20 h-64 w-64 bg-primary-50/20 rounded-full blur-3xl" />
@@ -183,7 +183,7 @@ export default function Dashboard() {
 
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Recent Activity Log</h3>
+              <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">Recent Activity Log</h3>
               <div className="h-10 w-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400">
                 <History className="h-5 w-5" />
               </div>
@@ -197,12 +197,12 @@ export default function Dashboard() {
                       <ShieldCheck className={`h-6 w-6 ${log.module === 'CLINICAL' ? 'text-primary-500' : 'text-emerald-500'}`} />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 text-sm">{log.description}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">{log.userName} • {log.action}</p>
+                      <p className="font-medium text-slate-900 text-sm">{log.description}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold uppercase">{log.userName} • {log.action}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">
                        {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                     </p>
                   </div>
@@ -214,7 +214,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            <button className="w-full mt-8 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+            <button className="w-full mt-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
                Audit Full Ledger
             </button>
           </div>

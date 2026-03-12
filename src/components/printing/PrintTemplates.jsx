@@ -47,22 +47,22 @@ export const InvoiceSlip = ({ data, facility = {} }) => (
       {facility.logoUrl && (
         <img src={facility.logoUrl} alt="Logo" className="h-12 mx-auto mb-2 object-contain" />
       )}
-      <h2 className="text-lg font-black uppercase tracking-tighter">{facility.printHeader || facility.name || 'HOSPITAL ERP'}</h2>
-      <p className="text-[9px] uppercase font-bold text-slate-500">{facility.address || 'Kenyatta Ave, Nairobi, Kenya'}</p>
-      <p className="text-[9px] font-bold">{facility.phone || '+254 700 000 000'}</p>
-      {facility.taxId && <p className="text-[9px] font-bold">PIN: {facility.taxId}</p>}
+      <h2 className="text-lg font-semibold uppercase tracking-tighter">{facility.printHeader || facility.name || 'HOSPITAL ERP'}</h2>
+      <p className="text-[9px] uppercase font-medium text-slate-500">{facility.address || 'Kenyatta Ave, Nairobi, Kenya'}</p>
+      <p className="text-[9px] font-medium">{facility.phone || '+254 700 000 000'}</p>
+      {facility.taxId && <p className="text-[9px] font-medium">PIN: {facility.taxId}</p>}
     </div>
 
     <div className="space-y-1 mb-4">
-      <div className="flex justify-between text-[10px] font-bold">
+      <div className="flex justify-between text-[10px] font-medium">
         <span>INV NO:</span>
         <span>{data.invoiceNo}</span>
       </div>
-      <div className="flex justify-between text-[10px] font-bold">
+      <div className="flex justify-between text-[10px] font-medium">
         <span>DATE:</span>
         <span>{new Date().toLocaleDateString()}</span>
       </div>
-      <div className="flex justify-between text-[10px] font-bold">
+      <div className="flex justify-between text-[10px] font-medium">
         <span>PATIENT:</span>
         <span className="truncate max-w-[50px]">{data.patientName}</span>
       </div>
@@ -86,17 +86,17 @@ export const InvoiceSlip = ({ data, facility = {} }) => (
     </table>
 
     <div className="border-t-2 border-dashed border-slate-300 pt-4 space-y-1">
-      <div className="flex justify-between text-xs font-black">
+      <div className="flex justify-between text-xs font-medium">
         <span>TOTAL DUE:</span>
         <span>${data.totalAmount?.toFixed(2)}</span>
       </div>
-      <div className="flex justify-between text-[10px] font-bold">
+      <div className="flex justify-between text-[10px] font-medium">
         <span>MODE:</span>
         <span>{data.paymentMode || 'Cash'}</span>
       </div>
     </div>
 
-    <div className="mt-8 text-center text-[8px] font-bold text-slate-400">
+    <div className="mt-8 text-center text-[8px] font-medium text-slate-400">
       <p>THANK YOU FOR CHOOSING OUR FACILITY</p>
       <p>QUICK RECOVERY TO THE PATIENT</p>
       <div className="mt-4 border-t border-slate-100 pt-2 italic">
@@ -114,62 +114,62 @@ export const ClinicalSummary = ({ data, facility = {} }) => (
           <img src={facility.logoUrl} alt="Logo" className="h-20 w-20 object-contain" />
         )}
         <div>
-          <h1 className="text-2xl font-black tracking-tighter uppercase">{facility.printHeader || facility.name || 'CLINICAL VISIT SUMMARY'}</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">{facility.printSubHeader || facility.tagline || 'Official Medical Records Archive'}</p>
-          <div className="mt-2 text-[9px] font-bold text-slate-400 space-y-0.5">
+          <h1 className="text-2xl font-semibold tracking-tighter uppercase">{facility.printHeader || facility.name || 'CLINICAL VISIT SUMMARY'}</h1>
+          <p className="text-slate-500 font-semibold uppercase tracking-widest text-[10px] mt-1">{facility.printSubHeader || facility.tagline || 'Official Medical Records Archive'}</p>
+          <div className="mt-2 text-[9px] font-medium text-slate-400 space-y-0.5">
              <p>{facility.address}</p>
              <p>{facility.phone} • {facility.email}</p>
           </div>
         </div>
       </div>
       <div className="text-right">
-        <p className="font-black text-xs">REF: {data.id?.toUpperCase()}</p>
-        <p className="text-slate-400 text-[10px] font-bold">{new Date().toLocaleString()}</p>
+        <p className="font-medium text-xs">REF: {data.id?.toUpperCase()}</p>
+        <p className="text-slate-400 text-[10px] font-medium">{new Date().toLocaleString()}</p>
       </div>
     </div>
 
     <div className="grid grid-cols-3 gap-8 mb-12 bg-slate-50 p-6 rounded-2xl">
       <div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Patient Subject</p>
-        <p className="font-black text-base">{data.patientName}</p>
-        <p className="text-xs font-bold text-slate-500">ID: {data.patientId}</p>
+        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Patient Subject</p>
+        <p className="font-medium text-base">{data.patientName}</p>
+        <p className="text-xs font-medium text-slate-500">ID: {data.patientId}</p>
       </div>
       <div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Attending Clinician</p>
-        <p className="font-black text-base">{data.doctorName}</p>
-        <p className="text-xs font-bold text-slate-500">{data.specialty}</p>
+        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Attending Clinician</p>
+        <p className="font-medium text-base">{data.doctorName}</p>
+        <p className="text-xs font-medium text-slate-500">{data.specialty}</p>
       </div>
       <div className="text-right">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vital Baseline</p>
-        <p className="font-black text-xs">BP: {data.vitals?.bp} mmHg</p>
-        <p className="font-black text-xs">TEMP: {data.vitals?.temp} °C</p>
+        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Vital Baseline</p>
+        <p className="font-medium text-xs">BP: {data.vitals?.bp} mmHg</p>
+        <p className="font-medium text-xs">TEMP: {data.vitals?.temp} °C</p>
       </div>
     </div>
 
     <div className="space-y-8">
       <section>
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">Subjective / History</h3>
+        <h3 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">Subjective / History</h3>
         <p className="text-sm font-medium leading-relaxed text-slate-700">{data.soap?.subjective || 'No history recorded.'}</p>
       </section>
 
       <section>
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">Objective / Exam Findings</h3>
+        <h3 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">Objective / Exam Findings</h3>
         <p className="text-sm font-medium leading-relaxed text-slate-700">{data.soap?.objective || 'Routine physical examination performed.'}</p>
       </section>
 
       <section className="bg-slate-50 p-6 rounded-2xl">
-        <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] border-b border-slate-200 pb-2 mb-4">Clinical Impression / Diagnosis</h3>
+        <h3 className="text-[10px] font-medium text-slate-900 uppercase tracking-[0.2em] border-b border-slate-200 pb-2 mb-4">Clinical Impression / Diagnosis</h3>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xs">A</div>
+          <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-medium text-xs">A</div>
           <div>
-            <p className="font-black text-base uppercase tracking-tight">{data.diagnosis || 'Diagnosis Pending'}</p>
-            <p className="text-[10px] text-slate-500 font-bold">ICD-10 CLASSIFICATION</p>
+            <p className="font-medium text-base uppercase tracking-tight">{data.diagnosis || 'Diagnosis Pending'}</p>
+            <p className="text-[10px] text-slate-500 font-medium">ICD-10 CLASSIFICATION</p>
           </div>
         </div>
       </section>
 
       <section>
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">Plan / Prescription</h3>
+        <h3 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">Plan / Prescription</h3>
         <p className="text-sm font-medium leading-relaxed text-slate-700">{data.soap?.plan || 'Referral or follow-up as discussed.'}</p>
       </section>
     </div>
@@ -177,11 +177,11 @@ export const ClinicalSummary = ({ data, facility = {} }) => (
     <div className="mt-20 pt-12 border-t border-slate-100 flex justify-between items-end">
        <div className="space-y-4">
           <div className="h-12 w-48 border-b-2 border-slate-900"></div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Authorized Clinician Signature</p>
+          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Authorized Clinician Signature</p>
        </div>
        <div className="text-right opacity-30 select-none">
           <ShieldCheck className="h-16 w-16 text-slate-200" />
-          <p className="text-[8px] font-black uppercase mt-1">Authentic Record</p>
+          <p className="text-[8px] font-semibold uppercase mt-1">Authentic Record</p>
        </div>
     </div>
   </div>

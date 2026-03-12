@@ -102,13 +102,13 @@ export default function PermissionsEditor() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Security Matrix</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Security Matrix</h1>
             <p className="text-slate-500 mt-1">Configure granular access rights for each staff role.</p>
           </div>
           <button 
             onClick={handleSave}
             disabled={loading}
-            className="flex items-center gap-2 px-8 py-3.5 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95 disabled:opacity-70"
+            className="flex items-center gap-2 px-8 py-3.5 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95 disabled:opacity-70"
           >
             {loading ? <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-5 w-5" />}
             Persist Rights
@@ -120,7 +120,7 @@ export default function PermissionsEditor() {
           <div className="lg:col-span-1 space-y-4">
             <div className="bg-white p-2 rounded-3xl border border-slate-100 shadow-sm">
               <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Roles</span>
+                 <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Active Roles</span>
                  <Lock className="h-3 w-3 text-slate-300" />
               </div>
               <div className="p-2 space-y-1">
@@ -128,7 +128,7 @@ export default function PermissionsEditor() {
                   <button
                     key={role.id}
                     onClick={() => setSelectedRole(role.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all font-bold text-sm
+                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all font-medium text-sm
                       ${selectedRole === role.id 
                         ? 'bg-slate-900 text-white shadow-xl shadow-slate-200' 
                         : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
@@ -157,9 +157,9 @@ export default function PermissionsEditor() {
                        <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-primary-600">
                           <ShieldCheck className="h-5 w-5" />
                        </div>
-                       <h3 className="font-black text-slate-900 text-lg">{module.name}</h3>
+                       <h3 className="font-medium text-slate-900 text-lg">{module.name}</h3>
                     </div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Module Access</span>
+                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Module Access</span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border-t border-slate-50">
@@ -172,8 +172,8 @@ export default function PermissionsEditor() {
                          className="group p-6 border-r border-b border-slate-50 hover:bg-primary-50/30 transition-all cursor-pointer flex items-center justify-between"
                        >
                          <div className="space-y-1">
-                            <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{formattedLabel}</p>
-                            <p className="text-[10px] text-slate-400 font-bold">Standard Role Default</p>
+                            <p className="text-xs font-medium text-slate-900 uppercase tracking-tight">{formattedLabel}</p>
+                            <p className="text-[10px] text-slate-400 font-medium">Standard Role Default</p>
                          </div>
                          <div className={`h-6 w-11 rounded-full transition-all flex items-center px-1 ${permissions[selectedRole]?.[rightKey] ? 'bg-emerald-500' : 'bg-slate-200'}`}>
                             <div className={`h-4 w-4 rounded-full bg-white shadow-sm transition-all transform ${permissions[selectedRole]?.[rightKey] ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -189,7 +189,7 @@ export default function PermissionsEditor() {
       </div>
 
       {saveStatus && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm">
            <div className="h-8 w-8 bg-emerald-500 rounded-lg flex items-center justify-center">
               <CheckCircle2 className="h-5 w-5" />
            </div>

@@ -91,12 +91,12 @@ export default function PharmacySetup() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pharmacy Setup</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Pharmacy Setup</h1>
             <p className="text-slate-500 mt-1">Manage categories, product types, and drug master data.</p>
           </div>
           <button 
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg active:scale-95"
+            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg active:scale-95"
           >
             <Plus className="h-5 w-5" />
             Add Master Record
@@ -109,7 +109,7 @@ export default function PharmacySetup() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-sm font-bold transition-all border-2 ${activeTab === tab.id ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white text-slate-500 border-transparent hover:border-slate-100 hover:bg-slate-50'}`}
+                className={`w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-sm font-medium transition-all border-2 ${activeTab === tab.id ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white text-slate-500 border-transparent hover:border-slate-100 hover:bg-slate-50'}`}
               >
                 <tab.icon className={`h-5 w-5 ${activeTab === tab.id ? 'text-primary-400' : 'text-slate-400'}`} />
                 {tab.label}
@@ -119,7 +119,7 @@ export default function PharmacySetup() {
 
           <div className="flex-1 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
             <div className="flex items-center justify-between mb-4">
-               <h3 className="font-bold text-slate-900 tracking-tight text-lg">{currentTabLabel} Repository</h3>
+               <h3 className="font-medium text-slate-900 tracking-tight text-lg">{currentTabLabel} Repository</h3>
                <div className="flex items-center gap-4">
                   <div className="relative w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -143,16 +143,16 @@ export default function PharmacySetup() {
                 <thead>
                   <tr className="text-left border-b border-slate-50">
                     {getColumns().map(col => (
-                      <th key={col} className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">{col}</th>
+                      <th key={col} className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">{col}</th>
                     ))}
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 text-right">Actions</th>
+                    <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {loading ? (
-                    <tr><td colSpan={getColumns().length + 1} className="py-12 text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Synchronizing Master Data...</td></tr>
+                    <tr><td colSpan={getColumns().length + 1} className="py-12 text-center text-[10px] font-medium text-slate-300 uppercase tracking-[0.2em]">Synchronizing Master Data...</td></tr>
                   ) : items.length === 0 ? (
-                    <tr><td colSpan={getColumns().length + 1} className="py-12 text-center text-slate-400 font-bold text-xs">No records found for {currentTabLabel}.</td></tr>
+                    <tr><td colSpan={getColumns().length + 1} className="py-12 text-center text-slate-400 font-medium text-xs">No records found for {currentTabLabel}.</td></tr>
                   ) : items.map((item, i) => (
                     <motion.tr 
                       key={item.id || i}
@@ -162,55 +162,55 @@ export default function PharmacySetup() {
                     >
                       {activeTab === 'pharma' && (
                         <>
-                          <td className="py-4 px-4 font-bold text-slate-900 text-sm">
+                          <td className="py-4 px-4 font-medium text-slate-900 text-sm">
                             {item.brandName}
                             <div className="text-[10px] text-slate-400 font-medium">{item.genericName}</div>
                           </td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.form}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.dosage} {item.unit}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.classification}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.form}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.dosage} {item.unit}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.classification}</td>
                         </>
                       )}
                       {activeTab === 'nonPharma' && (
                         <>
-                          <td className="py-4 px-4 font-bold text-slate-900 text-sm">{item.name}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.unit}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.reorderLevel}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">Normal</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-sm">{item.name}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.unit}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.reorderLevel}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">Normal</td>
                         </>
                       )}
                       {activeTab === 'categories' && (
                         <>
-                          <td className="py-4 px-4 font-bold text-slate-900 text-sm">{item.name}</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-sm">{item.name}</td>
                           <td className="py-4 px-4">
-                            <span className="px-2 py-1 bg-slate-100 rounded text-[9px] font-black uppercase tracking-widest text-slate-600">{item.type}</span>
+                            <span className="px-2 py-1 bg-slate-100 rounded text-[9px] font-semibold uppercase tracking-widest text-slate-600">{item.type}</span>
                           </td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.code || 'CAT-01'}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-emerald-500">Active</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.code || 'CAT-01'}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-emerald-500">Active</td>
                         </>
                       )}
                       {activeTab === 'icd' && (
                         <>
-                          <td className="py-4 px-4 font-black text-slate-900 text-sm">{item.code}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500 max-w-xs truncate">{item.description}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.chapter}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.group}</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-sm">{item.code}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500 max-w-xs truncate">{item.description}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.chapter}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.group}</td>
                         </>
                       )}
                       {activeTab === 'labs' && (
                         <>
-                          <td className="py-4 px-4 font-bold text-slate-900 text-sm">{item.testName}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.department}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.sampleType}</td>
-                          <td className="py-4 px-4 font-black text-slate-900 text-xs">AED {parseFloat(item.cost || 0).toFixed(2)}</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-sm">{item.testName}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.department}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.sampleType}</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-xs">AED {parseFloat(item.cost || 0).toFixed(2)}</td>
                         </>
                       )}
                       {activeTab === 'imaging' && (
                         <>
-                          <td className="py-4 px-4 font-bold text-slate-900 text-sm">{item.testName}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.modality}</td>
-                          <td className="py-4 px-4 text-xs font-bold text-slate-500">{item.bodyPart}</td>
-                          <td className="py-4 px-4 font-black text-slate-900 text-xs">AED {parseFloat(item.cost || 0).toFixed(2)}</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-sm">{item.testName}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.modality}</td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.bodyPart}</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-xs">AED {parseFloat(item.cost || 0).toFixed(2)}</td>
                         </>
                       )}
                       <td className="py-4 px-4 text-right">
@@ -276,20 +276,20 @@ export default function PharmacySetup() {
               <div className="h-20 w-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
                 <Trash2 className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Confirm Deletion</h3>
+              <h3 className="text-xl font-semibold text-slate-900 tracking-tight mb-2">Confirm Deletion</h3>
               <p className="text-sm text-slate-500 font-medium mb-8">
                 Are you sure you want to delete this record? This action cannot be undone.
               </p>
               <div className="flex gap-4">
                 <button 
                   onClick={() => setDeleteConfirmation(null)}
-                  className="flex-1 py-4 bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
+                  className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleDelete}
-                  className="flex-1 py-4 bg-red-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100"
+                  className="flex-1 py-4 bg-red-500 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100"
                 >
                   Delete Now
                 </button>
@@ -410,8 +410,8 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
       >
         <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
           <div>
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">{initialData ? 'Update' : 'New'} {type.toUpperCase()} Master</h3>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Medical Repository Configuration</p>
+            <h3 className="text-xl font-semibold text-slate-900 tracking-tight">{initialData ? 'Update' : 'New'} {type.toUpperCase()} Master</h3>
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-1">Medical Repository Configuration</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-all text-slate-400 hover:text-slate-900">
             <X className="h-6 w-6" />
@@ -422,11 +422,11 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
           {renderFields()}
           
           <div className="flex gap-4 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
             <button 
               disabled={isSubmitting}
               type="submit" 
-              className="flex-1 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+              className="flex-1 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
             >
               {isSubmitting ? 'Syncing...' : (initialData ? 'Update Master' : 'Save Master')}
             </button>
@@ -440,14 +440,14 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
 function TextField({ label, value, onChange, required, type = "text", placeholder, className = "" }) {
   return (
     <div className={`space-y-1.5 ${className}`}>
-      {label && <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>}
+      {label && <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">{label}</label>}
       <input 
         required={required}
         type={type}
         placeholder={placeholder}
         value={value || ''}
         onChange={e => onChange(e.target.value)}
-        className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-xl text-sm font-bold transition-all outline-none"
+        className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-xl text-sm font-medium transition-all outline-none"
       />
     </div>
   );
@@ -456,11 +456,11 @@ function TextField({ label, value, onChange, required, type = "text", placeholde
 function SelectField({ label, options, value, onChange, className = "" }) {
   return (
     <div className={`space-y-1.5 ${className}`}>
-      {label && <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>}
+      {label && <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">{label}</label>}
       <select 
         value={value || ''}
         onChange={e => onChange(e.target.value)}
-        className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-xl text-sm font-bold transition-all outline-none appearance-none"
+        className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-xl text-sm font-medium transition-all outline-none appearance-none"
       >
         <option value="">Select...</option>
         {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}

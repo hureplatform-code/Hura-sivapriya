@@ -84,11 +84,11 @@ export default function Reports() {
       <div className="space-y-12 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Intelligence & Reports</h1>
+             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Intelligence & Reports</h1>
              <p className="text-slate-500 font-medium mt-1">Data-driven insights for {isSuper ? 'Platform Governance' : 'Clinical Excellence'}.</p>
           </div>
           <div className="flex bg-slate-100 p-2 rounded-2xl">
-             <div className="px-6 py-2 bg-white rounded-xl shadow-sm text-xs font-black uppercase tracking-widest text-slate-900">
+             <div className="px-6 py-2 bg-white rounded-xl shadow-sm text-xs font-medium uppercase tracking-widest text-slate-900">
                {isSuper ? 'Global Overview' : 'Organization Context'}
              </div>
           </div>
@@ -108,7 +108,7 @@ export default function Reports() {
                     <cat.icon className="h-8 w-8" />
                  </div>
                  <div className="flex-1">
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">{cat.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900 tracking-tight">{cat.title}</h3>
                     <p className="text-sm font-medium text-slate-500 mt-1">{cat.description}</p>
                  </div>
               </div>
@@ -121,8 +121,8 @@ export default function Reports() {
                       className="group flex items-center justify-between p-6 bg-slate-50/50 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-[2rem] transition-all"
                     >
                        <div className="text-left">
-                          <p className="text-sm font-black text-slate-900 group-hover:text-primary-600 transition-colors">{report.name}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{report.description}</p>
+                          <p className="text-sm font-medium text-slate-900 group-hover:text-primary-600 transition-colors">{report.name}</p>
+                          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">{report.description}</p>
                        </div>
                        <div className="h-10 w-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-primary-600 group-hover:border-primary-100 transition-all shadow-sm">
                           <ArrowUpRight className="h-5 w-5" />

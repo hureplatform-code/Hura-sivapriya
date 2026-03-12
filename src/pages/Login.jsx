@@ -40,7 +40,7 @@ export default function Login() {
               <div className="h-12 w-12 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/20">
                  <ShieldCheck className="h-7 w-7 text-white" />
               </div>
-              <span className="text-2xl font-black text-white tracking-widest uppercase italic">HURE CARE</span>
+              <span className="text-2xl font-semibold text-white tracking-widest uppercase italic">HURE CARE</span>
             </div>
           </div>
 
@@ -48,7 +48,7 @@ export default function Login() {
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-6xl font-black text-white leading-[1.1] tracking-tight"
+              className="text-6xl font-medium text-white leading-[1.1] tracking-tight"
             >
               Excellence <br />
               <span className="text-primary-400">in Healthcare</span> <br />
@@ -62,12 +62,12 @@ export default function Login() {
           <div className="flex items-center gap-8">
             <div className="flex -space-x-4">
               {[1,2,3,4].map(i => (
-                <div key={i} className="h-12 w-12 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] font-bold text-white uppercase overflow-hidden">
+                <div key={i} className="h-12 w-12 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] font-medium text-white uppercase overflow-hidden">
                   <img src={`https://i.pravatar.cc/150?u=${i}`} alt="user" />
                 </div>
               ))}
             </div>
-            <p className="text-sm font-bold text-slate-400">Trusted by over <span className="text-white">50+ Clinics</span> nationwide</p>
+            <p className="text-sm font-medium text-slate-400">Trusted by over <span className="text-white">50+ Clinics</span> nationwide</p>
           </div>
         </div>
       </div>
@@ -82,8 +82,8 @@ export default function Login() {
           </div>
 
           <div>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">Portal Access</h2>
-            <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-xs">Enter your professional credentials</p>
+            <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Portal Access</h2>
+            <p className="text-slate-500 font-medium mt-2 uppercase tracking-widest text-xs">Enter your professional credentials</p>
           </div>
 
           {error && (
@@ -93,14 +93,14 @@ export default function Login() {
               className="bg-red-50 p-6 rounded-2xl flex items-center gap-4 text-red-700 text-sm border-2 border-red-100/50"
             >
               <AlertCircle className="h-6 w-6 flex-shrink-0 text-red-500" />
-              <p className="font-bold leading-tight">{error}</p>
+              <p className="font-medium leading-tight">{error}</p>
             </motion.div>
           )}
 
           <form className="space-y-8" onSubmit={handleSubmit}>
             <div className="space-y-6">
               <div className="space-y-2 group">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 group-focus-within:text-primary-600 transition-colors">Login Identification</label>
+                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] ml-2 group-focus-within:text-primary-600 transition-colors">Login Identification</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
@@ -110,14 +110,14 @@ export default function Login() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-16 pr-8 py-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-100 focus:ring-4 focus:ring-primary-50 rounded-[1.5rem] transition-all duration-300 text-slate-900 font-bold placeholder-slate-300 text-sm outline-none"
+                    className="block w-full pl-16 pr-8 py-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-100 focus:ring-4 focus:ring-primary-50 rounded-[1.5rem] transition-all duration-300 text-slate-900 font-medium placeholder-slate-300 text-sm outline-none"
                     placeholder="physician@hurecare.com"
                   />
                 </div>
               </div>
 
               <div className="space-y-2 group">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 group-focus-within:text-primary-600 transition-colors">Security Cipher</label>
+                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] ml-2 group-focus-within:text-primary-600 transition-colors">Security Cipher</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
@@ -127,7 +127,7 @@ export default function Login() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-16 pr-8 py-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-100 focus:ring-4 focus:ring-primary-50 rounded-[1.5rem] transition-all duration-300 text-slate-900 font-bold placeholder-slate-300 text-sm outline-none"
+                    className="block w-full pl-16 pr-8 py-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-100 focus:ring-4 focus:ring-primary-50 rounded-[1.5rem] transition-all duration-300 text-slate-900 font-medium placeholder-slate-300 text-sm outline-none"
                     placeholder="••••••••••••"
                   />
                 </div>
@@ -141,7 +141,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-6 px-4 bg-slate-900 text-white font-black text-sm uppercase tracking-[0.2em] rounded-[1.5rem] shadow-2xl shadow-slate-200 hover:bg-primary-600 hover:shadow-primary-100 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 group"
+              className="w-full flex items-center justify-center gap-3 py-6 px-4 bg-slate-900 text-white font-medium text-sm uppercase tracking-[0.2em] rounded-[1.5rem] shadow-2xl shadow-slate-200 hover:bg-primary-600 hover:shadow-primary-100 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 group"
             >
               {loading ? (
                 <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -155,11 +155,11 @@ export default function Login() {
           </form>
 
           <div className="text-center space-y-4">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-loose">
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest leading-loose">
               Enterprise Grade Clinical ERP <br />
               Authorized Personnel Only
             </p>
-            <p className="text-xs font-bold text-slate-400">
+            <p className="text-xs font-medium text-slate-400">
               New clinic? <a href="/signup" className="text-primary-600 hover:underline">Start for free</a>
             </p>
           </div>
@@ -168,7 +168,7 @@ export default function Login() {
         {/* Footer */}
         <div className="absolute bottom-12 flex flex-col items-center gap-4 text-center">
           <div className="h-px w-8 bg-slate-100" />
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+          <p className="text-[10px] font-medium text-slate-300 uppercase tracking-[0.3em]">
             © {new Date().getFullYear()} HURE CARE TECHNOLOGY WLL <br />
             SYSTEM ARCHITECTURE V2.4.0
           </p>

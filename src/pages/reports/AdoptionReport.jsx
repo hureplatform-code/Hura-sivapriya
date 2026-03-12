@@ -4,7 +4,7 @@ import { Building2, TrendingUp, Users, Calendar, ArrowUpRight, BarChart3, Globe,
 import { motion } from 'framer-motion';
 import facilityService from '../../services/facilityService';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function AdoptionReport() {
   const [loading, setLoading] = useState(true);
@@ -53,7 +53,7 @@ export default function AdoptionReport() {
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
 
     const tableData = adoptionData.map(d => [d.month, d.count, `$${d.revenue}`]);
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Month', 'New Clinics', 'Est. Revenue Growth']],
       body: tableData,
       startY: 40,
@@ -62,14 +62,14 @@ export default function AdoptionReport() {
     doc.save(`Adoption_Report_${Date.now()}.pdf`);
   };
 
-  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-bold text-slate-500 italic">Synthesizing global growth metrics...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-medium text-slate-500 italic">Synthesizing global growth metrics...</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="space-y-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
               <Globe className="h-8 w-8 text-indigo-600" />
               Clinic Adoption Velocity
             </h1>
@@ -77,7 +77,7 @@ export default function AdoptionReport() {
           </div>
           <button 
             onClick={handleExportPDF}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
           >
             <TrendingUp className="h-5 w-5" />
             Export Growth PDF
@@ -101,15 +101,15 @@ export default function AdoptionReport() {
                 <stat.icon className="h-8 w-8" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                <p className="text-3xl font-black text-slate-900">{stat.value}</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-2xl font-semibold text-slate-900">{stat.value}</p>
               </div>
             </motion.div>
           ))}
         </div>
 
         <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-10">
-          <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-slate-900 tracking-tight flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-indigo-500" />
             Monthly Acquisition Trend
           </h3>
@@ -124,11 +124,11 @@ export default function AdoptionReport() {
                     transition={{ duration: 1, ease: 'easeOut', delay: i * 0.1 }}
                     className="w-full bg-indigo-600 rounded-t-2xl shadow-lg shadow-indigo-100 group-hover:bg-indigo-500 transition-all"
                   />
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-black px-3 py-1.5 rounded-xl">
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-semibold px-3 py-1.5 rounded-xl">
                     +{d.count} Units
                   </div>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d.month}</span>
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{d.month}</span>
               </div>
             ))}
           </div>
@@ -145,8 +145,8 @@ export default function AdoptionReport() {
                      <TrendingUp className="h-6 w-6" />
                    </div>
                    <div>
-                     <p className="text-sm font-black text-slate-900">Est. Annual Revenue (ARR)</p>
-                     <p className="text-xs font-bold text-slate-400">Projected based on active subscription mix.</p>
+                     <p className="text-sm font-semibold text-slate-900">Est. Annual Revenue (ARR)</p>
+                     <p className="text-xs font-medium text-slate-400">Projected based on active subscription mix.</p>
                    </div>
                 </div>
              </div>

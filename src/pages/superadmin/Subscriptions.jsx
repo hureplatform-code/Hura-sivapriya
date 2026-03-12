@@ -210,7 +210,7 @@ export default function Subscriptions() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Subscription Management</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Subscription Management</h1>
             <p className="text-slate-500 font-medium">Manage client plans, limits, and billing status.</p>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function Subscriptions() {
         {/* Pending Requests Section */}
         {requests.some(r => r.status === 'pending') && (
           <div className="bg-amber-50 border border-amber-100 rounded-3xl p-6 space-y-4">
-             <h3 className="text-lg font-black text-amber-900 flex items-center gap-2">
+             <h3 className="text-lg font-semibold text-amber-900 flex items-center gap-2">
                 <Clock className="h-5 w-5" /> Pending Upgrade Requests
              </h3>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -228,7 +228,7 @@ export default function Subscriptions() {
                    <div key={req.id} className="bg-white p-4 rounded-xl shadow-sm border border-amber-100">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-bold text-slate-900">{facility?.name || 'Unknown Facility'}</p>
+                          <p className="font-medium text-slate-900">{facility?.name || 'Unknown Facility'}</p>
                           <div className="flex flex-col gap-1 mt-1">
                             {facility?.email && (
                               <a href={`mailto:${facility.email}`} className="text-xs text-slate-500 hover:text-primary-600 flex items-center gap-1.5 transition-colors">
@@ -242,18 +242,18 @@ export default function Subscriptions() {
                             )}
                           </div>
                         </div>
-                        <span className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-lg">Pending</span>
+                        <span className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-semibold uppercase rounded-lg">Pending</span>
                       </div>
                       <div className="space-y-1 text-xs text-slate-600 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
                          <p className="flex justify-between"><strong>Current:</strong> <span>{req.currentPlan}</span></p>
-                         <p className="flex justify-between"><strong>Requested:</strong> <span className="text-primary-600 font-bold">{req.requestedPlan}</span></p>
+                         <p className="flex justify-between"><strong>Requested:</strong> <span className="text-primary-600 font-medium">{req.requestedPlan}</span></p>
                          <div className="h-px bg-slate-200 my-2"></div>
                          <p className="italic text-slate-500">"{req.message}"</p>
                          <p className="text-[10px] text-slate-400 mt-2 text-right">{new Date(req.timestamp).toLocaleDateString()}</p>
                       </div>
                       <div className="flex gap-2">
-                         <button onClick={() => handleDismiss(req.id)} className="flex-1 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200">Dismiss</button>
-                         <button onClick={() => handleEdit(facility)} className="flex-1 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800">Process</button>
+                         <button onClick={() => handleDismiss(req.id)} className="flex-1 py-1.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-200">Dismiss</button>
+                         <button onClick={() => handleEdit(facility)} className="flex-1 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800">Process</button>
                       </div>
                    </div>
                  );
@@ -268,22 +268,22 @@ export default function Subscriptions() {
              <table className="w-full text-left border-collapse">
                <thead>
                  <tr className="bg-slate-50 border-b border-slate-100">
-                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest pl-6">Facility / Client</th>
-                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Current Plan</th>
-                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Usage Limits</th>
-                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Status</th>
-                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest text-right pr-6">Actions</th>
+                    <th className="p-4 text-xs font-medium text-slate-500 uppercase tracking-widest pl-6">Facility / Client</th>
+                    <th className="p-4 text-xs font-medium text-slate-500 uppercase tracking-widest">Current Plan</th>
+                    <th className="p-4 text-xs font-medium text-slate-500 uppercase tracking-widest">Usage Limits</th>
+                    <th className="p-4 text-xs font-medium text-slate-500 uppercase tracking-widest">Status</th>
+                    <th className="p-4 text-xs font-medium text-slate-500 uppercase tracking-widest text-right pr-6">Actions</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
                   {facilities.map((fac) => (
                     <tr key={fac.id} className="hover:bg-slate-50/50 transition-colors group">
                        <td className="p-4 pl-6">
-                          <div className="font-bold text-slate-900">{fac.name}</div>
+                          <div className="font-medium text-slate-900">{fac.name}</div>
                           <div className="text-xs text-slate-500">{fac.email}</div>
                        </td>
                        <td className="p-4">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
                              {fac.subscription?.planName || 'N/A'}
                           </span>
                        </td>
@@ -295,15 +295,15 @@ export default function Subscriptions() {
                        </td>
                        <td className="p-4">
                           {fac.subscription?.status === 'active' ? (
-                             <span className="text-emerald-600 text-xs font-black uppercase tracking-wider flex items-center gap-1"><CheckCircle className="h-3 w-3"/> Active</span>
+                             <span className="text-emerald-600 text-xs font-semibold uppercase tracking-wider flex items-center gap-1"><CheckCircle className="h-3 w-3"/> Active</span>
                           ) : fac.subscription?.status === 'trial' ? (
-                             <span className="text-blue-600 text-xs font-black uppercase tracking-wider flex items-center gap-1"><Clock className="h-3 w-3"/> Trial</span>
+                             <span className="text-blue-600 text-xs font-semibold uppercase tracking-wider flex items-center gap-1"><Clock className="h-3 w-3"/> Trial</span>
                           ) : fac.subscription?.status === 'suspended' ? (
-                             <span className="text-orange-600 text-xs font-black uppercase tracking-wider flex items-center gap-1"><XCircle className="h-3 w-3"/> Suspended</span>
+                             <span className="text-orange-600 text-xs font-semibold uppercase tracking-wider flex items-center gap-1"><XCircle className="h-3 w-3"/> Suspended</span>
                           ) : (
-                             <span className="text-red-500 text-xs font-black uppercase tracking-wider flex items-center gap-1"><XCircle className="h-3 w-3"/> {fac.subscription?.status}</span>
+                             <span className="text-red-500 text-xs font-semibold uppercase tracking-wider flex items-center gap-1"><XCircle className="h-3 w-3"/> {fac.subscription?.status}</span>
                           )}
-                          <div className="text-[10px] text-slate-400 mt-1 font-bold">
+                          <div className="text-[10px] text-slate-400 mt-1 font-medium">
                              Expires: {fac.subscription?.expiryDate ? new Date(fac.subscription.expiryDate).toLocaleDateString() : 'Never'}
                           </div>
                        </td>
@@ -337,13 +337,13 @@ export default function Subscriptions() {
                className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
             >
                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="text-lg font-black text-slate-900">Modify Subscription</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">Modify Subscription</h3>
                   <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-50 rounded-full transition-colors"><XCircle className="h-5 w-5 text-slate-400" /></button>
                </div>
                
                <div className="p-6 space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Plan Name</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Plan Name</label>
                     <div className="relative">
                       <select
                         value={PLANS.some(p => p.name === editForm.planName) ? editForm.planName : 'custom'}
@@ -354,7 +354,7 @@ export default function Subscriptions() {
                              handlePlanSelect(e.target.value);
                            }
                         }}
-                        className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary-500 mb-2 appearance-none"
+                        className="w-full p-3 bg-slate-50 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-primary-500 mb-2 appearance-none"
                       >
                          <option value="custom">Custom Plan</option>
                          {PLANS.map(p => (
@@ -366,45 +366,45 @@ export default function Subscriptions() {
                         value={editForm.planName}
                         onChange={e => setEditForm({...editForm, planName: e.target.value})}
                         placeholder="Or enter custom plan name..."
-                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-primary-500"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Max Staff</label>
+                        <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Max Staff</label>
                         <input 
                         type="number" 
                         value={editForm.maxStaff}
                         onChange={e => setEditForm({...editForm, maxStaff: parseInt(e.target.value)})}
-                        className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-full p-3 bg-slate-50 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-primary-500"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Max Locations</label>
+                        <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Max Locations</label>
                         <input 
                         type="number" 
                         value={editForm.maxLocations}
                         onChange={e => setEditForm({...editForm, maxLocations: parseInt(e.target.value)})}
-                        className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-full p-3 bg-slate-50 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-primary-500"
                         />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Expiry Date</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Expiry Date</label>
                     <input 
                       type="date" 
                       value={editForm.expiryDate}
                       onChange={e => setEditForm({...editForm, expiryDate: e.target.value})}
-                      className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full p-3 bg-slate-50 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Status</label>
                     <select 
                       value={editForm.status}
                       onChange={e => setEditForm({...editForm, status: e.target.value})}
-                      className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full p-3 bg-slate-50 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-primary-500"
                     >
                         <option value="active">Active</option>
                         <option value="trial">Trial</option>
@@ -413,7 +413,7 @@ export default function Subscriptions() {
                     </select>
                   </div>
                   <div className="pt-4 border-t border-slate-100">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Managed Feature Flags</label>
+                    <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-4">Managed Feature Flags</label>
                     <div className="grid grid-cols-2 gap-3">
                        {Object.keys(editForm.features).map((flag) => (
                          <button
@@ -424,7 +424,7 @@ export default function Subscriptions() {
                              features: { ...editForm.features, [flag]: !editForm.features[flag] }
                            })}
                            className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all
-                             ${editForm.features[flag] ? 'bg-primary-50 border-primary-200 text-primary-900 font-bold' : 'bg-slate-50 border-transparent text-slate-400 font-medium'}
+                             ${editForm.features[flag] ? 'bg-primary-50 border-primary-200 text-primary-900 font-medium' : 'bg-slate-50 border-transparent text-slate-400 font-medium'}
                            `}
                          >
                             <span className="text-[10px] uppercase tracking-tight">{flag.replace(/([A-Z])/g, ' $1')}</span>
@@ -436,8 +436,8 @@ export default function Subscriptions() {
                </div>
 
                <div className="p-6 bg-slate-50 flex justify-end gap-3">
-                  <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700">Cancel</button>
-                  <button onClick={handleSave} className="px-6 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-primary-600 transition-colors">Save Changes</button>
+                  <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</button>
+                  <button onClick={handleSave} className="px-6 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-primary-600 transition-colors">Save Changes</button>
                </div>
             </motion.div>
           </div>
@@ -450,7 +450,7 @@ export default function Subscriptions() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
           >
              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
                 {notification.type === 'success' ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}

@@ -4,7 +4,7 @@ import { Calendar, Users, Clock, ArrowUpRight, BarChart3, TrendingUp, Filter, Do
 import { motion } from 'framer-motion';
 import appointmentService from '../../services/appointmentService';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function DailyVisits() {
   const [loading, setLoading] = useState(true);
@@ -80,7 +80,7 @@ export default function DailyVisits() {
     doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 30);
 
     const arrivalsTable = arrivals.map(a => [a.time, a.patient, a.type, a.status]);
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Time', 'Patient', 'Type', 'Status']],
       body: arrivalsTable,
       startY: 40,
@@ -89,18 +89,18 @@ export default function DailyVisits() {
     doc.save(`Daily_Visits_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-bold text-slate-500">Monitoring Arrivals...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-medium text-slate-500">Monitoring Arrivals...</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Daily Visit Logs</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Daily Visit Logs</h1>
             <p className="text-slate-500 mt-1">Real-time monitoring of patient arrivals and consultation throughput.</p>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 font-bold rounded-2xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-all">
+            <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 font-medium rounded-2xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-all">
               <Calendar className="h-5 w-5" />
               {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (Today)
             </button>
@@ -116,7 +116,7 @@ export default function DailyVisits() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900 mb-8 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-slate-900 mb-8 flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary-500" />
                 Hourly Traffic Distribution
               </h3>
@@ -131,31 +131,31 @@ export default function DailyVisits() {
                         transition={{ duration: 1, ease: 'easeOut', delay: i * 0.1 }}
                         className={`w-full rounded-t-xl transition-all ${v.status === 'peak' ? 'bg-primary-600 shadow-lg shadow-primary-100' : v.status === 'high' ? 'bg-primary-400' : v.status === 'medium' ? 'bg-slate-300' : 'bg-slate-200'}`}
                       />
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-black px-2 py-1 rounded-lg">
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-medium px-2 py-1 rounded-lg">
                         {v.count}
                       </div>
                     </div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{v.hour}</span>
+                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{v.hour}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900 mb-6">Recent Arrivals</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-6">Recent Arrivals</h3>
               <div className="space-y-4">
                 {arrivals.length > 0 ? arrivals.map((visit, i) => (
                   <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl group hover:bg-slate-100 transition-all cursor-pointer">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-xs font-black text-slate-400 shadow-sm group-hover:text-primary-600 transition-colors">
+                      <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-xs font-medium text-slate-400 shadow-sm group-hover:text-primary-600 transition-colors">
                         {visit.time.split(':')[0]}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900">{visit.patient}</p>
+                        <p className="font-medium text-slate-900">{visit.patient}</p>
                         <p className="text-xs text-slate-500 font-medium">{visit.type}</p>
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${visit.status === 'arrived' ? 'bg-blue-50 text-blue-600' : visit.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest ${visit.status === 'arrived' ? 'bg-blue-50 text-blue-600' : visit.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
                       {visit.status}
                     </span>
                   </div>
@@ -168,28 +168,28 @@ export default function DailyVisits() {
             <div className="bg-primary-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
               <div className="relative z-10">
                 <TrendingUp className="h-10 w-10 text-primary-200 mb-4" />
-                <h3 className="text-xl font-bold">Peak Efficiency</h3>
+                <h3 className="text-xl font-semibold">Peak Efficiency</h3>
                 <p className="text-primary-100 text-sm mt-2 leading-relaxed">System performance is at 98.4%. Wait times are managed efficiently based on current traffic.</p>
                 <div className="mt-8 pt-8 border-t border-white/10">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary-200">System status</p>
-                  <p className="text-sm font-bold mt-1">Normal operating conditions.</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-primary-200">System status</p>
+                  <p className="text-sm font-medium mt-1">Normal operating conditions.</p>
                 </div>
               </div>
               <div className="absolute -right-12 -top-12 h-40 w-40 bg-white/10 rounded-full blur-3xl" />
             </div>
 
             <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+              <h4 className="text-sm font-medium text-slate-900 mb-6 flex items-center gap-2">
                 <Clock className="h-4 w-4 text-slate-400" />
                 Wait Time Metrics
               </h4>
               <div className="space-y-6">
                 {waitTimes.map((m) => (
                   <div key={m.label} className="flex justify-between items-center">
-                    <span className="text-sm font-bold text-slate-500">{m.label}</span>
+                    <span className="text-sm font-medium text-slate-500">{m.label}</span>
                     <div className="text-right">
-                      <p className="font-black text-slate-900">{m.value}</p>
-                      <p className={`text-[10px] font-black uppercase ${m.status === 'optimal' ? 'text-emerald-500' : 'text-amber-500'}`}>{m.status}</p>
+                      <p className="font-medium text-slate-900">{m.value}</p>
+                      <p className={`text-[10px] font-semibold uppercase ${m.status === 'optimal' ? 'text-emerald-500' : 'text-amber-500'}`}>{m.status}</p>
                     </div>
                   </div>
                 ))}

@@ -4,7 +4,7 @@ import { ShieldCheck, Clock, CheckCircle2, AlertTriangle, Filter, Download, Arro
 import { motion } from 'framer-motion';
 import billingService from '../../services/billingService';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
 
 export default function InsuranceAgingReport() {
@@ -53,7 +53,7 @@ export default function InsuranceAgingReport() {
     doc.text('Insurance Aging & Claim Performance', 14, 22);
     
     const tableData = claimsData.map(c => [c.patient, c.provider, `${APP_CONFIG.CURRENCY} ${c.amount}`, `${c.days}d`, c.status]);
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Patient Subject', 'Insurance Provider', 'Claim Amt', 'Aging', 'Status']],
       body: tableData,
       startY: 40,
@@ -62,14 +62,14 @@ export default function InsuranceAgingReport() {
     doc.save(`Insurance_Aging_${Date.now()}.pdf`);
   };
 
-  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-bold text-slate-500 italic">Calculating claim actuarial data...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-medium text-slate-500 italic">Calculating claim actuarial data...</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="space-y-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
               <ShieldCheck className="h-8 w-8 text-emerald-600" />
               Insurance Performance Protocol
             </h1>
@@ -77,7 +77,7 @@ export default function InsuranceAgingReport() {
           </div>
           <button 
             onClick={handleExportPDF}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
           >
             <Download className="h-5 w-5" />
             Export Audit Matrix
@@ -100,18 +100,18 @@ export default function InsuranceAgingReport() {
               <div className={`h-14 w-14 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-6`}>
                 <stat.icon className="h-7 w-7" />
               </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-              <p className="text-4xl font-black text-slate-900 tracking-tight">{stat.value}</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              <p className="text-2xl font-semibold text-slate-900 tracking-tight">{stat.value}</p>
             </motion.div>
           ))}
         </div>
 
         <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-black text-slate-900 tracking-tight">Active Claims Queue</h3>
+            <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Active Claims Queue</h3>
             <div className="flex gap-2">
                {['All Providers', 'Allied', 'Hulas'].map(p => (
-                 <button key={p} className="px-4 py-2 bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200">
+                 <button key={p} className="px-4 py-2 bg-slate-50 text-slate-500 text-[10px] font-semibold uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200">
                    {p}
                  </button>
                ))}
@@ -122,11 +122,11 @@ export default function InsuranceAgingReport() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50">
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Subject</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Carrier</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Amount</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Aging</th>
-                  <th className="pb-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Protocol</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Subject</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Carrier</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Amount</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Aging</th>
+                  <th className="pb-6 text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-4">Protocol</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -138,23 +138,23 @@ export default function InsuranceAgingReport() {
                     className="hover:bg-slate-50/50 transition-colors"
                   >
                     <td className="py-6 px-4">
-                      <p className="font-bold text-slate-900">{claim.patient}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}</p>
+                      <p className="font-medium text-slate-900">{claim.patient}</p>
+                      <p className="text-[10px] text-slate-400 font-medium uppercase">ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}</p>
                     </td>
                     <td className="py-6 px-4">
-                      <span className="text-sm font-bold text-slate-600">{claim.provider}</span>
+                      <span className="text-sm font-medium text-slate-600">{claim.provider}</span>
                     </td>
                     <td className="py-6 px-4">
-                      <p className="font-black text-slate-900">{APP_CONFIG.CURRENCY} {claim.amount.toLocaleString()}</p>
+                      <p className="font-semibold text-slate-900">{APP_CONFIG.CURRENCY} {claim.amount.toLocaleString()}</p>
                     </td>
                     <td className="py-6 px-4">
                       <div className="flex items-center gap-2">
                         <Clock className={`h-4 w-4 ${claim.days > 30 ? 'text-red-500' : 'text-slate-300'}`} />
-                        <span className={`text-sm font-bold ${claim.days > 30 ? 'text-red-600' : 'text-slate-600'}`}>{claim.days} Days</span>
+                        <span className={`text-sm font-medium ${claim.days > 30 ? 'text-red-600' : 'text-slate-600'}`}>{claim.days} Days</span>
                       </div>
                     </td>
                     <td className="py-6 px-4">
-                       <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border
+                       <span className={`px-4 py-1.5 rounded-full text-[9px] font-semibold uppercase tracking-widest border
                          ${claim.status === 'Approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
                           claim.status === 'Delayed' ? 'bg-red-50 text-red-600 border-red-100' : 
                           'bg-blue-50 text-blue-600 border-blue-100'}

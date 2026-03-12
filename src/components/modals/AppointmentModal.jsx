@@ -162,14 +162,14 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                   <div className="h-20 w-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4">
                     <CheckCircle2 className="h-10 w-10" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900">Appointment Booked!</h3>
+                  <h3 className="text-2xl font-semibold text-slate-900">Appointment Booked!</h3>
                   <p className="text-slate-500 font-medium">The patient will receive a confirmation shortly.</p>
                 </div>
               ) : (
                 <>
                   <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                     <div>
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Schedule Patient</h3>
+                      <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Schedule Patient</h3>
                       <p className="text-sm text-slate-500 font-medium mt-1">Book a new consultation or follow-up session.</p>
                     </div>
                     <button 
@@ -184,11 +184,11 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                     <div className="space-y-6">
                       <div className="relative">
                         <div className="flex items-center justify-between ml-1 mb-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Patient Search</label>
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Patient Search</label>
                           <button 
                             type="button"
                             onClick={() => setIsQuickPatientOpen(true)}
-                            className="text-[10px] font-black text-primary-600 uppercase tracking-widest hover:text-primary-700 flex items-center gap-1"
+                            className="text-[10px] font-medium text-primary-600 uppercase tracking-widest hover:text-primary-700 flex items-center gap-1"
                           >
                             <UserPlus className="h-3 w-3" />
                             New Patient
@@ -208,7 +208,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                             }}
                             onFocus={() => setShowResults(true)}
                             required
-                            className="block w-full pl-14 pr-6 py-4.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:ring-0 focus:border-primary-500 rounded-[1.5rem] transition-all duration-300 text-slate-900 placeholder-slate-400 text-sm font-bold shadow-inner"
+                            className="block w-full pl-14 pr-6 py-4.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:ring-0 focus:border-primary-500 rounded-[1.5rem] transition-all duration-300 text-slate-900 placeholder-slate-400 text-sm font-medium shadow-inner"
                             placeholder="Find patient by Name or Phone..."
                           />
                         </div>
@@ -229,7 +229,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                                     className="w-full text-left px-6 py-4 hover:bg-slate-50 flex items-center justify-between border-b border-slate-50 last:border-0 transition-colors"
                                   >
                                     <div>
-                                      <p className="font-bold text-slate-900 text-sm">{p.name}</p>
+                                      <p className="font-medium text-slate-900 text-sm">{p.name}</p>
                                       <p className="text-xs text-slate-400 font-medium">{p.mobile || p.id}</p>
                                     </div>
                                     <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center">
@@ -239,11 +239,11 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                                 ))
                               ) : (
                                 <div className="px-6 py-8 text-center bg-slate-50/30">
-                                  <p className="text-sm text-slate-500 font-bold">No patient found with that name.</p>
+                                  <p className="text-sm text-slate-500 font-medium">No patient found with that name.</p>
                                   <button 
                                     type="button"
                                     onClick={() => setIsQuickPatientOpen(true)}
-                                    className="mt-3 text-xs font-black text-primary-600 uppercase tracking-widest bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-all"
+                                    className="mt-3 text-xs font-medium text-primary-600 uppercase tracking-widest bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-all"
                                   >
                                     Quick Register "{searchQuery}"
                                   </button>
@@ -256,7 +256,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Healthcare Provider</label>
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Healthcare Provider</label>
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                               <Stethoscope className="h-5 w-5" />
@@ -264,7 +264,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                             <select 
                               value={formData.provider}
                               onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value }))}
-                              className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-bold outline-none appearance-none transition-all"
+                              className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none appearance-none transition-all"
                             >
                               <option value="">Select Provider...</option>
                               {doctors.map(doc => (
@@ -275,11 +275,11 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Appointment Type</label>
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Appointment Type</label>
                           <select 
                              value={formData.type}
                              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                             className="block w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-bold outline-none appearance-none transition-all"
+                             className="block w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none appearance-none transition-all"
                           >
                             <option>Consultation</option>
                             <option>Follow-up</option>
@@ -291,7 +291,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Appointment Date</label>
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Appointment Date</label>
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                               <CalendarIcon className="h-5 w-5" />
@@ -300,13 +300,13 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                               type="date" 
                               value={formData.date}
                               onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                              className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-bold outline-none transition-all" 
+                              className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all" 
                             />
                           </div>
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Prefered Time Slot</label>
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Prefered Time Slot</label>
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                               <Clock className="h-5 w-5" />
@@ -315,14 +315,14 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                               type="time" 
                               value={formData.time}
                               onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                              className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-bold outline-none transition-all" 
+                              className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all" 
                             />
                           </div>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Notes / Reason for visit</label>
+                        <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Notes / Reason for visit</label>
                         <textarea 
                           rows="3" 
                           value={formData.notes}
@@ -337,14 +337,14 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                       <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-8 py-5 bg-slate-50 text-slate-600 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all border border-slate-100"
+                        className="flex-1 px-8 py-5 bg-slate-50 text-slate-600 font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all border border-slate-100"
                       >
                         Discard
                       </button>
                       <button
                         type="submit"
                         disabled={loading || !selectedPatient}
-                        className="flex-[2] px-8 py-5 bg-primary-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-primary-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary-200 disabled:opacity-70 flex items-center justify-center gap-3"
+                        className="flex-[2] px-8 py-5 bg-primary-600 text-white font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-primary-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary-200 disabled:opacity-70 flex items-center justify-center gap-3"
                       >
                         {loading ? (
                           <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -367,7 +367,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
           >
              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
                 {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}

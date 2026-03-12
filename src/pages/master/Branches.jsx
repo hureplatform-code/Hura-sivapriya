@@ -110,7 +110,7 @@ export default function Branches() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Branch Management</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Branch Management</h1>
             <p className="text-slate-500 mt-1">Manage multiple facility locations and site-specific records.</p>
           </div>
           <button 
@@ -124,7 +124,7 @@ export default function Branches() {
               }
               setShowAdd(true);
             }}
-            className="flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+            className="flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
           >
             <Plus className="h-5 w-5" /> Add Location
           </button>
@@ -146,12 +146,12 @@ export default function Branches() {
                          </div>
                          <div>
                             <div className="flex items-center gap-3">
-                               <h3 className="font-black text-slate-900 text-xl tracking-tight">{branch.name}</h3>
-                               <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${branch.status === 'Active' ? 'bg-emerald-50 text-emerald-500' : 'bg-amber-50 text-amber-500'}`}>
+                               <h3 className="font-medium text-slate-900 text-xl tracking-tight">{branch.name}</h3>
+                               <span className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest ${branch.status === 'Active' ? 'bg-emerald-50 text-emerald-500' : 'bg-amber-50 text-amber-500'}`}>
                                   {branch.status}
                                </span>
                             </div>
-                            <div className="mt-2 flex items-center gap-4 text-xs font-bold text-slate-400">
+                            <div className="mt-2 flex items-center gap-4 text-xs font-medium text-slate-400">
                                <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {branch.location}</span>
                                <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {branch.phone}</span>
                             </div>
@@ -178,9 +178,9 @@ export default function Branches() {
                  <div className="h-20 w-20 bg-primary-50 rounded-full flex items-center justify-center mx-auto text-primary-600">
                     <Map className="h-10 w-10" />
                  </div>
-                 <h5 className="font-black text-slate-900">Map View API</h5>
-                 <p className="text-xs text-slate-400 font-bold px-4">Integrate Google Maps for real-time fleet and location tracking across your enterprise.</p>
-                 <button className="w-full py-4 bg-slate-50 text-slate-500 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all">
+                 <h5 className="font-medium text-slate-900">Map View API</h5>
+                 <p className="text-xs text-slate-400 font-medium px-4">Integrate Google Maps for real-time fleet and location tracking across your enterprise.</p>
+                 <button className="w-full py-4 bg-slate-50 text-slate-500 font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all">
                     Configure API
                  </button>
              </div>
@@ -206,7 +206,7 @@ export default function Branches() {
             >
               <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900">Add New Branch</h2>
+                  <h2 className="text-2xl font-semibold text-slate-900">Add New Branch</h2>
                   <p className="text-slate-500 text-sm">Register a new facility location.</p>
                 </div>
                 <button 
@@ -219,48 +219,48 @@ export default function Branches() {
 
               <form onSubmit={handleAddBranch} className="p-8 space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Branch Name</label>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Branch Name</label>
                   <input 
                     required
                     type="text" 
                     value={newBranch.name}
                     onChange={(e) => setNewBranch({...newBranch, name: e.target.value})}
                     placeholder="e.g. Westside Clinic"
-                    className="w-full px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-primary-500/10 rounded-2xl text-sm font-bold transition-all outline-none"
+                    className="w-full px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-primary-500/10 rounded-2xl text-sm font-medium transition-all outline-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Location</label>
+                    <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Location</label>
                     <input 
                       type="text" 
                       value={newBranch.location}
                       onChange={(e) => setNewBranch({...newBranch, location: e.target.value})}
                       placeholder="e.g. Nairobi"
-                      className="w-full px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-primary-500/10 rounded-2xl text-sm font-bold transition-all outline-none"
+                      className="w-full px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-primary-500/10 rounded-2xl text-sm font-medium transition-all outline-none"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
+                    <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Phone</label>
                     <input 
                       type="text" 
                       value={newBranch.phone}
                       onChange={(e) => setNewBranch({...newBranch, phone: e.target.value})}
                       placeholder="+254..."
-                      className="w-full px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-primary-500/10 rounded-2xl text-sm font-bold transition-all outline-none"
+                      className="w-full px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-primary-500/10 rounded-2xl text-sm font-medium transition-all outline-none"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email (Optional)</label>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Email (Optional)</label>
                   <input 
                     type="email" 
                     value={newBranch.email}
                     onChange={(e) => setNewBranch({...newBranch, email: e.target.value})}
                     placeholder="branch@hospital.com"
-                    className="w-full px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-primary-500/10 rounded-2xl text-sm font-bold transition-all outline-none"
+                    className="w-full px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-primary-500/10 rounded-2xl text-sm font-medium transition-all outline-none"
                   />
                 </div>
 
@@ -268,13 +268,13 @@ export default function Branches() {
                   <button 
                     type="button"
                     onClick={() => setShowAdd(false)}
-                    className="flex-1 py-4 bg-slate-50 text-slate-500 font-black rounded-2xl hover:bg-slate-100 transition-all"
+                    className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium rounded-2xl hover:bg-slate-100 transition-all"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 py-4 bg-primary-600 text-white font-black rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
+                    className="flex-1 py-4 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
                   >
                     Create Branch
                   </button>

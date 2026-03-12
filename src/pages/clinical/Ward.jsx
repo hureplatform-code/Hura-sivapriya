@@ -45,13 +45,13 @@ export default function Ward() {
            <div className="h-20 w-20 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-600 mb-6 shadow-inner">
               <Bed className="h-10 w-10" />
            </div>
-           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Facilities Governance</h2>
+           <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Facilities Governance</h2>
            <p className="text-slate-500 max-w-md mt-2 font-medium">
              Ward occupancy and in-patient clinical data is managed at the unit level. Platform governance access is restricted to Resource Utilization analytics.
            </p>
            <button 
              onClick={() => navigate('/reports/usage')}
-             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Go to Resource Reports
            </button>
@@ -111,27 +111,27 @@ export default function Ward() {
     setIsAdmitting(false);
   };
 
-  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-bold text-slate-500">Mapping Units...</div></DashboardLayout>;
+  if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-medium text-slate-500">Mapping Units...</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="space-y-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Ward Management</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Ward Management</h1>
             <p className="text-slate-500 font-medium mt-1">Real-time bed occupancy and in-patient clinical tracking.</p>
           </div>
           <div className="flex gap-4">
             <button 
               onClick={() => setIsAddingWard(true)}
-              className="flex items-center gap-2 px-8 py-4 bg-white text-slate-900 border border-slate-200 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-2 px-8 py-4 bg-white text-slate-900 border border-slate-200 font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all shadow-sm active:scale-95"
             >
               <Plus className="h-5 w-5" />
               New Facility Unit
             </button>
             <button 
               onClick={() => setIsAdmitting(true)}
-              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
             >
               <UserPlus className="h-5 w-5" />
               Admit New Patient
@@ -148,9 +148,9 @@ export default function Ward() {
                transition={{ delay: i * 0.1 }}
                className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm"
              >
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">{stat.label}</p>
+               <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] mb-3">{stat.label}</p>
                <div className="flex items-end justify-between">
-                  <p className={`text-4xl font-black ${stat.color}`}>{stat.value}</p>
+                  <p className={`text-3xl font-semibold ${stat.color}`}>{stat.value}</p>
                   <div className={`h-10 w-10 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center`}>
                     <Activity className="h-5 w-5" />
                   </div>
@@ -161,7 +161,7 @@ export default function Ward() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
            <div className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Facility Units</h3>
+              <h3 className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-2">Facility Units</h3>
               {wards.map(ward => (
                  <button
                    key={ward.id}
@@ -173,8 +173,8 @@ export default function Ward() {
                    `}
                  >
                    <div>
-                     <p className="font-black text-sm uppercase tracking-tight">{ward.name}</p>
-                     <p className={`text-[10px] font-bold ${selectedWard?.id === ward.id ? 'text-slate-400' : 'text-slate-400'}`}>
+                     <p className="font-medium text-sm uppercase tracking-tight">{ward.name}</p>
+                     <p className={`text-[10px] font-medium ${selectedWard?.id === ward.id ? 'text-slate-400' : 'text-slate-400'}`}>
                         {ward.beds.length} Total Units
                      </p>
                    </div>
@@ -188,12 +188,12 @@ export default function Ward() {
 
            <div className="lg:col-span-3 space-y-6">
               <div className="flex items-center justify-between px-2">
-                 <h2 className="text-xl font-black text-slate-900 tracking-tight">{selectedWard?.name} Map</h2>
+                 <h2 className="text-xl font-semibold text-slate-900 tracking-tight">{selectedWard?.name} Map</h2>
                  <div className="flex gap-4">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                        <div className="h-2 w-2 rounded-full bg-emerald-500" /> Available
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                        <div className="h-2 w-2 rounded-full bg-blue-500" /> Occupied
                     </div>
                  </div>
@@ -230,8 +230,8 @@ export default function Ward() {
                      </div>
 
                      <div className="space-y-1">
-                        <p className="font-black text-lg text-slate-900 tracking-tight">{bed.name}</p>
-                        <p className={`text-[10px] font-black uppercase tracking-widest
+                        <p className="font-medium text-lg text-slate-900 tracking-tight">{bed.name}</p>
+                        <p className={`text-[10px] font-semibold uppercase tracking-widest
                           ${bed.status === 'occupied' ? 'text-blue-500' : 'text-slate-400'}
                         `}>
                           {bed.status}
@@ -241,20 +241,20 @@ export default function Ward() {
                      {bed.status === 'occupied' ? (
                        <div className="mt-6 pt-6 border-t border-slate-50 space-y-4">
                           <div className="flex items-center gap-3">
-                             <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center font-black text-[10px] text-slate-400">
+                             <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center font-medium text-[10px] text-slate-400">
                                 {bed.patient?.split(' ').map(n => n[0]).join('') || 'PT'}
                              </div>
                              <div>
-                                <p className="text-xs font-black text-slate-900">{bed.patient}</p>
-                                <p className="text-[10px] font-bold text-slate-400">Since {bed.admittedAt}</p>
+                                <p className="text-xs font-medium text-slate-900">{bed.patient}</p>
+                                <p className="text-[10px] font-medium text-slate-400">Since {bed.admittedAt}</p>
                              </div>
                           </div>
                           <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl">
                              <Stethoscope className="h-3 w-3 text-slate-400" />
-                             <span className="text-[10px] font-bold text-slate-500">{bed.doctor || 'Attending Physician'}</span>
+                             <span className="text-[10px] font-medium text-slate-500">{bed.doctor || 'Attending Physician'}</span>
                           </div>
                            <div className="flex gap-2">
-                             <button className="flex-1 py-3 bg-slate-100 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all font-bold">
+                             <button className="flex-1 py-3 bg-slate-100 text-slate-900 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-slate-200 transition-all font-medium">
                                 Vitals
                              </button>
                              <button 
@@ -264,7 +264,7 @@ export default function Ward() {
                                       fetchWards();
                                    }
                                 }}
-                                className="flex-1 py-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all font-bold">
+                                className="flex-1 py-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-red-100 transition-all font-medium">
                                 Discharge
                              </button>
                           </div>
@@ -277,7 +277,7 @@ export default function Ward() {
                                // Open admission with pre-selected bed
                                setIsAdmitting({ wardId: selectedWard.id, bedId: bed.id });
                             }}
-                            className="w-full py-4 border-2 border-dashed border-slate-100 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 hover:border-slate-200 transition-all disabled:opacity-50"
+                            className="w-full py-4 border-2 border-dashed border-slate-100 text-slate-400 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-slate-50 hover:border-slate-200 transition-all disabled:opacity-50"
                           >
                             {bed.status === 'cleaning' ? 'Sanitization...' : 'Assign Subject'}
                           </button>
@@ -292,7 +292,7 @@ export default function Ward() {
                       className="p-8 border-4 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-300 hover:bg-slate-50 hover:border-slate-200 transition-all"
                     >
                       <Plus className="h-10 w-10" />
-                      <span className="font-black text-xs uppercase tracking-widest">Expansion Slot</span>
+                      <span className="font-medium text-xs uppercase tracking-widest">Expansion Slot</span>
                     </motion.button>
                   )}
               </div>
@@ -389,8 +389,8 @@ function AdmissionModal({ preSelect, onClose, onSave }) {
                    <UserPlus className="h-7 w-7" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Patient Admission</h3>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">In-Patient Protocol Entry</p>
+                  <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Patient Admission</h3>
+                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">In-Patient Protocol Entry</p>
                 </div>
              </div>
              <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all">
@@ -400,12 +400,12 @@ function AdmissionModal({ preSelect, onClose, onSave }) {
 
           <form onSubmit={handleSubmit} className="p-12 space-y-8">
              <div className="space-y-4">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Select Registered Patient</label>
+               <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Select Registered Patient</label>
                <select 
                  required
                  value={formData.patientId}
                  onChange={(e) => setFormData({...formData, patientId: e.target.value})}
-                 className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-bold outline-none appearance-none"
+                 className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-medium outline-none appearance-none"
                >
                   <option value="">Search patient directory...</option>
                   {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -414,42 +414,42 @@ function AdmissionModal({ preSelect, onClose, onSave }) {
 
              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Attending Physician</label>
+                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Attending Physician</label>
                   <select 
                      required
                      value={formData.doctor}
                      onChange={(e) => setFormData({...formData, doctor: e.target.value})}
-                     className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-bold outline-none appearance-none"
+                     className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-medium outline-none appearance-none"
                   >
                      <option value="">Select Doctor...</option>
                      {doctors.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Admission Date</label>
+                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Admission Date</label>
                   <input 
                     type="date"
                     value={formData.admittedAt || new Date().toISOString().split('T')[0]}
                     onChange={(e) => setFormData({...formData, admittedAt: e.target.value})}
-                    className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                    className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-medium outline-none"
                   />
                 </div>
              </div>
 
              <div className="space-y-4">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Admission Indications / Reason</label>
+               <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Admission Indications / Reason</label>
                <textarea 
                   value={formData.reason}
                   onChange={(e) => setFormData({...formData, reason: e.target.value})}
                   required
-                  className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-bold outline-none min-h-[120px] resize-none"
+                  className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-medium outline-none min-h-[120px] resize-none"
                   placeholder="Clinical reasons for admission..."
                />
              </div>
 
              <div className="flex gap-4 pt-6">
-               <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all">Abort</button>
-               <button type="submit" className="flex-1 px-8 py-5 bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-2xl shadow-blue-200">Confirm Admission</button>
+               <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all">Abort</button>
+               <button type="submit" className="flex-1 px-8 py-5 bg-blue-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-2xl shadow-blue-200">Confirm Admission</button>
              </div>
           </form>
         </motion.div>
@@ -463,16 +463,16 @@ function NewWardModal({ onClose, onSave }) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
-          <div className="p-8 border-b border-slate-50 flex items-center justify-between font-black">
+          <div className="p-8 border-b border-slate-50 flex items-center justify-between font-medium">
             <span>New Ward/Facility Unit</span>
             <button onClick={onClose}><X className="h-5 w-5" /></button>
           </div>
           <form className="p-8 space-y-6" onSubmit={(e) => { e.preventDefault(); onSave(name); }}>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400">Ward Name</label>
-              <input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. ICU, General Ward, Emergency" className="w-full p-4 bg-slate-50 rounded-xl outline-none border-2 border-transparent focus:bg-white focus:border-slate-100 font-bold" />
+              <label className="text-[10px] font-medium text-slate-400">Ward Name</label>
+              <input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. ICU, General Ward, Emergency" className="w-full p-4 bg-slate-50 rounded-xl outline-none border-2 border-transparent focus:bg-white focus:border-slate-100 font-medium" />
             </div>
-            <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest">Create Unit</button>
+            <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-xl font-medium text-xs uppercase tracking-widest">Create Unit</button>
           </form>
         </motion.div>
       </motion.div>
@@ -484,16 +484,16 @@ function NewBedModal({ wardId, onClose, onSave }) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
-          <div className="p-8 border-b border-slate-50 flex items-center justify-between font-black">
+          <div className="p-8 border-b border-slate-50 flex items-center justify-between font-medium">
             <span>New Bed / Expansion Slot</span>
             <button onClick={onClose}><X className="h-5 w-5" /></button>
           </div>
           <form className="p-8 space-y-6" onSubmit={(e) => { e.preventDefault(); onSave(wardId, name); }}>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400">Bed Identification</label>
-              <input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Bed 101, Unit B" className="w-full p-4 bg-slate-50 rounded-xl outline-none border-2 border-transparent focus:bg-white focus:border-slate-100 font-bold" />
+              <label className="text-[10px] font-medium text-slate-400">Bed Identification</label>
+              <input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Bed 101, Unit B" className="w-full p-4 bg-slate-50 rounded-xl outline-none border-2 border-transparent focus:bg-white focus:border-slate-100 font-medium" />
             </div>
-            <button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest">Add Expansion</button>
+            <button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-xl font-medium text-xs uppercase tracking-widest">Add Expansion</button>
           </form>
         </motion.div>
       </motion.div>

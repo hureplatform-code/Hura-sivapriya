@@ -37,7 +37,7 @@ export default function DrugCatalog() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Drug Catalog</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Drug Catalog</h1>
             <p className="text-slate-500 mt-1">Manage the master list of pharmacological and surgical items.</p>
           </div>
           
@@ -45,18 +45,18 @@ export default function DrugCatalog() {
              <div className="flex bg-slate-100 p-1.5 rounded-2xl">
                 <button 
                   onClick={() => setActiveTab('pharma')}
-                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'pharma' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`px-6 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === 'pharma' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   Pharmacological
                 </button>
                 <button 
                   onClick={() => setActiveTab('non-pharma')}
-                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'non-pharma' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`px-6 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === 'non-pharma' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   Non-Pharma
                 </button>
               </div>
-              <button className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200">
+              <button className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200">
                 <Plus className="h-5 w-5" /> New Item
               </button>
           </div>
@@ -71,14 +71,14 @@ export default function DrugCatalog() {
                   placeholder="Search catalog by name, strength or form..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm font-bold transition-all outline-none"
+                  className="w-full pl-12 pr-4 py-3 bg-white border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm font-medium transition-all outline-none"
                 />
              </div>
              <div className="flex gap-2">
                 <button className="p-3 bg-white text-slate-400 rounded-xl hover:text-slate-900 transition-all">
                   <Filter className="h-5 w-5" />
                 </button>
-                <div className="px-4 py-3 bg-primary-50 text-primary-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                <div className="px-4 py-3 bg-primary-50 text-primary-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4" /> {filtered.length} Items Listed
                 </div>
              </div>
@@ -88,11 +88,11 @@ export default function DrugCatalog() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
-                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Item Name & Strength</th>
-                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Drug Form</th>
-                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Base Price</th>
-                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Taxable</th>
-                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                   <th className="px-8 py-5 text-[10px] font-medium text-slate-400 uppercase tracking-widest">Item Name & Strength</th>
+                   <th className="px-8 py-5 text-[10px] font-medium text-slate-400 uppercase tracking-widest">Drug Form</th>
+                   <th className="px-8 py-5 text-[10px] font-medium text-slate-400 uppercase tracking-widest text-center">Base Price</th>
+                   <th className="px-8 py-5 text-[10px] font-medium text-slate-400 uppercase tracking-widest text-center">Taxable</th>
+                   <th className="px-8 py-5 text-[10px] font-medium text-slate-400 uppercase tracking-widest text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -104,18 +104,18 @@ export default function DrugCatalog() {
                              {activeTab === 'pharma' ? <Pill className="h-5 w-5" /> : <Box className="h-5 w-5" />}
                           </div>
                           <div>
-                             <p className="font-black text-slate-900">{item.name}</p>
-                             <p className="text-xs font-bold text-slate-400 uppercase tracking-tight">{item.strength}</p>
+                             <p className="font-medium text-slate-900">{item.name}</p>
+                             <p className="text-xs font-medium text-slate-400 uppercase tracking-tight">{item.strength}</p>
                           </div>
                        </div>
                     </td>
                     <td className="px-8 py-6">
-                       <span className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                       <span className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-semibold uppercase tracking-widest">
                           {item.form}
                        </span>
                     </td>
                     <td className="px-8 py-6 text-center">
-                       <p className="font-black text-slate-900">${item.price}</p>
+                       <p className="font-medium text-slate-900">${item.price}</p>
                     </td>
                     <td className="px-8 py-6">
                        <div className="flex items-center justify-center">
@@ -143,7 +143,7 @@ export default function DrugCatalog() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6 justify-center text-[10px] font-black text-slate-300 uppercase tracking-widest pt-4 bg-slate-100/30 p-4 rounded-3xl">
+        <div className="flex items-center gap-6 justify-center text-[10px] font-medium text-slate-300 uppercase tracking-widest pt-4 bg-slate-100/30 p-4 rounded-3xl">
            <div className="flex items-center gap-2"><FlaskConical className="h-4 w-4" /> Standardized Product Inventory</div>
            <div className="w-1 h-1 bg-slate-200 rounded-full" />
            <div className="flex items-center gap-2"><DollarSign className="h-4 w-4" /> Dynamic Pricing Logic</div>

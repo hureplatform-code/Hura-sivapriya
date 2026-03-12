@@ -102,10 +102,10 @@ export default function Signup() {
           <div className="mx-auto h-16 w-16 bg-primary-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200 mb-6">
             <Building2 className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">
             Launch Your Facility
           </h2>
-          <p className="mt-2 text-sm font-bold text-slate-500">
+          <p className="mt-2 text-sm font-medium text-slate-500">
             {step === 1 ? 'Start with your personal account' : 
              step === 2 ? 'Tell us about your clinic' : 
              step === 3 ? 'Select your trial plan' : 
@@ -114,7 +114,7 @@ export default function Signup() {
         </div>
 
         {error && (
-          <div className="bg-red-50 p-4 rounded-2xl text-red-600 text-sm font-bold border border-red-100 flex items-center gap-3">
+          <div className="bg-red-50 p-4 rounded-2xl text-red-600 text-sm font-medium border border-red-100 flex items-center gap-3">
              <CheckCircle2 className="h-5 w-5 rotate-45" /> {error}
           </div>
         )}
@@ -123,7 +123,7 @@ export default function Signup() {
           {step === 1 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                <div className="space-y-2">
-                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
                  <div className="relative">
                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                    <input 
@@ -131,12 +131,12 @@ export default function Signup() {
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     placeholder="Dr. Jon Day" 
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                    />
                  </div>
                </div>
                <div className="space-y-2">
-                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
                  <div className="relative">
                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                    <input 
@@ -144,35 +144,35 @@ export default function Signup() {
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     placeholder="jon@hospital.com" 
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                    />
                  </div>
                </div>
                <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-2">
-                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
+                   <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Password</label>
                    <input 
                     type="password" 
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
                     placeholder="••••••••" 
-                    className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                    className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                    />
                  </div>
                  <div className="space-y-2">
-                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Confirm</label>
+                   <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Confirm</label>
                    <input 
                     type="password" 
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                     placeholder="••••••••" 
-                    className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                    className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                    />
                  </div>
                </div>
                <button 
                 onClick={handleNext}
-                className="w-full flex items-center justify-center gap-2 py-5 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95 mt-8"
+                className="w-full flex items-center justify-center gap-2 py-5 bg-slate-900 text-white font-medium text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95 mt-8"
                >
                  Next: Facility Info <ArrowRight className="h-4 w-4" />
                </button>
@@ -182,7 +182,7 @@ export default function Signup() {
           {step === 2 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                <div className="space-y-2">
-                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Facility Name</label>
+                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Facility Name</label>
                  <div className="relative">
                    <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                    <input 
@@ -190,16 +190,16 @@ export default function Signup() {
                     value={formData.facilityName}
                     onChange={(e) => setFormData({...formData, facilityName: e.target.value})}
                     placeholder="Nairobi Health Plaza" 
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                    />
                  </div>
                </div>
                <div className="space-y-2">
-                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Practice Type</label>
+                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Practice Type</label>
                  <select 
                   value={formData.facilityType}
                   onChange={(e) => setFormData({...formData, facilityType: e.target.value})}
-                  className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none appearance-none"
+                  className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none appearance-none"
                  >
                    <option>General Clinic</option>
                    <option>Multi-Speciality Hospital</option>
@@ -209,7 +209,7 @@ export default function Signup() {
                </div>
                <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-2">
-                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Licence / Reg No.</label>
+                   <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Licence / Reg No.</label>
                    <div className="relative">
                      <FileText className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                      <input 
@@ -217,12 +217,12 @@ export default function Signup() {
                       value={formData.licenseNumber}
                       onChange={(e) => setFormData({...formData, licenseNumber: e.target.value})}
                       placeholder="Reg-12345" 
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                      />
                    </div>
                  </div>
                  <div className="space-y-2">
-                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Official Phone</label>
+                   <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Official Phone</label>
                    <div className="relative">
                      <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                      <input 
@@ -230,7 +230,7 @@ export default function Signup() {
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
                       placeholder="+254 700" 
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                      />
                    </div>
                  </div>
@@ -238,29 +238,29 @@ export default function Signup() {
                
                <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-2">
-                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Country</label>
+                   <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Country</label>
                    <input 
                       type="text" 
                       value={formData.country}
                       onChange={(e) => setFormData({...formData, country: e.target.value})}
                       placeholder="Country" 
-                      className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                      className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                    />
                  </div>
                  <div className="space-y-2">
-                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">City / County</label>
+                   <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">City / County</label>
                    <input 
                       type="text" 
                       value={formData.city}
                       onChange={(e) => setFormData({...formData, city: e.target.value})}
                       placeholder="City" 
-                      className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                      className="w-full px-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                    />
                  </div>
                </div>
 
                <div className="space-y-2">
-                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Address</label>
+                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Full Address</label>
                  <div className="relative">
                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                    <input 
@@ -268,7 +268,7 @@ export default function Signup() {
                     value={formData.address}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                     placeholder="123 Health Ave, P.O Box 000" 
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold transition-all outline-none" 
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" 
                    />
                  </div>
                </div>
@@ -276,13 +276,13 @@ export default function Signup() {
                <div className="grid grid-cols-2 gap-4 mt-8">
                  <button 
                   onClick={handleBack}
-                  className="py-5 bg-slate-50 text-slate-500 font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-100 transition-all active:scale-95"
+                  className="py-5 bg-slate-50 text-slate-500 font-medium text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-100 transition-all active:scale-95"
                  >
                    Back
                  </button>
                  <button 
                   onClick={handleNext}
-                  className="flex items-center justify-center gap-2 py-5 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-slate-100 hover:bg-slate-800 transition-all active:scale-95"
+                  className="flex items-center justify-center gap-2 py-5 bg-slate-900 text-white font-medium text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-slate-100 hover:bg-slate-800 transition-all active:scale-95"
                  >
                    Next: Plan <ArrowRight className="h-4 w-4" />
                  </button>
@@ -308,8 +308,8 @@ export default function Signup() {
                         className="hidden" 
                      />
                      <div className="flex-1">
-                        <h4 className="font-black text-slate-900">{plan.id} Plan</h4>
-                        <p className="text-xs font-bold text-slate-500 mt-1">{plan.users} &bull; {plan.locs}</p>
+                        <h4 className="font-medium text-slate-900">{plan.id} Plan</h4>
+                        <p className="text-xs font-medium text-slate-500 mt-1">{plan.users} &bull; {plan.locs}</p>
                      </div>
                      <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${formData.subscriptionPlan === plan.id ? 'border-primary-500' : 'border-slate-300'}`}>
                         {formData.subscriptionPlan === plan.id && <div className="h-3 w-3 bg-primary-500 rounded-full" />}
@@ -321,14 +321,14 @@ export default function Signup() {
                <div className="grid grid-cols-2 gap-4 mt-8">
                  <button 
                   onClick={handleBack}
-                  className="py-5 bg-slate-50 text-slate-500 font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-100 transition-all active:scale-95"
+                  className="py-5 bg-slate-50 text-slate-500 font-medium text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-100 transition-all active:scale-95"
                  >
                    Back
                  </button>
                  <button 
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="flex items-center justify-center gap-2 py-5 bg-primary-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary-100 hover:bg-primary-700 transition-all active:scale-95 disabled:opacity-70"
+                  className="flex items-center justify-center gap-2 py-5 bg-primary-600 text-white font-medium text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary-100 hover:bg-primary-700 transition-all active:scale-95 disabled:opacity-70"
                  >
                    {loading ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Start 10-Day Trial'}
                  </button>
@@ -341,14 +341,14 @@ export default function Signup() {
                <div className="h-24 w-24 bg-emerald-50 rounded-[2rem] flex items-center justify-center text-emerald-500 mx-auto mb-8 shadow-inner">
                   <CheckCircle2 className="h-12 w-12" />
                </div>
-               <h3 className="text-2xl font-black text-slate-900">Registration Successful!</h3>
+               <h3 className="text-2xl font-semibold text-slate-900">Registration Successful!</h3>
                <p className="text-slate-500 mt-4 font-medium px-8 leading-relaxed">
-                 Your facility <span className="text-slate-900 font-bold">{formData.facilityName}</span> is being provisioned. <br/>
-                 <span className="text-primary-600 font-bold">Please verify your email to activate your account and start your 10-day trial.</span>
+                 Your facility <span className="text-slate-900 font-medium">{formData.facilityName}</span> is being provisioned. <br/>
+                 <span className="text-primary-600 font-medium">Please verify your email to activate your account and start your 10-day trial.</span>
                </p>
                <button 
                 onClick={() => navigate('/login')}
-                className="mt-10 px-12 py-5 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95"
+                className="mt-10 px-12 py-5 bg-slate-900 text-white font-medium text-xs uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95"
                >
                  Proceed to Login
                </button>
@@ -357,7 +357,7 @@ export default function Signup() {
         </form>
 
         {step < 4 && (
-          <p className="mt-8 text-center text-sm font-bold text-slate-400">
+          <p className="mt-8 text-center text-sm font-medium text-slate-400">
             Already registered? <Link to="/login" className="text-primary-600 hover:underline">Sign In</Link>
           </p>
         )}

@@ -36,10 +36,10 @@ export default function InvestigationSetup() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Investigation Catalogue</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Investigation Catalogue</h1>
             <p className="text-slate-500 mt-1">Configure laboratory tests, imaging procedures, and their pricing.</p>
           </div>
-          <button className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg active:scale-95">
+          <button className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg active:scale-95">
             <Plus className="h-5 w-5" />
             Add Investigation
           </button>
@@ -50,7 +50,7 @@ export default function InvestigationSetup() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-8 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-8 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
             >
               {tab}
             </button>
@@ -73,10 +73,10 @@ export default function InvestigationSetup() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50">
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Name & Code</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Department</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Unit Price</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 text-right">Actions</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Name & Code</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Department</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Unit Price</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -87,19 +87,19 @@ export default function InvestigationSetup() {
                     animate={{ opacity: 1 }}
                     className="group hover:bg-slate-50/50 transition-colors"
                   >
-                    <td className="py-5 px-4 font-bold text-slate-900 text-sm">
+                    <td className="py-5 px-4 font-medium text-slate-900 text-sm">
                         <div className="flex items-center gap-3">
                            <div className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                               {activeTab === 'Laboratory' ? <FlaskConical className="h-4 w-4" /> : <Microscope className="h-4 w-4" />}
                            </div>
                            <div>
                               <p className="leading-tight">{item.name}</p>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{item.code}</p>
+                              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-tighter mt-0.5">{item.code}</p>
                            </div>
                         </div>
                     </td>
-                    <td className="py-5 px-4 text-xs font-bold text-slate-500">{item.category}</td>
-                    <td className="py-5 px-4 font-black text-slate-900 text-sm">{APP_CONFIG.CURRENCY} {item.price}</td>
+                    <td className="py-5 px-4 text-xs font-medium text-slate-500">{item.category}</td>
+                    <td className="py-5 px-4 font-medium text-slate-900 text-sm">{APP_CONFIG.CURRENCY} {item.price}</td>
                     <td className="py-5 px-4 text-right">
                        <button className="p-2 text-slate-400 hover:text-primary-600 opacity-0 group-hover:opacity-100 transition-all">
                           <MoreVertical className="h-4.5 w-4.5" />

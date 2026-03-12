@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
 import billingService from '../../services/billingService';
 import patientService from '../../services/patientService';
@@ -68,13 +68,13 @@ export default function Billing() {
            <div className="h-20 w-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 shadow-inner">
               <Receipt className="h-10 w-10" />
            </div>
-           <h2 className="text-2xl font-black text-slate-900 tracking-tight">FinOps Oversight</h2>
+           <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">FinOps Oversight</h2>
            <p className="text-slate-500 max-w-md mt-2 font-medium">
              Clinic-level invoice data contains sensitive patient billing information. Platform governance access is restricted to Global Revenue Analytics.
            </p>
            <button 
              onClick={() => navigate('/accounting')}
-             className="mt-8 px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+             className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Go to Platform Revenue
            </button>
@@ -126,7 +126,7 @@ export default function Billing() {
       tableData.push(['Base Service Fee', '1', `${APP_CONFIG.CURRENCY} ${parseFloat(inv.payAmount).toLocaleString()}`, `${APP_CONFIG.CURRENCY} ${parseFloat(inv.payAmount).toLocaleString()}`]);
     }
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Description', 'Qty', 'Unit Price', 'Amount']],
       body: tableData,
       startY: 60,
@@ -182,12 +182,12 @@ export default function Billing() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Financial Hub</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Financial Hub</h1>
             <p className="text-slate-500 mt-1">Manage invoices, payments, and clinic revenue streams.</p>
           </div>
           <button 
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
+            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
           >
             <Plus className="h-5 w-5" />
             Generate New Invoice
@@ -212,10 +212,10 @@ export default function Billing() {
                 <stat.icon className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-slate-900">{APP_CONFIG.CURRENCY} {stat.value}</span>
-                  <span className={`text-[10px] font-bold ${stat.color} flex items-center gap-0.5`}>
+                  <span className="text-2xl font-semibold text-slate-900">{APP_CONFIG.CURRENCY} {stat.value}</span>
+                  <span className={`text-[10px] font-medium ${stat.color} flex items-center gap-0.5`}>
                   </span>
                 </div>
               </div>
@@ -232,7 +232,7 @@ export default function Billing() {
                 placeholder="Search by Invoice # or Patient Name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm font-bold transition-all outline-none"
+                className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm font-medium transition-all outline-none"
               />
             </div>
           </div>
@@ -241,18 +241,18 @@ export default function Billing() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50">
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Invoice Detail</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Patient</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Category</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Amount</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Status</th>
-                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 text-right">Actions</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Invoice Detail</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Patient</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Category</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Amount</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Status</th>
+                  <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {loading ? (
                    <tr>
-                     <td colSpan="6" className="py-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">Fetching financial records...</td>
+                     <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Fetching financial records...</td>
                    </tr>
                 ) : filteredInvoices.map((inv, i) => (
                   <motion.tr 
@@ -263,25 +263,25 @@ export default function Billing() {
                   >
                     <td className="py-5 px-4">
                       <div>
-                        <p className="font-black text-slate-900 text-sm">#{inv.invoiceNo}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">
+                        <p className="font-medium text-slate-900 text-sm">#{inv.invoiceNo}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight mt-0.5">
                           {inv.createdAt?.seconds ? new Date(inv.createdAt.seconds * 1000).toLocaleDateString() : new Date(inv.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </td>
                     <td className="py-5 px-4">
-                      <p className="text-sm font-bold text-slate-900">{inv.patientName}</p>
+                      <p className="text-sm font-medium text-slate-900">{inv.patientName}</p>
                     </td>
                     <td className="py-5 px-4">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary-500 bg-primary-50 px-3 py-1 rounded-full">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-primary-500 bg-primary-50 px-3 py-1 rounded-full">
                         {BILL_TYPES.find(b => b.stage === inv.stage)?.name || 'General'}
                       </span>
                     </td>
-                    <td className="py-5 px-4 font-black text-slate-900 text-sm">
+                    <td className="py-5 px-4 font-medium text-slate-900 text-sm">
                       {APP_CONFIG.CURRENCY} {parseFloat(inv.totalAmount || inv.payAmount || 0).toLocaleString()}
                     </td>
                     <td className="py-5 px-4">
-                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest
                         ${inv.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}
                       `}>
                         {inv.status || 'Pending'}
@@ -311,14 +311,14 @@ export default function Billing() {
                               >
                                 <button 
                                   onClick={() => { handleViewDetails(inv); setActiveMenu(null); }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                                 >
                                   <FileText className="h-4 w-4" />
                                   View Details
                                 </button>
                                 <button 
                                   onClick={() => { handleExportInvoice(inv); setActiveMenu(null); }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                                 >
                                   <Receipt className="h-4 w-4" />
                                   Print Invoice
@@ -326,7 +326,7 @@ export default function Billing() {
                                 {inv.status !== 'paid' && (
                                   <button 
                                     onClick={() => { handleMarkAsPaid(inv); setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 transition-colors"
                                   >
                                     <CheckCircle2 className="h-4 w-4" />
                                     Mark as Paid
@@ -335,7 +335,7 @@ export default function Billing() {
                                 <div className="h-px bg-slate-50 my-1"></div>
                                 <button 
                                   onClick={() => { handleVoidInvoice(inv); setActiveMenu(null); }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                                 >
                                   <AlertCircle className="h-4 w-4" />
                                   Void Invoice
@@ -371,7 +371,7 @@ export default function Billing() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
           >
              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-blue-500'}`}>
                 {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
@@ -515,8 +515,8 @@ function BillGenerator({ onClose, onSave }) {
               <Receipt className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Generate Invoice</h3>
-              <p className="text-xs text-slate-400 font-black uppercase tracking-widest mt-0.5">Stage {stage} Billing Workflow</p>
+              <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Generate Invoice</h3>
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest mt-0.5">Stage {stage} Billing Workflow</p>
             </div>
           </div>
           <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 transition-colors">
@@ -531,7 +531,7 @@ function BillGenerator({ onClose, onSave }) {
               <button
                 key={type.id}
                 onClick={() => setStage(type.stage)}
-                className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all
+                className={`px-6 py-3 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all
                   ${stage === type.stage ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}
                 `}
               >
@@ -542,23 +542,23 @@ function BillGenerator({ onClose, onSave }) {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Bill To Patient</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Bill To Patient</label>
               <select 
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
-                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-bold transition-all outline-none shadow-inner"
+                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium transition-all outline-none shadow-inner"
               >
                 <option value="">Select Patient...</option>
                 {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Link to Visit / Appointment</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Link to Visit / Appointment</label>
               <select 
                 value={appointmentId}
                 onChange={(e) => setAppointmentId(e.target.value)}
                 disabled={!patientId || appointments.length === 0}
-                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-bold transition-all outline-none shadow-inner disabled:opacity-50"
+                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium transition-all outline-none shadow-inner disabled:opacity-50"
               >
                 <option value="">{appointments.length === 0 ? 'No appointments found' : 'Select Visit...'}</option>
                 {appointments.map(a => (
@@ -569,20 +569,20 @@ function BillGenerator({ onClose, onSave }) {
               </select>
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Invoice Date</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Invoice Date</label>
               <input 
                 type="date"
                 value={formData.invDate}
                 onChange={(e) => setFormData({...formData, invDate: e.target.value})}
-                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-bold outline-none shadow-inner"
+                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium outline-none shadow-inner"
               />
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Payment Mode</label>
+              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Payment Mode</label>
               <select 
                 value={formData.payMode}
                 onChange={(e) => setFormData({...formData, payMode: e.target.value})}
-                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-bold outline-none shadow-inner"
+                className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium outline-none shadow-inner"
               >
                 <option value="1">Cash Payment</option>
                 <option value="2">Insurance Claim</option>
@@ -593,9 +593,9 @@ function BillGenerator({ onClose, onSave }) {
 
           <div className="pt-8 border-t border-slate-50">
             <div className="flex items-center justify-between mb-8">
-              <h4 className="text-xl font-black text-slate-900 tracking-tight">Invoice Line Items</h4>
+              <h4 className="text-xl font-semibold text-slate-900 tracking-tight">Invoice Line Items</h4>
               {(stage >= 3) && (
-                <button onClick={addItem} className="flex items-center gap-2 px-5 py-2.5 bg-primary-50 text-primary-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-primary-100 transition-all">
+                <button onClick={addItem} className="flex items-center gap-2 px-5 py-2.5 bg-primary-50 text-primary-600 rounded-xl font-medium text-[10px] uppercase tracking-widest hover:bg-primary-100 transition-all">
                   <PlusIcon className="h-4 w-4" /> Add Line Item
                 </button>
               )}
@@ -604,16 +604,16 @@ function BillGenerator({ onClose, onSave }) {
             {(stage === 1 || stage === 2) ? (
               <div className="bg-slate-50 p-8 rounded-[2rem] flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-slate-900">{stage === 1 ? 'Patient Registration & Eligibility Fee' : 'Specialist Consultation Fee'}</p>
+                  <p className="font-medium text-slate-900">{stage === 1 ? 'Patient Registration & Eligibility Fee' : 'Specialist Consultation Fee'}</p>
                   <p className="text-xs text-slate-500 mt-1">Standard clinic service charge</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{APP_CONFIG.CURRENCY}</span>
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">{APP_CONFIG.CURRENCY}</span>
                   <input 
                     type="number"
                     value={formData.payAmount}
                     onChange={(e) => setFormData({...formData, payAmount: e.target.value})}
-                    className="w-32 p-4 bg-white border border-slate-100 rounded-2xl text-right font-black text-sm outline-none focus:border-primary-300"
+                    className="w-32 p-4 bg-white border border-slate-100 rounded-2xl text-right font-medium text-sm outline-none focus:border-primary-300"
                   />
                 </div>
               </div>
@@ -622,10 +622,10 @@ function BillGenerator({ onClose, onSave }) {
                 <table className="w-full">
                   <thead>
                     <tr className="text-left">
-                      <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">Description</th>
-                      <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 w-28">Qty</th>
-                      <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 w-40">Unit Price</th>
-                      <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 w-40 text-right">Amount</th>
+                      <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4">Description</th>
+                      <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 w-28">Qty</th>
+                      <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 w-40">Unit Price</th>
+                      <th className="pb-4 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 w-40 text-right">Amount</th>
                       <th className="pb-4 w-12"></th>
                     </tr>
                   </thead>
@@ -636,7 +636,7 @@ function BillGenerator({ onClose, onSave }) {
                           <input 
                             value={item.description}
                             onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                            className="w-full p-4 bg-transparent border-none focus:ring-2 focus:ring-primary-100 rounded-xl text-sm font-bold outline-none" 
+                            className="w-full p-4 bg-transparent border-none focus:ring-2 focus:ring-primary-100 rounded-xl text-sm font-medium outline-none" 
                             placeholder="Enter service or item name..."
                           />
                         </td>
@@ -645,7 +645,7 @@ function BillGenerator({ onClose, onSave }) {
                              type="number"
                              value={item.qty}
                              onChange={(e) => updateItem(idx, 'qty', e.target.value)}
-                             className="w-full p-4 bg-slate-50 border-none rounded-xl text-center text-sm font-bold outline-none" 
+                             className="w-full p-4 bg-slate-50 border-none rounded-xl text-center text-sm font-medium outline-none" 
                           />
                         </td>
                         <td className="py-4 px-2">
@@ -653,10 +653,10 @@ function BillGenerator({ onClose, onSave }) {
                              type="number"
                              value={item.price}
                              onChange={(e) => updateItem(idx, 'price', e.target.value)}
-                             className="w-full p-4 bg-slate-50 border-none rounded-xl text-right text-sm font-bold outline-none" 
+                             className="w-full p-4 bg-slate-50 border-none rounded-xl text-right text-sm font-medium outline-none" 
                           />
                         </td>
-                        <td className="py-4 px-4 text-right font-black text-slate-900 text-sm">
+                        <td className="py-4 px-4 text-right font-medium text-slate-900 text-sm">
                            {parseFloat(item.amount).toLocaleString()}
                         </td>
                         <td className="py-4 px-2 text-right">
@@ -670,7 +670,7 @@ function BillGenerator({ onClose, onSave }) {
                 </table>
                 {formData.items.length === 0 && (
                   <div className="py-12 bg-slate-50 rounded-[2.5rem] text-center border-2 border-dashed border-slate-100">
-                    <p className="text-sm font-bold text-slate-400">No items added yet. Click 'Add Line Item' to start.</p>
+                    <p className="text-sm font-medium text-slate-400">No items added yet. Click 'Add Line Item' to start.</p>
                   </div>
                 )}
               </div>
@@ -681,33 +681,33 @@ function BillGenerator({ onClose, onSave }) {
         <div className="p-10 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row items-end justify-end gap-12">
           <div className="w-full md:w-80 space-y-4">
              <div className="flex justify-between items-center text-slate-500">
-                <span className="text-[10px] font-black uppercase tracking-widest">Tax (%)</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest">Tax (%)</span>
                 <input 
                   type="number" 
                   value={formData.taxPercent}
                   onChange={(e) => setFormData({...formData, taxPercent: e.target.value})}
-                  className="w-20 p-2 bg-white border border-slate-100 rounded-xl text-right text-xs font-bold outline-none" 
+                  className="w-20 p-2 bg-white border border-slate-100 rounded-xl text-right text-xs font-medium outline-none" 
                 />
              </div>
              <div className="flex justify-between items-center text-slate-500">
-                <span className="text-[10px] font-black uppercase tracking-widest">Discount ({APP_CONFIG.CURRENCY})</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest">Discount ({APP_CONFIG.CURRENCY})</span>
                 <input 
                   type="number" 
                   value={formData.discount}
                   onChange={(e) => setFormData({...formData, discount: e.target.value})}
-                  className="w-20 p-2 bg-white border border-slate-100 rounded-xl text-right text-xs font-bold outline-none" 
+                  className="w-20 p-2 bg-white border border-slate-100 rounded-xl text-right text-xs font-medium outline-none" 
                 />
              </div>
              <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
-                <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Total Due ({APP_CONFIG.CURRENCY})</span>
-                <span className="text-3xl font-black text-slate-900 leading-none tracking-tight">
+                <span className="text-sm font-medium text-slate-900 uppercase tracking-widest">Total Due ({APP_CONFIG.CURRENCY})</span>
+                <span className="text-2xl font-semibold text-slate-900 leading-none tracking-tight">
                   {calculateTotal()}
                 </span>
              </div>
           </div>
           <div className="flex gap-4">
-             <button onClick={onClose} className="px-10 py-5 bg-white text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-[2rem] border border-slate-100 hover:bg-slate-50 shadow-sm">Cancel</button>
-             <button onClick={handleSave} className="px-12 py-5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-[2rem] hover:bg-slate-800 shadow-2xl shadow-slate-200 active:scale-95">Verify & Generate Invoice</button>
+             <button onClick={onClose} className="px-10 py-5 bg-white text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-[2rem] border border-slate-100 hover:bg-slate-50 shadow-sm">Cancel</button>
+             <button onClick={handleSave} className="px-12 py-5 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-[2rem] hover:bg-slate-800 shadow-2xl shadow-slate-200 active:scale-95">Verify & Generate Invoice</button>
           </div>
         </div>
       </motion.div>

@@ -226,12 +226,12 @@ export default function Users() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">User Management</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">User Management</h1>
             <p className="text-slate-500 mt-1">Manage hospital staff accounts and access permissions.</p>
           </div>
           <button 
             onClick={handleCreateNew}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
           >
             <Plus className="h-5 w-5" />
             Add New User
@@ -271,11 +271,11 @@ export default function Users() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-slate-50">
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-wider px-4">User</th>
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-wider px-4">Role</th>
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-wider px-4">Status</th>
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-wider px-4">Last Login</th>
-                  <th className="pb-4 font-bold text-slate-400 text-xs uppercase tracking-wider px-4 text-right">Actions</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-wider px-4">User</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-wider px-4">Role</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-wider px-4">Status</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-wider px-4">Last Login</th>
+                  <th className="pb-4 font-medium text-slate-400 text-xs uppercase tracking-wider px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -291,11 +291,11 @@ export default function Users() {
                     >
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 font-bold border border-primary-100/50">
+                          <div className="h-10 w-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 font-medium border border-primary-100/50">
                             {user.name.split(' ').map(n => n[0]).join('')}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 leading-none">{user.name}</p>
+                            <p className="font-medium text-slate-900 leading-none">{user.name}</p>
                             <p className="text-xs text-slate-500 mt-1">{user.email}</p>
                           </div>
                         </div>
@@ -303,7 +303,7 @@ export default function Users() {
                       <td className="py-4 px-4">
                         {user.role === 'clinic_owner' && facilityUsage[user.facilityId] ? (
                            <div className="flex flex-col gap-1">
-                             <span className="inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100 uppercase tracking-wide">
+                             <span className="inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-100 uppercase tracking-wide">
                                {facilityUsage[user.facilityId].plan} Plan
                              </span>
                              <div className="flex items-center gap-1.5 mt-0.5">
@@ -313,13 +313,13 @@ export default function Users() {
                                     style={{ width: `${Math.min((facilityUsage[user.facilityId].count / facilityUsage[user.facilityId].max) * 100, 100)}%` }}
                                   ></div>
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-500">
+                                <span className="text-[10px] font-medium text-slate-500">
                                   {facilityUsage[user.facilityId].count}/{facilityUsage[user.facilityId].max} Users
                                 </span>
                              </div>
                            </div>
                         ) : (
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold capitalize
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium capitalize
                             ${user.role === 'superadmin' ? 'bg-purple-50 text-purple-600' : 
                               user.role === 'clinic_owner' ? 'bg-blue-50 text-blue-600' : 
                               'bg-green-50 text-green-600'}
@@ -330,7 +330,7 @@ export default function Users() {
                         )}
                       </td>
                       <td className="py-4 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold capitalize
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium capitalize
                           ${user.status?.toLowerCase() === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}
                         `}>
                           {user.status?.toLowerCase() === 'active' ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
@@ -381,7 +381,7 @@ export default function Users() {
               <div className="h-16 w-16 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
                 <UsersIcon className="h-8 w-8 text-slate-300" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">No users found</h3>
+              <h3 className="text-lg font-semibold text-slate-900">No users found</h3>
               <p className="text-slate-500 mt-1">Try adjusting your search or filters.</p>
             </div>
           )}
@@ -411,7 +411,7 @@ export default function Users() {
             initial={{ opacity: 0, y: 50, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 50, x: '-50%' }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm min-w-[300px]"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm min-w-[300px]"
           >
             <div className="h-8 w-8 bg-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
               <CheckCircle2 className="h-5 w-5" />
