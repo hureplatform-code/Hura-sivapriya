@@ -209,7 +209,7 @@ export default function Sidebar() {
           {facilityProfile?.logoUrl ? (
             <img src={facilityProfile.logoUrl} alt="Logo" className="h-full w-full object-cover" />
           ) : (
-            <Stethoscope className="text-white h-6 w-6" />
+            <img src="/logo.png" alt="Doctor Logo" className="h-full w-full object-contain p-1.5" />
           )}
         </div>
         <span className="font-medium text-xl tracking-tight text-slate-900">{facilityProfile?.name || APP_CONFIG.HOSPITAL_NAME}</span>

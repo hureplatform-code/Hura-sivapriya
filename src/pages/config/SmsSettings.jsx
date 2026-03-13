@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import {
   MessageSquare, Wallet, Globe, ShoppingCart, RefreshCcw, FileText, CheckCircle2,
-  AlertTriangle, CreditCard, Bell, CalendarClock
+  AlertTriangle, CreditCard, Bell, CalendarClock, Clock, Ban, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,12 +12,12 @@ import { useToast } from '../../contexts/ToastContext';
 import facilityService from '../../services/facilityService';
 
 // We hardcode KSh pricing per requirements, but use current currency for display
-// (If clinic currency is different, conversions would apply in production)
 const SMS_BUNDLES = [
   { id: 'small', sms: 1000, price: 500 },
   { id: 'medium', sms: 2000, price: 1000 },
   { id: 'large', sms: 5000, price: 2200, popular: true }
 ];
+
 export default function SmsSettings() {
   const { userData } = useAuth();
   const { currency } = useCurrency();
@@ -32,6 +32,8 @@ export default function SmsSettings() {
   const [testPhone, setTestPhone] = useState('');
   const [isTesting, setIsTesting] = useState(false);
   const [savingLang, setSavingLang] = useState(false);
+  const [topupRequests, setTopupRequests] = useState([]);
+  const [processingRequestId, setProcessingRequestId] = useState(null);
   const { success, error: toastError } = useToast();
 
   const isSuperadmin = userData?.role === 'superadmin';
@@ -40,6 +42,7 @@ export default function SmsSettings() {
     if (isSuperadmin) {
       fetchFacilities();
       fetchProviderBalance();
+      fetchTopupRequests();
     }
   }, []);
 
@@ -57,6 +60,15 @@ export default function SmsSettings() {
     }
   };
 
+  const fetchTopupRequests = async () => {
+    try {
+      const data = await smsSettingsService.getTopupRequests();
+      setTopupRequests(data || []);
+    } catch (err) {
+      console.error("Error fetching topup requests:", err);
+    }
+  };
+
   useEffect(() => {
     if (selectedFacilityId) {
       fetchWallet();
@@ -70,7 +82,6 @@ export default function SmsSettings() {
       const data = await facilityService.getAllFacilities();
       setFacilities(data || []);
       
-      // If superadmin and current selected id is invalid/missing, select first available
       if (data && data.length > 0) {
         const isValid = data.some(f => f.id === selectedFacilityId);
         if (!selectedFacilityId || !isValid) {
@@ -98,37 +109,55 @@ export default function SmsSettings() {
     }
   };
 
-  const showNotif = (type, message) => {
-    if (type === 'success') success(message);
-    else toastError(message);
-  };
-
   const handleBuyBundle = async (bundle) => {
     if (!selectedFacilityId) {
         toastError("Please select a facility first.");
         return;
     }
 
-    // Check if provider has enough real balance to fulfill this (warn superadmin)
-    if (isSuperadmin && providerBalance && providerBalance.includes('-')) {
-        const proceed = window.confirm("CRITICAL: The master Africa's Talking balance is NEGATIVE. Clinics can buy credits, but SMS WILL NOT BE DELIVERED until you top up the AT account. Proceed with credit assignment anyway?");
-        if (!proceed) return;
-    }
+    // Direct topup for Superadmins, Request for Clinics
+    if (isSuperadmin) {
+        if (providerBalance && providerBalance.includes('-')) {
+            const proceed = window.confirm("CRITICAL: Master balance is NEGATIVE. Clinic will get credits but SMS won't send. Proceed?");
+            if (!proceed) return;
+        }
 
+        try {
+          setBuying(bundle.id);
+          await smsSettingsService.buyBundle(selectedFacilityId, bundle.sms);
+          setWallet(prev => ({ ...prev, balance: prev.balance + bundle.sms }));
+          success(`Successfully assigned ${bundle.sms} SMS credits.`);
+          fetchProviderBalance();
+        } catch (err) {
+          toastError('Failed to add credits.');
+        } finally {
+          setBuying(null);
+        }
+    } else {
+        try {
+            setBuying(bundle.id);
+            await smsSettingsService.requestTopup(selectedFacilityId, bundle);
+            success("Purchase request sent to admin! They will contact you for payment.");
+        } catch (err) {
+            toastError("Failed to send request.");
+        } finally {
+          setBuying(null);
+        }
+    }
+  };
+
+  const handleApproveRequest = async (req) => {
     try {
-      setBuying(bundle.id);
-      await smsSettingsService.buyBundle(selectedFacilityId, bundle.sms);
-      
-      // Update local wallet view
-      setWallet(prev => ({ ...prev, balance: prev.balance + bundle.sms }));
-      success(`Successfully added ${bundle.sms} SMS credits to the clinic wallet!`);
-      
-      // Refresh provider balance if it's the superadmin
-      if (isSuperadmin) fetchProviderBalance();
+        setProcessingRequestId(req.id);
+        await smsSettingsService.approveTopupRequest(req.id);
+        success(`Request approved! ${req.sms} SMS added to ${req.facilityName}`);
+        fetchTopupRequests();
+        if (req.facilityId === selectedFacilityId) fetchWallet();
+        fetchProviderBalance();
     } catch (err) {
-      toastError('Payment failed. Could not add credits.');
+        toastError("Approval failed.");
     } finally {
-      setBuying(null);
+        setProcessingRequestId(null);
     }
   };
 
@@ -144,7 +173,7 @@ export default function SmsSettings() {
       success(`SMS language updated to ${lang}`);
     } catch (err) {
       console.error("Lang Update Error:", err);
-      toastError('Failed to update SMS language. Please ensure a clinic is selected.');
+      toastError('Failed to update SMS language.');
     } finally {
       setSavingLang(false);
     }
@@ -152,16 +181,16 @@ export default function SmsSettings() {
 
   const handleSendTest = async () => {
     if (!selectedFacilityId) return toastError("Select a facility first");
-    if (!testPhone) return toastError("Enter a phone number (e.g. +254...)");
+    if (!testPhone) return toastError("Enter a phone number");
     
     try {
       setIsTesting(true);
       const result = await smsSettingsService.sendTestSms(selectedFacilityId, testPhone);
       if (result.success) {
         success("Test SMS sent successfully!");
-        fetchWallet(); // Refresh balance
+        fetchWallet();
       } else {
-        toastError(result.error || "Failed to send test SMS. Check your wallet balance.");
+        toastError(result.error || "Failed to send test SMS.");
       }
     } catch (err) {
       toastError("Error sending test SMS.");
@@ -180,7 +209,7 @@ export default function SmsSettings() {
 
     let msg = `HURECARE\n${eng}`;
     if (wallet.language === 'Swahili') msg = `HURECARE\n${swa}`;
-    if (wallet.language === 'Both') msg = `HURECARE\n${eng}\n\n${cl}: Hii ni ukumbusho kwamba miadi yako imepangwa tarehe ${date} saa ${time}. Jibu YES kuthibitisha au NO kubadilisha muda.`;
+    if (wallet.language === 'Both') msg = `HURECARE\n${eng}\n\n${swa}`;
 
     return (
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 font-mono text-sm text-slate-700 whitespace-pre-wrap leading-relaxed shadow-inner">
@@ -244,14 +273,14 @@ export default function SmsSettings() {
                     <h3 className="text-lg font-bold text-red-900">Africa's Talking Account Depleted</h3>
                     <p className="text-red-700 font-medium text-sm mt-1">
                         Your master balance is <span className="underline font-bold">{providerBalance}</span>. 
-                        No SMS can be sent across the entire platform until you top up the Africa's Talking account.
+                        No SMS can be sent cross-platform until topped up.
                     </p>
                 </div>
                 <button 
                     onClick={() => window.open('https://dashboard.africastalking.com', '_blank')}
-                    className="px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all whitespace-nowrap shadow-xl shadow-red-200"
+                    className="px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-xl shadow-red-200"
                 >
-                    Top Up Provider
+                    Top Up AT Dashboard
                 </button>
             </motion.div>
         )}
@@ -264,12 +293,12 @@ export default function SmsSettings() {
                     <div className="relative z-10 h-full flex flex-col">
                         <div className="flex items-start justify-between mb-8">
                             <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider text-white/60 border border-white/10 flex items-center gap-2">
-                                <CreditCard className="h-3 w-3" /> Clinic Hura Wallet
+                                <CreditCard className="h-3 w-3" /> Clinic Wallet Balance
                             </div>
                             {isSuperadmin && (
-                                <div className={`px-3 py-1 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-2 transition-all ${providerError ? 'bg-red-500/20 text-red-300 border-red-500/20' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/20'}`} title={providerError || "Master Africa's Talking Balance"}>
+                                <div className={`px-3 py-1 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-2 transition-all ${providerError ? 'bg-red-500/20 text-red-300 border-red-500/20' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/20'}`}>
                                     <Globe className="h-3 w-3" /> 
-                                    Provider: {providerError ? 'Not Configured' : (providerBalance || 'Loading...')}
+                                    Provider Master: {providerError ? 'N/A' : (providerBalance || '...')}
                                 </div>
                             )}
                         </div>
@@ -282,24 +311,15 @@ export default function SmsSettings() {
                         </div>
                         
                         <p className="text-white/60 mt-4 text-sm leading-relaxed max-w-xs">
-                            This balance is deducted automatically when sending appointment reminders or status updates to patients via Africa's Talking.
+                          Credits are used for automated appointment reminders and billing updates to patients.
                         </p>
 
                         {(wallet.balance <= 0) && (
                             <div className="w-full bg-red-500/20 text-red-100 border border-red-500/30 p-4 rounded-xl flex items-start gap-3 mt-auto">
                                 <AlertTriangle className="h-5 w-5 shrink-0 text-red-400" />
                                 <div className="text-xs font-medium">
-                                    <p className="font-bold text-red-300">Wallet Empty</p>
-                                    <p>SMS sending is currently disabled. Please top up your wallet below to resume patient reminders.</p>
-                                </div>
-                            </div>
-                        )}
-                        {(wallet.balance > 0 && wallet.balance < 50) && (
-                            <div className="w-full bg-amber-500/20 text-amber-100 border border-amber-500/30 p-4 rounded-xl flex items-start gap-3 mt-auto">
-                                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
-                                <div className="text-xs font-medium">
-                                    <p className="font-bold text-amber-300">Low Balance</p>
-                                    <p>Your SMS wallet is running low. Please top up soon to avoid missing outbound reminders.</p>
+                                    <p className="font-bold text-red-300 text-xs">Wallet Empty</p>
+                                    <p>Patient reminders are currently paused. Top up to resume service.</p>
                                 </div>
                             </div>
                         )}
@@ -308,7 +328,7 @@ export default function SmsSettings() {
                             onClick={() => { fetchWallet(); if(isSuperadmin) fetchProviderBalance(); }}
                             className="mt-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-primary-300 hover:text-white transition-colors"
                         >
-                            <RefreshCcw className="h-3 w-3" /> Refresh Balance
+                            <RefreshCcw className="h-3 w-3" /> Synchronize Balance
                         </button>
                     </div>
 
@@ -333,7 +353,7 @@ export default function SmsSettings() {
                                 `}
                             >
                                 {bundle.popular && (
-                                    <span className="absolute -top-3 left-6 px-3 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-full shadow-sm">Max Value</span>
+                                    <span className="absolute -top-3 left-6 px-3 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-full shadow-sm">Best Selection</span>
                                 )}
                                 <div>
                                     <h4 className="text-xl font-bold text-slate-900">{bundle.sms.toLocaleString()} <span className="text-sm font-medium text-slate-500">SMS</span></h4>
@@ -347,18 +367,64 @@ export default function SmsSettings() {
                                             ${buying === bundle.id ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg'}
                                         `}
                                     >
-                                        {buying === bundle.id ? 'Processing...' : 'Buy Now'}
+                                        {buying === bundle.id ? 'Wait...' : (isSuperadmin ? 'Add Direct' : 'Purchase Request')}
                                     </button>
                                 </div>
                             </div>
                         ))}
                     </div>
+                    {!isSuperadmin && (
+                        <p className="mt-4 text-[10px] text-slate-400 font-medium text-center uppercase tracking-widest">
+                          Admin will receive a notification to verify payment before adding credits.
+                        </p>
+                    )}
                 </div>
             </div>
 
             {/* PREFERENCES SECTION */}
             <div className="space-y-6">
                 
+                {/* ADMIN REQUESTS SECTION */}
+                {isSuperadmin && topupRequests.filter(r => r.status === 'pending').length > 0 && (
+                   <div className="bg-white border-2 border-primary-100 rounded-[2.5rem] p-8 shadow-xl shadow-primary-50">
+                      <div className="flex items-center justify-between mb-6">
+                         <div className="flex items-center gap-3">
+                            <Bell className="h-5 w-5 text-primary-600 animate-bounce" />
+                            <h3 className="text-lg font-semibold text-slate-900">Pending Top-up Requests</h3>
+                         </div>
+                         <span className="px-3 py-1 bg-primary-100 text-primary-700 text-[10px] font-bold rounded-full uppercase tracking-widest">
+                            {topupRequests.filter(r => r.status === 'pending').length} New
+                         </span>
+                      </div>
+                      
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
+                         {topupRequests.filter(r => r.status === 'pending').map(req => (
+                            <div key={req.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-primary-200 transition-all">
+                               <div className="flex justify-between items-start mb-3">
+                                  <div>
+                                     <p className="font-bold text-slate-900">{req.facilityName}</p>
+                                     <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium">
+                                        Requested {new Date(req.createdAt?.toDate()).toLocaleString()}
+                                     </p>
+                                  </div>
+                                  <div className="text-right">
+                                     <p className="text-lg font-bold text-primary-600">{req.sms.toLocaleString()} Credits</p>
+                                     <p className="text-xs font-semibold text-slate-500">KES {req.price}</p>
+                                  </div>
+                               </div>
+                               <button 
+                                  onClick={() => handleApproveRequest(req)}
+                                  disabled={processingRequestId === req.id}
+                                  className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
+                               >
+                                  {processingRequestId === req.id ? 'Processing Approval...' : 'Confirm Payment & Approve'} <Check className="h-4 w-4" />
+                               </button>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+                )}
+
                 <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
                         <Globe className="h-5 w-5 text-slate-400" />
@@ -380,7 +446,7 @@ export default function SmsSettings() {
                                     ${savingLang ? 'opacity-50 cursor-not-allowed' : ''}
                                 `}
                             >
-                                {lang === 'Both' ? 'English + Swahili' : `${lang} Only`}
+                                {lang === 'Both' ? 'English + Swahili' : lang}
                             </button>
                         ))}
                     </div>
@@ -394,56 +460,43 @@ export default function SmsSettings() {
                 <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8">
                     <div className="flex items-center gap-3 mb-4">
                         <CalendarClock className="h-5 w-5 text-slate-400" />
-                        <h3 className="text-md font-semibold text-slate-900">Automated Schedule</h3>
+                        <h3 className="text-md font-semibold text-slate-900">Notification Roadmap</h3>
                     </div>
                     <ul className="space-y-4 mb-8">
-                        <li className="flex gap-4">
-                            <div className="h-6 w-6 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-slate-500 shadow-sm">1</div>
-                            <div>
-                                <p className="text-sm font-semibold text-slate-900">2 Days Before (8:00 AM)</p>
-                                <p className="text-xs text-slate-500 mt-1">Sends out initial confirmation reminders to all booked patients.</p>
-                            </div>
-                        </li>
-                        <li className="flex gap-4">
-                            <div className="h-6 w-6 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-slate-500 shadow-sm">2</div>
-                            <div>
-                                <p className="text-sm font-semibold text-slate-900">1 Day Before (8:00 AM)</p>
-                                <p className="text-xs text-slate-500 mt-1">Sends a final reminder only to attendees who haven't confirmed yet.</p>
-                            </div>
-                        </li>
-                        <li className="flex gap-4">
-                            <div className="h-6 w-6 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-slate-500 shadow-sm">3</div>
-                            <div>
-                                <p className="text-sm font-semibold text-slate-900">1 Day Before (1:00 PM)</p>
-                                <p className="text-xs text-slate-500 mt-1">Patients who still haven't replied YES are flagged as <span className="font-mono text-red-500 bg-red-50 px-1 py-0.5 rounded">not_confirmed</span> for manual followup.</p>
-                            </div>
-                        </li>
+                        {[
+                          { step: 1, label: '2 Days Before (8:00 AM)', desc: 'Initial confirmation check for all appointments.' },
+                          { step: 2, label: '1 Day Before (8:00 AM)', desc: 'Follow-up reminder for unconfirmed appointments.' },
+                          { step: 3, label: '1 Day Before (1:00 PM)', desc: 'Flagging non-responsive patients for clinic staff.' }
+                        ].map(item => (
+                           <li key={item.step} className="flex gap-4">
+                              <div className="h-6 w-6 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 mt-0.5 text-xs font-black text-slate-400">{item.step}</div>
+                              <div>
+                                 <p className="text-[11px] font-bold text-slate-900 uppercase tracking-tighter">{item.label}</p>
+                                 <p className="text-[11px] text-slate-500 mt-1 leading-tight">{item.desc}</p>
+                              </div>
+                           </li>
+                        ))}
                     </ul>
 
                     <div className="border-t border-slate-200 pt-8 mt-4">
-                        <h3 className="text-md font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                            <Bell className="h-4 w-4 text-primary-600" /> Test Notification
+                        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-4 uppercase tracking-tighter">
+                            <Bell className="h-4 w-4 text-primary-600" /> Validation Test
                         </h3>
                         <div className="flex flex-col gap-3">
                             <input 
                                 type="text"
                                 value={testPhone}
                                 onChange={(e) => setTestPhone(e.target.value)}
-                                placeholder="Enter Phone (e.g. +2547...)"
-                                className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="Phone (e.g. +254...)"
+                                className="px-5 py-4 bg-white border-2 border-transparent focus:border-primary-100 rounded-2xl text-sm font-medium outline-none transition-all"
                             />
                             <button
                                 onClick={handleSendTest}
                                 disabled={isTesting || !testPhone}
-                                className="w-full py-3 bg-primary-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-primary-600/20 disabled:opacity-50"
+                                className="w-full py-4 bg-primary-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary-600/10 active:scale-95 disabled:opacity-30 transition-all"
                             >
-                                {isTesting ? 'Sending...' : 'Send Test SMS'}
+                                {isTesting ? 'Initiating...' : 'Send Manual Test'}
                             </button>
-                            {providerError && (
-                                <p className="text-[10px] text-red-500 font-medium bg-red-50 px-3 py-2 rounded-lg border border-red-100 italic">
-                                    * Real SMS sending requires Firebase Blaze Plan and function deployment.
-                                </p>
-                            )}
                         </div>
                     </div>
                 </div>

@@ -39,7 +39,75 @@ const smsSettingsService = {
   },
 
   /**
-   * Purchase SMS Bundle
+   * Create a Top-up Request (Notification to Admin)
+   */
+  async requestTopup(facilityId, bundle) {
+    if (!facilityId) return false;
+    try {
+      const facilitySnap = await getDoc(doc(db, 'facility_profile', facilityId));
+      const facilityName = facilitySnap.exists() ? facilitySnap.data().name : 'Unknown';
+
+      await addDoc(collection(db, 'topup_requests'), {
+        facilityId,
+        facilityName,
+        sms: bundle.sms,
+        price: bundle.price,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        bundleId: bundle.id
+      });
+      return true;
+    } catch (error) {
+      console.error('Error creating topup request:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Fetch all topup requests (Superadmin)
+   */
+  async getTopupRequests() {
+    try {
+      const q = query(collection(db, 'topup_requests'), orderBy('createdAt', 'desc'), limit(50));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+      console.error('Error fetching topup requests:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Approve a topup request (Superadmin)
+   */
+  async approveTopupRequest(requestId) {
+    try {
+      const reqDoc = doc(db, 'topup_requests', requestId);
+      const reqSnap = await getDoc(reqDoc);
+      if (!reqSnap.exists()) throw new Error("Request not found");
+      
+      const { facilityId, sms } = reqSnap.data();
+      
+      // Update facility balance
+      await updateDoc(doc(db, 'facility_profile', facilityId), {
+        smsWalletBalance: increment(sms)
+      });
+      
+      // Mark request as approved
+      await updateDoc(reqDoc, {
+        status: 'approved',
+        approvedAt: serverTimestamp()
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error approving topup request:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Purchase SMS Bundle (Legacy/Direct)
    */
   async buyBundle(facilityId, amount) {
     if (!facilityId) return false;
@@ -57,24 +125,42 @@ const smsSettingsService = {
   },
 
   /**
-   * Fetch recent SMS Logs for a facility
+   * Fetch recent SMS Logs (Clinic specific or all if null)
    */
-  async getLogs(facilityId, num = 50) {
-    if (!facilityId) return [];
+  async getLogs(facilityId, num = 100) {
     try {
-      const q = query(
-        collection(db, 'sms_logs'),
-        where('facilityId', '==', facilityId),
-        orderBy('sentAt', 'desc'),
-        limit(num)
-      );
+      let q;
+      const logsRef = collection(db, 'sms_logs');
+      
+      if (facilityId && facilityId !== 'all') {
+        q = query(
+          logsRef,
+          where('facilityId', '==', facilityId),
+          orderBy('sentAt', 'desc'),
+          limit(num)
+        );
+      } else {
+        // Global view for Superadmin
+        q = query(
+          logsRef,
+          orderBy('sentAt', 'desc'),
+          limit(num)
+        );
+      }
+
       const snap = await getDocs(q);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (error) {
         // If sorting index is missing, fallback cleanly
         if (error.message.includes('index')) {
             console.warn("Index missing for sms_logs, falling back to un-ordered fetch");
-            const q = query(collection(db, 'sms_logs'), where('facilityId', '==', facilityId), limit(num));
+            let q;
+            const logsRef = collection(db, 'sms_logs');
+            if (facilityId && facilityId !== 'all') {
+                q = query(logsRef, where('facilityId', '==', facilityId), limit(num));
+            } else {
+                q = query(logsRef, limit(num));
+            }
             const snap = await getDocs(q);
             return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         }
