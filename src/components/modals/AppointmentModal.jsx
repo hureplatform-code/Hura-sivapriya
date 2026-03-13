@@ -19,6 +19,7 @@ import { useToast } from '../../contexts/ToastContext';
 export default function AppointmentModal({ isOpen, onClose, onSave, initialDate }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const { userData } = useAuth();
   const { error: toastError } = useToast();
   const [isQuickPatientOpen, setIsQuickPatientOpen] = useState(false);
   
@@ -57,9 +58,12 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
 
   const fetchDoctors = async () => {
     try {
-      const data = await userService.getAllUsers();
-      const docs = data.filter(u => u.role === 'doctor');
+      const data = await userService.getAllUsers(userData?.facilityId);
+      // Include both formal Doctors and Clinic Owners (who often practice in smaller clinics)
+      const docs = data.filter(u => ['doctor', 'clinic_owner'].includes(u.role));
       setDoctors(docs);
+      
+      // Auto-select first matching provider if form is empty
       if (docs.length > 0 && !formData.provider) {
         setFormData(prev => ({ ...prev, provider: docs[0].name }));
       }
@@ -70,7 +74,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
 
   const fetchPatients = async () => {
     try {
-      const data = await patientService.getAllPatients();
+      const data = await patientService.getAllPatients(userData?.facilityId);
       setPatients(data || []);
     } catch (error) {
       console.error("Error fetching patients:", error);
@@ -114,6 +118,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
 
       const appointmentData = {
         ...formData,
+        facilityId: userData?.facilityId,
         patient: selectedPatient.name,
         patientId: selectedPatient.id,
         status: 'scheduled',
@@ -256,7 +261,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Healthcare Provider</label>
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Consulting Doctor</label>
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                               <Stethoscope className="h-5 w-5" />
@@ -266,7 +271,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                               onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value }))}
                               className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none appearance-none transition-all"
                             >
-                              <option value="">Select Provider...</option>
+                              <option value="">Select Doctor...</option>
                               {doctors.map(doc => (
                                 <option key={doc.id} value={doc.name}>{doc.name}</option>
                               ))}

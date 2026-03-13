@@ -78,7 +78,7 @@ export default function Appointments() {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const data = await appointmentService.getAllAppointments();
+      const data = await appointmentService.getAllAppointments(userData?.facilityId);
       const sortedData = (data || []).sort((a, b) => {
         const dateA = a.date || a.app_date || '';
         const dateB = b.date || b.app_date || '';
