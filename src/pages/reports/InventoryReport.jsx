@@ -10,16 +10,19 @@ import {
   ArrowUpRight,
   ShoppingCart,
   Zap,
-  Box
+  Box,
+  CheckCircle2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import inventoryService from '../../services/inventoryService';
+import { useAuth } from '../../contexts/AuthContext';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
 import { useCurrency } from '../../contexts/CurrencyContext';
 
 export default function InventoryReport() {
+  const { userData } = useAuth();
   const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState([]);
@@ -33,7 +36,7 @@ export default function InventoryReport() {
   const fetchInventoryData = async () => {
     try {
       setLoading(true);
-      const data = await inventoryService.getInventory();
+      const data = await inventoryService.getInventory(userData?.facilityId);
       setInventory(data || []);
 
       // Calculate Low Stock

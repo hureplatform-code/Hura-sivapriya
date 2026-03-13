@@ -7,8 +7,9 @@ import { firebaseConfig } from '../firebase';
 const userService = {
   collection: firestoreService.collections.users,
 
-  async getAllUsers() {
-    return firestoreService.getAll(this.collection);
+  async getAllUsers(facilityId) {
+    const q = facilityId ? [where('facilityId', '==', facilityId)] : [];
+    return firestoreService.getAll(this.collection, q);
   },
 
   async getUserById(id) {

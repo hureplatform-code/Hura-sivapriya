@@ -7,8 +7,10 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function InsuranceAgingReport() {
+  const { userData } = useAuth();
   const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [claimsData, setClaimsData] = useState([]);
@@ -19,7 +21,7 @@ export default function InsuranceAgingReport() {
   const fetchAgingStats = async () => {
     try {
       setLoading(true);
-      const invoices = await billingService.getAllInvoices();
+      const invoices = await billingService.getAllInvoices(userData?.facilityId);
 
       // Filter insurance invoices
       const insuranceClaims = invoices.filter(inv =>

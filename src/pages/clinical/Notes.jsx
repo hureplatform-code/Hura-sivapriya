@@ -7,7 +7,7 @@ import {
   RefreshCw, Eye, Mic, List, Info, ClipboardCheck, ClipboardList, Thermometer, 
   Droplet, Plus, BrainCircuit, Heart, Eye as EyeIcon, Ear, Stethoscope, 
   ChevronRight, History, Smile, Baby, Scissors, Wind, Zap, Brain, Clock, 
-  MoreVertical, X, Droplets
+  MoreVertical, X, Droplets, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -89,7 +89,7 @@ export default function Notes() {
   const fetchNotes = async () => {
     try {
       setLoading(true);
-      const data = await medicalRecordService.getAllRecords();
+      const data = await medicalRecordService.getAllRecords(userData?.facilityId);
       setNotes(data || []);
     } catch (error) {
       console.error('Error fetching notes:', error);
@@ -158,11 +158,10 @@ export default function Notes() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-primary-600 transition-colors">
-                          {SPECIALTIES.find(s => s.id === note.specialty)?.icon ? (
-                            React.createElement(SPECIALTIES.find(s => s.id === note.specialty).icon, { className: 'h-5 w-5' })
-                          ) : (
-                            <FileText className="h-5 w-5" />
-                          )}
+                          {(() => {
+                            const spec = SPECIALTIES.find(s => s.id === note.specialty);
+                            return spec?.icon ? React.createElement(spec.icon, { className: 'h-5 w-5' }) : <FileText className="h-5 w-5" />;
+                          })()}
                         </div>
                         <div>
                           <h3 className="font-medium text-slate-900">{note.title || 'Untitled Note'}</h3>
@@ -300,7 +299,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     try {
       setLoadingPatients(true);
       // Filter patients to only show those who have 'arrived' in appointments
-      const arrivedAppointments = await appointmentService.getArrivedAppointments();
+      const arrivedAppointments = await appointmentService.getArrivedAppointments(userData?.facilityId);
       const patientMap = new Map();
       
       arrivedAppointments.forEach(apt => {
@@ -362,6 +361,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
         entryMode,
         createdAt: new Date(),
         doctorName: userData?.name || 'Dr. Dolly Smith', 
+        facilityId: userData?.facilityId, // Include facilityId
         title: activeSpecialties.length > 1 
           ? 'Multi-Specialty Clinical Note' 
           : `${SPECIALTIES.find(s => s.id === activeSpecialties[0]).name} Clinical Note`
@@ -384,7 +384,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           specialties: activeSpecialties,
           recordId: result?.id,
           entryMode,
-          status
+          status,
+          facilityId: userData?.facilityId // Include facilityId in audit metadata
         }
       });
 
@@ -625,10 +626,9 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                                              assessment: parsed.assessment || prev.assessment,
                                              plan: parsed.plan || prev.plan
                                           }));
-                                          
-                                          if (parsed.icd_suggestion) {
-                                              setSuggestedIcds([{ code: parsed.icd_suggestion.split('-')[0].trim(), description: parsed.icd_suggestion.split('-')[1]?.trim() }]);
-                                          }
+                                                                                    if (parsed.icd_suggestion) {
+                                               setIcdSuggestions([{ code: parsed.icd_suggestion.split('-')[0].trim(), description: parsed.icd_suggestion.split('-')[1]?.trim() }]);
+                                           }
                                           success("AI Note Generated Successfully!");
                                       }
 

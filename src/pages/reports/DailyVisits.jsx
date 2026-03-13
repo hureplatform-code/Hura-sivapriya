@@ -5,8 +5,10 @@ import { motion } from 'framer-motion';
 import appointmentService from '../../services/appointmentService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function DailyVisits() {
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [arrivals, setArrivals] = useState([]);
   const [hourlyStats, setHourlyStats] = useState([]);
@@ -19,7 +21,7 @@ export default function DailyVisits() {
   const fetchDailyVisits = async () => {
     try {
       setLoading(true);
-      const appointments = await appointmentService.getAllAppointments();
+      const appointments = await appointmentService.getAllAppointments(userData?.facilityId);
       
       const today = new Date().toLocaleDateString();
       const todayAppointments = appointments.filter(a => new Date(a.date).toLocaleDateString() === today);

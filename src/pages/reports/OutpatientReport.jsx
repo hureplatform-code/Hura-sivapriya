@@ -20,8 +20,10 @@ import medicalRecordService from '../../services/medicalRecordService';
 import appointmentService from '../../services/appointmentService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function OutpatientReport() {
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState([]);
   const [diagnoses, setDiagnoses] = useState([]);
@@ -34,10 +36,11 @@ export default function OutpatientReport() {
   const fetchReportData = async () => {
     try {
       setLoading(true);
+      const facilityId = userData?.facilityId;
       const [patients, records, appointments] = await Promise.all([
-        patientService.getAllPatients(),
-        medicalRecordService.getAllRecords(),
-        appointmentService.getAllAppointments()
+        patientService.getAllPatients(facilityId),
+        medicalRecordService.getAllRecords(facilityId),
+        appointmentService.getAllAppointments(facilityId)
       ]);
 
       // Calculate Total Outpatients (all time)

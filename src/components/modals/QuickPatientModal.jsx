@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Users, Phone, Mail, Calendar, MapPin, CreditCard, ShieldCheck, UserPlus } from 'lucide-react';
 import patientService from '../../services/patientService';
+import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 
 export default function QuickPatientModal({ isOpen, onClose, onSave }) {
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(false);
   const { error: toastError } = useToast();
   const [formData, setFormData] = useState({
@@ -38,6 +40,7 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
       const newPatient = {
         ...formData,
         id: patientId,
+        facilityId: userData?.facilityId, // Associate with clinic
         createdAt: new Date()
       };
       

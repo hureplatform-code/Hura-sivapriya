@@ -13,7 +13,8 @@ import {
   Calendar,
   Stethoscope,
   ClipboardList,
-  ShieldCheck
+  ShieldCheck,
+  CheckCircle2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -50,15 +51,15 @@ export default function Dashboard() {
       
       const promises = [
         userService.getAllUsers(),
-        appointmentService.getAllAppointments(),
-        billingService.getAllInvoices(),
-        billingService.getFinancialStats(),
+        appointmentService.getAllAppointments(isSuperadmin ? null : userData?.facilityId),
+        billingService.getAllInvoices(isSuperadmin ? null : userData?.facilityId),
+        billingService.getFinancialStats(isSuperadmin ? null : userData?.facilityId),
         auditService.getRecentLogs(6, isSuperadmin ? null : userData?.facilityId)
       ];
       
       if (!isSuperadmin) {
-        promises.push(patientService.getAllPatients());
-        promises.push(medicalRecordService.getAllRecords());
+        promises.push(patientService.getAllPatients(userData?.facilityId));
+        promises.push(medicalRecordService.getAllRecords(userData?.facilityId));
       } else {
         promises.push(Promise.resolve([])); // Patients placeholder
         promises.push(Promise.resolve([])); // Records placeholder

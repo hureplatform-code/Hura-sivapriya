@@ -4,8 +4,10 @@ import { where, orderBy, limit } from 'firebase/firestore';
 const inventoryService = {
   collection: firestoreService.collections.inventory,
 
-  async getInventory() {
-    return firestoreService.getAll(this.collection, [orderBy('updatedAt', 'desc')]);
+  async getInventory(facilityId) {
+    const q = [orderBy('updatedAt', 'desc')];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
+    return firestoreService.getAll(this.collection, q);
   },
 
   async addStock(itemData) {

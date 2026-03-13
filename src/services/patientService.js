@@ -1,10 +1,12 @@
 import firestoreService from './firestoreService';
+import { where } from 'firebase/firestore';
 
 const patientService = {
   collection: firestoreService.collections.patients || 'patients',
 
-  async getAllPatients() {
-    return firestoreService.getAll(this.collection);
+  async getAllPatients(facilityId) {
+    const q = facilityId ? [where('facilityId', '==', facilityId)] : [];
+    return firestoreService.getAll(this.collection, q);
   },
 
   async getPatientById(id) {

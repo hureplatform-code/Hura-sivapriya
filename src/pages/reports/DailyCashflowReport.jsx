@@ -7,8 +7,10 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../config';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function DailyCashflowReport() {
+  const { userData } = useAuth();
   const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
@@ -19,7 +21,7 @@ export default function DailyCashflowReport() {
   const fetchCashflow = async () => {
     try {
       setLoading(true);
-      const invoices = await billingService.getAllInvoices();
+      const invoices = await billingService.getAllInvoices(userData?.facilityId);
 
       const today = new Date().toLocaleDateString();
       const todayInvoices = invoices.filter(inv => {

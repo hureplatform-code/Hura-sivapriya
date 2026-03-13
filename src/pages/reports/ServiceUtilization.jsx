@@ -18,8 +18,10 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import billingService from '../../services/billingService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ServiceUtilization() {
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState([]);
   const [peakTraffic, setPeakTraffic] = useState('10:30 AM');
@@ -31,7 +33,7 @@ export default function ServiceUtilization() {
   const fetchUtilizationData = async () => {
     try {
       setLoading(true);
-      const invoices = await billingService.getAllInvoices();
+      const invoices = await billingService.getAllInvoices(userData?.facilityId);
       
       const stats = {
         '1': { name: 'Registration', count: 0, revenue: 0 },

@@ -5,8 +5,9 @@ import { where, orderBy } from 'firebase/firestore';
 const medicalRecordService = {
   collection: firestoreService.collections.medical_records || 'medical_records',
 
-  async getAllRecords() {
+  async getAllRecords(facilityId) {
     const q = [orderBy('createdAt', 'desc')];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
     return firestoreService.getAll(this.collection, q);
   },
 

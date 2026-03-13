@@ -67,7 +67,7 @@ export default function PatientList() {
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      const data = await patientService.getAllPatients();
+      const data = await patientService.getAllPatients(userData?.facilityId);
       setPatients(data || []);
     } catch (error) {
       console.error('Error fetching patients:', error);

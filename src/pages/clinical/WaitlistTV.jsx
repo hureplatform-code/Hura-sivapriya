@@ -2,24 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Users, Activity, Heart, Thermometer, Radio } from 'lucide-react';
 import appointmentService from '../../services/appointmentService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function WaitlistTV() {
+  const { userData } = useAuth();
   const [appointments, setAppointments] = useState([]);
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
-    const fetcher = setInterval(fetchQueue, 10000);
-    fetchQueue();
+    const fetcher = setInterval(() => fetchQueue(userData?.facilityId), 10000);
+    fetchQueue(userData?.facilityId);
     return () => {
       clearInterval(timer);
       clearInterval(fetcher);
     };
   }, []);
 
-  const fetchQueue = async () => {
+  const fetchQueue = async (facilityId) => {
     try {
-      const data = await appointmentService.getAllAppointments();
+      const data = await appointmentService.getAllAppointments(facilityId);
       const waiting = data.filter(a => ['arrived', 'triage', 'in-session'].includes(a.status))
         .sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
       setAppointments(waiting);

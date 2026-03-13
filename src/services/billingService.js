@@ -1,11 +1,13 @@
 import firestoreService from './firestoreService';
 import accountingService from './accountingService';
+import { where } from 'firebase/firestore';
 
 const billingService = {
   collection: firestoreService.collections.billing,
 
-  async getAllInvoices() {
-    return firestoreService.getAll(this.collection);
+  async getAllInvoices(facilityId) {
+    const q = facilityId ? [where('facilityId', '==', facilityId)] : [];
+    return firestoreService.getAll(this.collection, q);
   },
 
   async createInvoice(invoiceData) {
@@ -49,8 +51,8 @@ const billingService = {
      return result;
   },
 
-  async getFinancialStats() {
-    const invoices = await this.getAllInvoices();
+  async getFinancialStats(facilityId) {
+    const invoices = await this.getAllInvoices(facilityId);
     
     const totalRevenue = invoices
       .filter(inv => inv.status === 'paid')

@@ -1,18 +1,18 @@
 import firestoreService from './firestoreService';
-import { where, orderBy } from 'firebase/firestore';
+import { where, orderBy, limit } from 'firebase/firestore';
 
 const appointmentService = {
   collection: firestoreService.collections.appointments,
 
-  async getAllAppointments() {
-    return firestoreService.getAll(this.collection);
+  async getAllAppointments(facilityId) {
+    const q = facilityId ? [where('facilityId', '==', facilityId)] : [];
+    return firestoreService.getAll(this.collection, q);
   },
 
-  async getRecentAppointments() {
-    return firestoreService.getAll(this.collection, [
-      orderBy('createdAt', 'desc'),
-      limit(10)
-    ]);
+  async getRecentAppointments(facilityId) {
+    const q = [orderBy('createdAt', 'desc'), limit(10)];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
+    return firestoreService.getAll(this.collection, q);
   },
 
   async bookAppointment(appointmentData) {
@@ -20,6 +20,11 @@ const appointmentService = {
       ...appointmentData,
       status: 'scheduled'
     });
+  },
+
+  async getAppointmentsByFacility(facilityId) {
+    const q = [where('facilityId', '==', facilityId), orderBy('date', 'desc')];
+    return firestoreService.getAll(this.collection, q);
   },
 
   async updateAppointmentStatus(id, status) {
@@ -34,14 +39,15 @@ const appointmentService = {
     return firestoreService.delete(this.collection, id);
   },
 
-  async getAppointmentsByDoctor(doctorId) {
-    const q = [where('provider', '==', doctorId)];
+  async getAppointmentsByDoctor(doctorId, facilityId) {
+    const q = [where('provider', '==', doctorId), where('facilityId', '==', facilityId)];
     const results = await firestoreService.getAll(this.collection, q);
     return results.sort((a, b) => new Date(b.date) - new Date(a.date));
   },
 
-  async getArrivedAppointments() {
+  async getArrivedAppointments(facilityId) {
     const q = [where('status', '==', 'arrived')];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
     const results = await firestoreService.getAll(this.collection, q);
     return results.sort((a, b) => new Date(b.date) - new Date(a.date));
   }

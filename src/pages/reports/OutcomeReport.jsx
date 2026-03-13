@@ -6,8 +6,10 @@ import medicalRecordService from '../../services/medicalRecordService';
 import userService from '../../services/userService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function OutcomeReport() {
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [outcomes, setOutcomes] = useState([]);
   const [stats, setStats] = useState([]);
@@ -17,9 +19,10 @@ export default function OutcomeReport() {
   const fetchOutcomeData = async () => {
     try {
       setLoading(true);
+      const facilityId = userData?.facilityId;
       const [records, users] = await Promise.all([
-        medicalRecordService.getAllRecords(),
-        userService.getAllUsers(),
+        medicalRecordService.getAllRecords(facilityId),
+        userService.getAllUsers(facilityId),
       ]);
 
       const doctors = users.filter(u => u.role === 'doctor');

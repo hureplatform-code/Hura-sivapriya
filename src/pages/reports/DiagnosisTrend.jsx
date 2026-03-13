@@ -4,8 +4,10 @@ import { TrendingUp, BarChart3, Target, ArrowUpRight, Filter } from 'lucide-reac
 
 import medicalRecordService from '../../services/medicalRecordService';
 import patientService from '../../services/patientService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function DiagnosisTrend() {
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [trends, setTrends] = useState([]);
@@ -19,9 +21,10 @@ export default function DiagnosisTrend() {
   const fetchTrends = async () => {
     try {
       setLoading(true);
+      const facilityId = userData?.facilityId;
       const [records, patients] = await Promise.all([
-        medicalRecordService.getAllRecords(),
-        patientService.getAllPatients()
+        medicalRecordService.getAllRecords(facilityId),
+        patientService.getAllPatients(facilityId)
       ]);
 
       const now = new Date();
