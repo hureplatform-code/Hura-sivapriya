@@ -146,11 +146,12 @@ export function AuthProvider({ children }) {
     signup,
     logout,
     subscriptionStatus,
-    activeStaffCount
+    activeStaffCount,
+    loading
   };
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }
