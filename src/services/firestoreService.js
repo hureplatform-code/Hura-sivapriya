@@ -41,7 +41,7 @@ const firestoreService = {
     wards: 'wards',
     investigations: 'investigations',
     audit_logs: 'audit_logs',
-    hospital_profile: 'hospital_profile',
+    hospital_profile: 'facility_profile',
     roles: 'roles',
     facility_branches: 'facility_branches',
     medical_records: 'medical_records',

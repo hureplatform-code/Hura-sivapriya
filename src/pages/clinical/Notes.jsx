@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import {
-  User, Activity, CheckCircle2, AlertCircle, FileText, Download, TrendingUp, Search, Calendar, Phone, Activity as ActivityIcon, Edit3, Save, Printer, RefreshCw, Eye, Mic, List, Info, ClipboardCheck, ClipboardList, Thermometer, Droplet, Plus, BrainCircuit, Heart, Eye as EyeIcon, Ear, Stethoscope, ChevronRight, History
+  User, Activity, CheckCircle2, AlertCircle, FileText, Download, TrendingUp, 
+  Search, Calendar, Phone, Activity as ActivityIcon, Edit3, Save, Printer, 
+  RefreshCw, Eye, Mic, List, Info, ClipboardCheck, ClipboardList, Thermometer, 
+  Droplet, Plus, BrainCircuit, Heart, Eye as EyeIcon, Ear, Stethoscope, 
+  ChevronRight, History, Smile, Baby, Scissors, Wind, Zap, Brain, Clock, 
+  MoreVertical, X, Droplets
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -13,6 +18,8 @@ import appointmentService from '../../services/appointmentService';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { db } from '../../firebase';
+import { getDoc, doc } from 'firebase/firestore';
 
 const SPECIALTIES = [
   { id: 'general', name: 'General', icon: Stethoscope },
@@ -571,11 +578,20 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                                       
                                       Respond ONLY with raw JSON. Format: {"subjective":"", "objective":"", "assessment":"", "plan":"", "icd_suggestion":""}`;
 
-                                      // Look up key from local storage or prompt user (temporarily simulated if no key is found)
-                                      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+                                      // Look up API key from Platform Settings in Firestore
+                                      let apiKey = '';
+                                      try {
+                                         const docRef = doc(db, 'platform_settings', 'main');
+                                         const docSnap = await getDoc(docRef);
+                                         if (docSnap.exists()) {
+                                            apiKey = docSnap.data().geminiApiKey || '';
+                                         }
+                                      } catch (e) {
+                                         console.error("Error fetching platform key", e);
+                                      }
                                       
                                       if (!apiKey) {
-                                          success("Transcript captured. To auto-format with AI, please add a Gemini API Key in Settings (Simulating basic format for now).");
+                                          success("Transcript captured. To auto-format with AI, please configure the Gemini API Key in Settings.");
                                           // basic fallback
                                           const subjectiveMatch = transcript.match(/Subjective:(.*?)Objective:/i) || transcript.match(/Subjective:(.*)/i);
                                           const objectiveMatch = transcript.match(/Objective:(.*?)Assessment:/i) || transcript.match(/Objective:(.*)/i);

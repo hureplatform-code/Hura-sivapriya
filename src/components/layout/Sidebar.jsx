@@ -18,7 +18,8 @@ import {
   Building2,
   ListRestart,
   History,
-  Database
+  Database,
+  Shield
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -62,7 +63,8 @@ const menuItems = [
       { label: 'Investigation Catalogue', path: '/config/investigations', roles: ['superadmin', 'clinic_owner'] },
       { label: 'ICD-10 Catalogue', path: '/config/icd10', roles: ['superadmin', 'clinic_owner'] },
       { label: 'Pharmacy Setup', path: '/config/pharmacy', roles: ['clinic_owner'] },
-      { label: 'SMS Notifications', path: '/config/sms', roles: ['superadmin'] },
+      { label: 'SMS Notifications', path: '/config/sms', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'AI Note Configuration', path: '/superadmin/settings', roles: ['superadmin'] },
     ]
   },
   {

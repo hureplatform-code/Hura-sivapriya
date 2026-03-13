@@ -20,7 +20,7 @@ const smsProvider = AfricasTalking.SMS;
 // ─────────────────────────────────────────────
 
 async function deductWalletBalance(facilityId, count = 1) {
-    const profileRef = db.collection('hospital_profile').doc(facilityId);
+    const profileRef = db.collection('facility_profile').doc(facilityId);
     return db.runTransaction(async (transaction) => {
         const doc = await transaction.get(profileRef);
         if (!doc.exists) throw new Error("Facility not found");
@@ -116,18 +116,33 @@ async function sendSmsLogic(facilityId, phone, message, type = 'reminder', meta 
 
 exports.sendManualSms = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
-        if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-        const { facilityId, to, message } = req.body;
-        
-        if (!facilityId || !to || !message) {
-            return res.status(400).json({ error: "Missing required fields" });
-        }
+        try {
+            if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+            const { facilityId, to, message } = req.body;
+            
+            if (!facilityId || !to || !message) {
+                return res.status(400).json({ error: "Missing required fields" });
+            }
 
-        const result = await sendSmsLogic(facilityId, to, message, 'manual');
-        if (result.success) {
-            return res.status(200).json(result);
-        } else {
-            return res.status(500).json(result);
+            const result = await sendSmsLogic(facilityId, to, message, 'manual');
+            if (result.success) {
+                return res.status(200).json(result);
+            } else {
+                return res.status(403).json(result); // Forbidden/Insufficient balance
+            }
+        } catch (err) {
+            return res.status(500).json({ success: false, error: err.message });
+        }
+    });
+});
+
+exports.getAtBalance = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        try {
+            const data = await AfricasTalking.APPLICATION.fetchApplicationData();
+            res.status(200).json(data);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
         }
     });
 });
@@ -146,7 +161,7 @@ exports.onAppointmentCreated = functions.firestore
         if (!phone) return null;
 
         try {
-            const facDoc = await db.collection('hospital_profile').doc(facilityId).get();
+            const facDoc = await db.collection('facility_profile').doc(facilityId).get();
             const facility = facDoc.exists ? facDoc.data() : { name: 'HURE Clinic', smsLanguage: 'English' };
 
             const lang = facility.smsLanguage || 'English';
@@ -216,7 +231,7 @@ exports.scheduledMorningReminders = functions.pubsub
 
             // Load facility settings
             if (!facilitiesCache[apt.facilityId]) {
-                const facDoc = await db.collection('hospital_profile').doc(apt.facilityId).get();
+                const facDoc = await db.collection('facility_profile').doc(apt.facilityId).get();
                 facilitiesCache[apt.facilityId] = facDoc.exists ? facDoc.data() : { name: 'HURE Clinic', smsLanguage: 'English' };
             }
             const facility = facilitiesCache[apt.facilityId];

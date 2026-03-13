@@ -9,7 +9,7 @@ const smsSettingsService = {
   async getWallet(facilityId) {
     if (!facilityId) return null;
     try {
-      const snap = await getDoc(doc(db, 'hospital_profile', facilityId));
+      const snap = await getDoc(doc(db, 'facility_profile', facilityId));
       if (!snap.exists()) return null;
       const data = snap.data();
       return {
@@ -28,7 +28,7 @@ const smsSettingsService = {
   async updateLanguage(facilityId, language) {
     if (!facilityId) return false;
     try {
-      await updateDoc(doc(db, 'hospital_profile', facilityId), {
+      await updateDoc(doc(db, 'facility_profile', facilityId), {
         smsLanguage: language
       });
       return true;
@@ -46,7 +46,7 @@ const smsSettingsService = {
     try {
       // In a real app, this would hit a payment gateway first.
       // For now, we instantly top-up the wallet.
-      await updateDoc(doc(db, 'hospital_profile', facilityId), {
+      await updateDoc(doc(db, 'facility_profile', facilityId), {
         smsWalletBalance: increment(amount)
       });
       return true;
@@ -89,18 +89,51 @@ const smsSettingsService = {
   async sendTestSms(facilityId, toPhone, message = "Test message from HURA platform. Africa's Talking API is working!") {
     try {
       const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'huraplatform';
-      // In production, get dynamic region. Assuming us-central1 default.
-      const functionUrl = `https://us-central1-${projectId}.cloudfunctions.net/sendManualSms`;
+      let functionUrl = `https://us-central1-${projectId}.cloudfunctions.net/sendManualSms`;
       
+      // Local development support
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        functionUrl = `http://localhost:5001/${projectId}/us-central1/sendManualSms`;
+      }
+
       const res = await fetch(functionUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ facilityId, to: toPhone, message })
       });
-      return res.ok;
+
+      const data = await res.json();
+      if (res.ok) {
+        return { success: true };
+      } else {
+        return { success: false, error: data.error };
+      }
     } catch (error) {
       console.error('Test SMS failed:', error);
-      return false;
+      return { success: false, error: "Network error or function not found. Did you deploy your functions?" };
+    }
+  },
+
+  /**
+   * Get the global Africa's Talking provider balance (Superadmin only)
+   */
+  async getAtBalance() {
+    try {
+      const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'huraplatform';
+      let functionUrl = `https://us-central1-${projectId}.cloudfunctions.net/getAtBalance`;
+
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        functionUrl = `http://localhost:5001/${projectId}/us-central1/getAtBalance`;
+      }
+
+      const res = await fetch(functionUrl);
+      if (!res.ok) return null;
+      const data = await res.json();
+      // Africa's Talking returns something like { userData: { balance: "KES 5.00" } }
+      return data.userData?.balance || 'Unknown';
+    } catch (error) {
+      console.error('Failed to fetch AT balance:', error);
+      return null;
     }
   }
 };

@@ -15,6 +15,7 @@ import Profile from './pages/master/Profile';
 import Subscriptions from './pages/superadmin/Subscriptions';
 import GlobalAudit from './pages/superadmin/GlobalAudit';
 import SystemCodes from './pages/superadmin/SystemCodes';
+import PlatformSettings from './pages/superadmin/PlatformSettings';
 import Reports from './pages/master/Reports';
 import OutpatientReport from './pages/reports/OutpatientReport';
 import OutcomeReport from './pages/reports/OutcomeReport';
@@ -83,6 +84,7 @@ function App() {
           <Route path="/superadmin/subscriptions" element={<PrivateRoute><Subscriptions /></PrivateRoute>} />
           <Route path="/superadmin/audit" element={<PrivateRoute><GlobalAudit /></PrivateRoute>} />
           <Route path="/superadmin/codes" element={<PrivateRoute><SystemCodes /></PrivateRoute>} />
+          <Route path="/superadmin/settings" element={<PrivateRoute><PlatformSettings /></PrivateRoute>} />
           <Route path="/master/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
           <Route path="/reports/outpatient" element={<PrivateRoute><OutpatientReport /></PrivateRoute>} />
           <Route path="/reports/outcome" element={<PrivateRoute><OutcomeReport /></PrivateRoute>} />

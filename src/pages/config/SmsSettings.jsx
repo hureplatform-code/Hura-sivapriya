@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import smsSettingsService from '../../services/smsSettingsService';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { useToast } from '../../contexts/ToastContext';
+import facilityService from '../../services/facilityService';
 
 // We hardcode KSh pricing per requirements, but use current currency for display
 // (If clinic currency is different, conversions would apply in production)
@@ -17,28 +18,73 @@ const SMS_BUNDLES = [
   { id: 'medium', sms: 2000, price: 1000 },
   { id: 'large', sms: 5000, price: 2200, popular: true }
 ];
-
 export default function SmsSettings() {
   const { userData } = useAuth();
-  const facilityId = userData?.facilityId || null;
   const { currency } = useCurrency();
 
+  const [selectedFacilityId, setSelectedFacilityId] = useState(userData?.facilityId || null);
+  const [facilities, setFacilities] = useState([]);
   const [wallet, setWallet] = useState({ balance: 0, language: 'English' });
+  const [providerBalance, setProviderBalance] = useState(null);
+  const [providerError, setProviderError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(null); // id of bundle being bought
+  const [testPhone, setTestPhone] = useState('');
+  const [isTesting, setIsTesting] = useState(false);
   const [savingLang, setSavingLang] = useState(false);
   const { success, error: toastError } = useToast();
 
+  const isSuperadmin = userData?.role === 'superadmin';
+
   useEffect(() => {
-    fetchWallet();
-  }, [facilityId]);
+    if (isSuperadmin) {
+      fetchFacilities();
+      fetchProviderBalance();
+    }
+  }, []);
+
+  const fetchProviderBalance = async () => {
+    try {
+      setProviderError(null);
+      const bal = await smsSettingsService.getAtBalance();
+      if (bal) {
+        setProviderBalance(bal);
+      } else {
+        setProviderError("Functions not deployed or Blaze plan required.");
+      }
+    } catch (err) {
+      setProviderError("Failed to fetch balance.");
+    }
+  };
+
+  useEffect(() => {
+    if (selectedFacilityId) {
+      fetchWallet();
+    } else {
+      setLoading(false);
+    }
+  }, [selectedFacilityId]);
+
+  const fetchFacilities = async () => {
+    try {
+      const data = await facilityService.getAllFacilities();
+      setFacilities(data || []);
+      if (data && data.length > 0 && !selectedFacilityId) {
+        setSelectedFacilityId(data[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching facilities:', err);
+    }
+  };
 
   const fetchWallet = async () => {
     try {
       setLoading(true);
-      const data = await smsSettingsService.getWallet(facilityId);
+      const data = await smsSettingsService.getWallet(selectedFacilityId);
       if (data) {
         setWallet(data);
+      } else {
+        setWallet({ balance: 0, language: 'English' });
       }
     } catch (err) {
       console.error('Error loading SMS wallet:', err);
@@ -53,30 +99,59 @@ export default function SmsSettings() {
   };
 
   const handleBuyBundle = async (bundle) => {
+    if (!selectedFacilityId) {
+        toastError("Please select a facility first.");
+        return;
+    }
     try {
       setBuying(bundle.id);
-      await smsSettingsService.buyBundle(facilityId, bundle.sms);
+      await smsSettingsService.buyBundle(selectedFacilityId, bundle.sms);
       
       // Update local balance
       setWallet(prev => ({ ...prev, balance: prev.balance + bundle.sms }));
-      showNotif('success', `Successfully added ${bundle.sms} SMS credits to your wallet!`);
+      success(`Successfully added ${bundle.sms} SMS credits to your wallet!`);
     } catch (err) {
-      showNotif('error', 'Payment failed. Could not add credits.');
+      toastError('Payment failed. Could not add credits.');
     } finally {
       setBuying(null);
     }
   };
 
   const handleLanguageChange = async (lang) => {
+    if (!selectedFacilityId) {
+        toastError("Please select a facility first.");
+        return;
+    }
     try {
       setSavingLang(true);
-      await smsSettingsService.updateLanguage(facilityId, lang);
+      await smsSettingsService.updateLanguage(selectedFacilityId, lang);
       setWallet(prev => ({ ...prev, language: lang }));
-      showNotif('success', `SMS language updated to ${lang}`);
+      success(`SMS language updated to ${lang}`);
     } catch (err) {
-      showNotif('error', 'Failed to update SMS language.');
+      console.error("Lang Update Error:", err);
+      toastError('Failed to update SMS language. Please ensure a clinic is selected.');
     } finally {
       setSavingLang(false);
+    }
+  };
+
+  const handleSendTest = async () => {
+    if (!selectedFacilityId) return toastError("Select a facility first");
+    if (!testPhone) return toastError("Enter a phone number (e.g. +254...)");
+    
+    try {
+      setIsTesting(true);
+      const result = await smsSettingsService.sendTestSms(selectedFacilityId, testPhone);
+      if (result.success) {
+        success("Test SMS sent successfully!");
+        fetchWallet(); // Refresh balance
+      } else {
+        toastError(result.error || "Failed to send test SMS. Check your wallet balance.");
+      }
+    } catch (err) {
+      toastError("Error sending test SMS.");
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -120,12 +195,25 @@ export default function SmsSettings() {
             <p className="text-slate-500 mt-1">Manage patient notification credits, top-ups, and auto-reminders.</p>
           </div>
           
-          <button 
-             onClick={() => window.location.href='/config/sms-logs'}
-             className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-medium rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-2"
-          >
-             <FileText className="h-5 w-5" /> SMS Logs
-          </button>
+          <div className="flex items-center gap-3">
+            {isSuperadmin && facilities.length > 0 && (
+              <select
+                value={selectedFacilityId}
+                onChange={(e) => setSelectedFacilityId(e.target.value)}
+                className="px-4 py-3 bg-white border border-slate-200 text-slate-700 font-medium rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none min-w-[200px]"
+              >
+                {facilities.map(f => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            )}
+            <button 
+              onClick={() => window.location.href='/config/sms-logs'}
+              className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-medium rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <FileText className="h-5 w-5" /> SMS Logs
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -133,16 +221,27 @@ export default function SmsSettings() {
             {/* WALLET SECTION */}
             <div className="space-y-6">
                 <div className="bg-primary-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-xl shadow-primary-900/20">
-                    <div className="relative z-10 flex flex-col items-start h-full">
-                        <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold tracking-widest uppercase mb-6 flex items-center gap-2">
-                           <Wallet className="h-3 w-3" /> AT SMS Wallet
-                        </span>
-                        
-                        <div className="flex items-end gap-2 mb-2">
-                            <span className="text-5xl font-bold tracking-tighter">{wallet.balance.toLocaleString()}</span>
-                            <span className="text-primary-200 text-sm font-medium mb-1">credits</span>
+                    <div className="relative z-10 h-full flex flex-col">
+                        <div className="flex items-start justify-between mb-8">
+                            <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider text-white/60 border border-white/10 flex items-center gap-2">
+                                <CreditCard className="h-3 w-3" /> Clinic Hura Wallet
+                            </div>
+                            {isSuperadmin && (
+                                <div className={`px-3 py-1 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-2 transition-all ${providerError ? 'bg-red-500/20 text-red-300 border-red-500/20' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/20'}`} title={providerError || "Master Africa's Talking Balance"}>
+                                    <Globe className="h-3 w-3" /> 
+                                    Provider: {providerError ? 'Not Configured' : (providerBalance || 'Loading...')}
+                                </div>
+                            )}
                         </div>
-                        <p className="text-primary-200 text-sm font-medium leading-relaxed max-w-sm mb-8">
+                        
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-6xl font-bold text-white tabular-nums">
+                                {wallet.balance.toLocaleString()}
+                            </span>
+                            <span className="text-xl font-medium text-white/50">credits</span>
+                        </div>
+                        
+                        <p className="text-white/60 mt-4 text-sm leading-relaxed max-w-xs">
                             This balance is deducted automatically when sending appointment reminders or status updates to patients via Africa's Talking.
                         </p>
 
@@ -164,6 +263,13 @@ export default function SmsSettings() {
                                 </div>
                             </div>
                         )}
+                        
+                        <button 
+                            onClick={() => { fetchWallet(); if(isSuperadmin) fetchProviderBalance(); }}
+                            className="mt-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-primary-300 hover:text-white transition-colors"
+                        >
+                            <RefreshCcw className="h-3 w-3" /> Refresh Balance
+                        </button>
                     </div>
 
                     <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-primary-800 to-transparent pointer-events-none" />
@@ -250,7 +356,7 @@ export default function SmsSettings() {
                         <CalendarClock className="h-5 w-5 text-slate-400" />
                         <h3 className="text-md font-semibold text-slate-900">Automated Schedule</h3>
                     </div>
-                    <ul className="space-y-4">
+                    <ul className="space-y-4 mb-8">
                         <li className="flex gap-4">
                             <div className="h-6 w-6 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-slate-500 shadow-sm">1</div>
                             <div>
@@ -273,6 +379,33 @@ export default function SmsSettings() {
                             </div>
                         </li>
                     </ul>
+
+                    <div className="border-t border-slate-200 pt-8 mt-4">
+                        <h3 className="text-md font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                            <Bell className="h-4 w-4 text-primary-600" /> Test Notification
+                        </h3>
+                        <div className="flex flex-col gap-3">
+                            <input 
+                                type="text"
+                                value={testPhone}
+                                onChange={(e) => setTestPhone(e.target.value)}
+                                placeholder="Enter Phone (e.g. +2547...)"
+                                className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                            />
+                            <button
+                                onClick={handleSendTest}
+                                disabled={isTesting || !testPhone}
+                                className="w-full py-3 bg-primary-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-primary-600/20 disabled:opacity-50"
+                            >
+                                {isTesting ? 'Sending...' : 'Send Test SMS'}
+                            </button>
+                            {providerError && (
+                                <p className="text-[10px] text-red-500 font-medium bg-red-50 px-3 py-2 rounded-lg border border-red-100 italic">
+                                    * Real SMS sending requires Firebase Blaze Plan and function deployment.
+                                </p>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
             </div>

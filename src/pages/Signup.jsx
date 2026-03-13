@@ -35,8 +35,17 @@ export default function Signup() {
     subscriptionPlan: 'Essential'
   });
   const [error, setError] = useState('');
-  const { signup } = useAuth();
+  const { signup, logout } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (step === 4) {
+      const timer = setTimeout(() => {
+        navigate('/login');
+      }, 3000); // 3 second delay to read the success message
+      return () => clearTimeout(timer);
+    }
+  }, [step, navigate]);
 
   const handleNext = () => setStep(step + 1);
   const handleBack = () => setStep(step - 1);
@@ -75,6 +84,9 @@ export default function Signup() {
         facilityId: newFacility.id,
         status: 'active'
       });
+      
+      // Auto-logout so they can sign in properly
+      await logout();
       
       setStep(4); // Success step
     } catch (err) {

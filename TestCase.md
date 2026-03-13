@@ -127,3 +127,17 @@ This document describes the complete lifecycle of a clinic operating within the 
    - *Expected:* The system rejects the route and bounces the user back to the dashboard.
 3. **Empty Searches:** Use the search bar in the patient list with a gibberish string.
    - *Expected:* A clean "No patients found" empty state rather than a broken table or crash.
+
+### 6. SMS Notification System
+1. **Wallet Top-up (Internal):** Click "Buy Now" on a 1,000 SMS bundle.
+   - *Expected:* Credits instantly increase in the Clinic Hura Wallet.
+2. **Language Preference:** Toggle between "English Only" and "English + Swahili".
+   - *Expected:* The "Template Preview" updates instantly with the translated message.
+3. **Manual Test SMS:** Enter a valid phone number (+254...) and click "Send Test SMS".
+   - *Expected:* A success toast appears, and the real phone receives the message (Requires Deployed Functions).
+4. **Automated Reminders:** Schedule an appointment for 2 days from today.
+   - *Expected:* System logs show an SMS queued for the 48-hour reminder.
+5. **Patient Reply (YES):** Reply "YES" to a test reminder.
+   - *Expected:* The appointment status in the dashboard changes to `Confirmed` automatically.
+6. **Patient Reply (NO):** Reply "NO" to a test reminder.
+   - *Expected:* The status changes to `Reschedule Requested` and triggers a notification for the front desk.
