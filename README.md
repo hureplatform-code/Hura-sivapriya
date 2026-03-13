@@ -41,9 +41,11 @@ npm run build
 - **URL**: https://hura-sivapriya.vercel.app/setup-superadmin
 - **only one time setup**
 
-## After upgrades the Firebase plan to "Blaze" run this command
+## Login
+admin
+jebin@justrise.bh
+1234567890
 
-```bash
-npx firebase-tools deploy --only functions --project huraplatform
-```
-
+clinic 
+info@justrise.bh
+123456789
