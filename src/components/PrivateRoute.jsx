@@ -4,16 +4,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { AlertTriangle, Lock } from 'lucide-react';
 
 export default function PrivateRoute({ children }) {
-  const { currentUser, userData, subscriptionStatus, activeStaffCount, logout, loading } = useAuth();
+  const { currentUser, userData, subscriptionStatus, activeStaffCount, logout, initialized } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (loading) {
+  if (!initialized) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
           <div className="h-8 w-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-          <p className="text-slate-500 font-medium animate-pulse">Authenticating Session...</p>
+          <p className="text-slate-500 font-medium animate-pulse tracking-wide">Securing Portal Access...</p>
         </div>
       </div>
     );

@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [activeStaffCount, setActiveStaffCount] = useState(0);
 
@@ -78,12 +79,25 @@ export function AuthProvider({ children }) {
       unsubscribeDoc(); // Unsubscribe previous listener if any
 
       if (user) {
-        setLoading(true);
         // Subscribe to user document changes
-        unsubscribeDoc = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+        unsubscribeDoc = onSnapshot(doc(db, 'users', user.uid), async (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserData(data);
+
+            // Fetch facility data immediately if needed
+            if (data.facilityId && data.role !== 'superadmin') {
+                try {
+                    const facility = await facilityService.getProfile(data.facilityId);
+                    if (facility) {
+                        setSubscriptionStatus(facility.subscription);
+                        const count = await userService.countActiveStaff(data.facilityId);
+                        setActiveStaffCount(count);
+                    }
+                } catch (err) {
+                    console.error("Critical: Failed to fetch subscription during auth init:", err);
+                }
+            }
 
             // Update lastLogin if not already updated this session
             if (!sessionStorage.getItem('login_updated')) {
@@ -98,19 +112,21 @@ export function AuthProvider({ children }) {
                 sessionStorage.setItem('login_updated', 'true');
             }
           } else {
-             // Doc doesn't exist yet (e.g. during signup creation)
              setUserData(null);
           }
           setLoading(false);
+          setInitialized(true);
         }, async (error) => {
           console.error('Error fetching user doc:', error);
           setLoading(false);
+          setInitialized(true);
         });
       } else {
         setUserData(null);
         setSubscriptionStatus(null);
         setActiveStaffCount(0);
         setLoading(false);
+        setInitialized(true);
       }
     });
 
@@ -147,7 +163,8 @@ export function AuthProvider({ children }) {
     logout,
     subscriptionStatus,
     activeStaffCount,
-    loading
+    loading,
+    initialized
   };
   return (
     <AuthContext.Provider value={value}>

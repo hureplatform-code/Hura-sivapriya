@@ -48,4 +48,4 @@ jebin@justrise.bh
 
 clinic 
 info@justrise.bh
-123456789
+1234567890
