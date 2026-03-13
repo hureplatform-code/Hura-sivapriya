@@ -7,6 +7,8 @@ import {
   ArrowLeft, Activity, FileText, Pill, LogOut, CheckSquare, Plus, CheckCircle2, AlertTriangle, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export default function InpatientChart() {
   const { wardId, bedId } = useParams();
@@ -14,9 +16,12 @@ export default function InpatientChart() {
   const { userData } = useAuth();
   
   const [bedDetails, setBedDetails] = useState(null);
-  const [activeTab, setActiveTab] = useState('vitals'); // vitals, notes, mar, discharge
+  const [activeTab, setActiveTab] = useState('vitals');
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const { success, error: toastError } = useToast();
+  const { confirm } = useConfirm();
 
   // Forms
   const [vitalForm, setVitalForm] = useState({ bp: '', temp: '', pulse: '', spO2: '' });
@@ -45,25 +50,40 @@ export default function InpatientChart() {
   const saveVital = async (e) => {
     e.preventDefault();
     if(!bedDetails.patientId) return;
-    await wardService.addChartRecord(bedDetails.patientId, bedDetails.admissionId, 'vital', vitalForm, userData);
-    setVitalForm({ bp: '', temp: '', pulse: '', spO2: '' });
-    fetchData();
+    try {
+      await wardService.addChartRecord(bedDetails.patientId, bedDetails.admissionId, 'vital', vitalForm, userData);
+      setVitalForm({ bp: '', temp: '', pulse: '', spO2: '' });
+      success('Vitals recorded successfully.');
+      fetchData();
+    } catch (error) {
+      toastError('Failed to record vitals.');
+    }
   };
 
   const saveNote = async (e) => {
     e.preventDefault();
     if(!bedDetails.patientId || !noteForm) return;
-    await wardService.addChartRecord(bedDetails.patientId, bedDetails.admissionId, 'note', { content: noteForm }, userData);
-    setNoteForm('');
-    fetchData();
+    try {
+      await wardService.addChartRecord(bedDetails.patientId, bedDetails.admissionId, 'note', { content: noteForm }, userData);
+      setNoteForm('');
+      success('Clinical note saved.');
+      fetchData();
+    } catch (error) {
+      toastError('Failed to save clinical note.');
+    }
   };
 
   const saveMarOrder = async (e) => {
      e.preventDefault();
      if(!bedDetails.patientId) return;
-     await wardService.addChartRecord(bedDetails.patientId, bedDetails.admissionId, 'mar_order', marOrderForm, userData);
-     setMarOrderForm({ medication: '', dose: '', route: '', frequency: '' });
-     fetchData();
+     try {
+       await wardService.addChartRecord(bedDetails.patientId, bedDetails.admissionId, 'mar_order', marOrderForm, userData);
+       setMarOrderForm({ medication: '', dose: '', route: '', frequency: '' });
+       success('Medication order prescribed.');
+       fetchData();
+     } catch (error) {
+       toastError('Failed to prescribe medication.');
+     }
   };
 
   const administerMed = async (orderId) => {
@@ -71,17 +91,36 @@ export default function InpatientChart() {
       const order = records.find(r => r.id === orderId);
       if(!order || !bedDetails.patientId) return;
       
-      await wardService.addChartRecord(bedDetails.patientId, bedDetails.admissionId, 'mar_given', { 
-         medication: order.data.medication,
-         orderId: order.id 
-      }, userData);
-      fetchData();
+      try {
+        await wardService.addChartRecord(bedDetails.patientId, bedDetails.admissionId, 'mar_given', { 
+           medication: order.data.medication,
+           orderId: order.id 
+        }, userData);
+        success(`Administered: ${order.data.medication}`);
+        fetchData();
+      } catch (error) {
+        toastError('Failed to log administration.');
+      }
   };
 
   const handleDischarge = async () => {
-      if(!window.confirm(`Discharge patient ${bedDetails.patient} and free this bed?`)) return;
-      await wardService.dischargePatient(wardId, bedId);
-      navigate('/ward');
+      const isConfirmed = await confirm({
+        title: 'Discharge Patient',
+        message: `Are you sure you want to discharge patient ${bedDetails.patient} and free this bed?`,
+        confirmText: 'Process Discharge',
+        cancelText: 'Cancel',
+        isDestructive: true
+      });
+      
+      if (isConfirmed) {
+        try {
+          await wardService.dischargePatient(wardId, bedId);
+          success('Patient discharged successfully.');
+          navigate('/ward');
+        } catch (error) {
+          toastError('Failed to discharge patient.');
+        }
+      }
   };
 
   if(!bedDetails) {

@@ -19,10 +19,13 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import facilityService from '../../services/facilityService';
 import auditService from '../../services/auditService';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export default function Branches() {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [newBranch, setNewBranch] = useState({
     name: '',
@@ -33,6 +36,8 @@ export default function Branches() {
   });
 
   const { userData, subscriptionStatus } = useAuth();
+  const { warning, success, error: toastError } = useToast();
+  const { confirm } = useConfirm();
 
   React.useEffect(() => {
     if (userData?.facilityId) {
@@ -58,11 +63,12 @@ export default function Branches() {
        // maxLocations includes main clinic. Allowed branches = maxLocations - 1
        const allowedBranches = Math.max(0, (subscriptionStatus.maxLocations || 1) - 1);
        if (branches.length >= allowedBranches) {
-           alert(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxLocations} locations in total. Please upgrade your subscription to add more branches.`);
+           warning(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxLocations} locations in total. Please upgrade your subscription to add more branches.`);
            return;
        }
     }
     
+    setIsSaving(true);
     try {
       const result = await facilityService.addBranch(userData.facilityId, newBranch);
       
@@ -77,14 +83,26 @@ export default function Branches() {
 
       setShowAdd(false);
       setNewBranch({ name: '', location: '', phone: '', email: '', status: 'Active' });
+      success('Branch successfully registered!');
       fetchBranches();
     } catch (error) {
       console.error('Error adding branch:', error);
+      toastError('Failed to add branch.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteBranch = async (id) => {
-    if (window.confirm('Are you sure you want to delete this branch?')) {
+    const isConfirmed = await confirm({
+      title: 'Remove Branch',
+      message: 'Are you sure you want to completely remove this branch? Data linked to this branch will remain in the database but access will be severed.',
+      confirmText: 'Remove Branch',
+      cancelText: 'Cancel',
+      isDestructive: true
+    });
+    
+    if (isConfirmed) {
       try {
         const branchToDelete = branches.find(b => b.id === id);
         await facilityService.deleteBranch(id);
@@ -98,9 +116,11 @@ export default function Branches() {
           metadata: { branchId: id, branchName: branchToDelete?.name, facilityId: userData.facilityId }
         });
 
+        success('Branch has been removed.');
         fetchBranches();
       } catch (error) {
         console.error('Error deleting branch:', error);
+        toastError('Failed to remove branch.');
       }
     }
   };
@@ -118,7 +138,7 @@ export default function Branches() {
               if (userData?.role === 'clinic_owner' && subscriptionStatus) {
                  const allowedBranches = Math.max(0, (subscriptionStatus.maxLocations || 1) - 1);
                  if (branches.length >= allowedBranches) {
-                     alert(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxLocations} locations in total.`);
+                     warning(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxLocations} locations in total.`);
                      return;
                  }
               }
@@ -274,9 +294,14 @@ export default function Branches() {
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 py-4 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
+                    disabled={isSaving}
+                    className="flex-1 py-4 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    Create Branch
+                    {isSaving ? (
+                      <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      'Create Branch'
+                    )}
                   </button>
                 </div>
               </form>

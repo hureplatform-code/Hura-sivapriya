@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
+import { ToastProvider } from './contexts/ToastContext';
+import { ConfirmProvider } from './contexts/ConfirmContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import SetupSuperadmin from './pages/SetupSuperadmin';
@@ -59,7 +61,9 @@ function App() {
   return (
     <AuthProvider>
       <CurrencyProvider>
-      <Router>
+        <ToastProvider>
+          <ConfirmProvider>
+            <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -129,7 +133,9 @@ function App() {
           <Route path="/master/patients" element={<PrivateRoute><PatientList /></PrivateRoute>} />
           <Route path="/master/patients/:id" element={<PrivateRoute><PatientDetails /></PrivateRoute>} />
         </Routes>
-      </Router>
+            </Router>
+          </ConfirmProvider>
+        </ToastProvider>
       </CurrencyProvider>
     </AuthProvider>
   );

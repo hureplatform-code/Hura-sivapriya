@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Users, Phone, Mail, Calendar, MapPin, CreditCard, ShieldCheck, UserPlus } from 'lucide-react';
 import patientService from '../../services/patientService';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function QuickPatientModal({ isOpen, onClose, onSave }) {
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const { error: toastError } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -45,8 +46,7 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
       onClose();
     } catch (error) {
       console.error("Error creating patient:", error);
-      setNotification({ type: 'error', message: "Failed to register patient. Please try again." });
-      setTimeout(() => setNotification(null), 3000);
+      toastError("Failed to register patient. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -320,19 +320,6 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
             </form>
           </motion.div>
         </div>
-      )}
-      {notification && (
-        <motion.div 
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
-        >
-            <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-              {notification.type === 'success' ? <ShieldCheck className="h-5 w-5" /> : <div className="h-5 w-5 rounded-full border-2 border-white" />}
-            </div>
-            {notification.message}
-        </motion.div>
       )}
     </AnimatePresence>
   );

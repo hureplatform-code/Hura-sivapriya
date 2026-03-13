@@ -14,11 +14,12 @@ import {
 import QuickPatientModal from './QuickPatientModal';
 import patientService from '../../services/patientService';
 import userService from '../../services/userService';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function AppointmentModal({ isOpen, onClose, onSave, initialDate }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const { error: toastError } = useToast();
   const [isQuickPatientOpen, setIsQuickPatientOpen] = useState(false);
   
   const [patients, setPatients] = useState([]);
@@ -101,8 +102,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedPatient) {
-      setNotification({ type: 'error', message: "Please select a valid patient first." });
-      setTimeout(() => setNotification(null), 3000);
+      toastError("Please select a valid patient first.");
       return;
     }
 
@@ -361,19 +361,6 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
               )}
             </motion.div>
           </div>
-        )}
-        {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
-          >
-             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-             </div>
-             {notification.message}
-          </motion.div>
         )}
       </AnimatePresence>
 

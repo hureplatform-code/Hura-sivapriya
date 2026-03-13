@@ -22,6 +22,8 @@ import PermissionsEditor from '../../components/modals/PermissionsEditor';
 import userService from '../../services/userService';
 import facilityService from '../../services/facilityService';
 import auditService from '../../services/auditService';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -31,7 +33,8 @@ export default function Users() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [permUserId, setPermUserId] = useState(null);
-  const [notification, setNotification] = useState(null);
+  const { success, error: toastError, warning } = useToast();
+  const { confirm } = useConfirm();
   const [facilities, setFacilities] = useState({});
   const [facilityUsage, setFacilityUsage] = useState({}); // { facilityId: { count: 3, max: 5, plan: 'Pro' } }
 
@@ -88,15 +91,10 @@ export default function Users() {
     }
   };
 
-  const showNotification = (msg) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
-  };
-
   const handleCreateNew = () => {
     if (userData?.role === 'clinic_owner' && subscriptionStatus) {
        if (activeStaffCount >= subscriptionStatus.maxStaff) {
-          showNotification(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxStaff} staff members.`);
+          warning(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxStaff} staff members.`);
           return;
        }
     }
@@ -132,7 +130,7 @@ export default function Users() {
         });
 
         setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, ...updateData } : u));
-        showNotification('User updated successfully!');
+        success('User updated successfully!');
       } else {
         const { password, ...profileData } = finalData;
         
@@ -162,7 +160,7 @@ export default function Users() {
            });
 
            setUsers(prev => [savedUser, ...prev]);
-           showNotification('Staff account and profile created!');
+           success('Staff account and profile created!');
         } else {
            // Fallback for cases where password might be missing (should be required in modal)
            const savedUser = await userService.createUser(profileData);
@@ -177,21 +175,29 @@ export default function Users() {
            });
 
            setUsers(prev => [savedUser, ...prev]);
-           showNotification('Profile created (No Auth Account)');
+           success('Profile created (No Auth Account)');
         }
       }
     } catch (error) {
       console.error("Save user error:", error);
       let message = error.message;
       if (error.code === 'auth/email-already-in-use') {
-        message = "This email was partially registered in a previous failed attempt. Please use a different email or delete the 'Ghost' account from Firebase Auth Console.";
+        message = "This email was partially registered in a previous failed attempt. Please use a different email or delete from Firebase Auth.";
       }
-      showNotification(`Failed: ${message}`);
+      toastError(`Failed: ${message}`);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    const isConfirmed = await confirm({
+       title: 'Remove User Account',
+       message: 'Are you sure you want to completely remove this user? This action cannot be undone.',
+       confirmText: 'Remove User',
+       cancelText: 'Cancel',
+       isDestructive: true
+    });
+    
+    if (isConfirmed) {
       try {
         const targetUser = users.find(u => u.id === id);
         await userService.deleteUser(id);
@@ -206,10 +212,10 @@ export default function Users() {
         });
 
         setUsers(prev => prev.filter(u => u.id !== id));
-        showNotification('User removed successfully.');
+        success('User removed successfully.');
       } catch (error) {
         console.error("Delete user error:", error);
-        showNotification('Failed to delete user.');
+        toastError('Failed to delete user.');
       }
     }
   };
@@ -408,18 +414,12 @@ export default function Users() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {notification && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: 50, x: '-50%' }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm min-w-[300px]"
-          >
-            <div className="h-8 w-8 bg-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            {notification}
-          </motion.div>
+        {permUserId && (
+          <PermissionsEditor 
+            userId={permUserId} 
+            userName={users.find(u => u.id === permUserId)?.name}
+            onClose={() => setPermUserId(null)} 
+          />
         )}
       </AnimatePresence>
     </DashboardLayout>

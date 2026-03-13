@@ -22,6 +22,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import patientService from '../../services/patientService';
 import QuickPatientModal from '../../components/modals/QuickPatientModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export default function PatientList() {
   const navigate = useNavigate();
@@ -31,9 +33,10 @@ export default function PatientList() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [genderFilter, setGenderFilter] = useState('All');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [notification, setNotification] = useState(null);
 
   const { userData } = useAuth();
+  const { success, error: toastError } = useToast();
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     fetchPatients();
@@ -74,16 +77,22 @@ export default function PatientList() {
   };
 
   const handleDeletePatient = async (id) => {
-    if (window.confirm('Are you sure you want to permanently delete this patient record?')) {
+    const isConfirmed = await confirm({
+      title: 'Delete Patient Record',
+      message: 'Are you sure you want to permanently delete this patient record? This action cannot be undone and will remove all associated clinical data.',
+      confirmText: 'Delete Record',
+      cancelText: 'Cancel',
+      isDestructive: true
+    });
+    
+    if (isConfirmed) {
       try {
         await patientService.deletePatient(id);
         fetchPatients();
-        setNotification({ type: 'success', message: 'Patient deleted successfully.' });
-        setTimeout(() => setNotification(null), 3000);
+        success('Patient record deleted successfully.');
       } catch (error) {
         console.error('Error deleting patient:', error);
-        setNotification({ type: 'error', message: 'Error deleting patient.' });
-        setTimeout(() => setNotification(null), 3000);
+        toastError('Failed to delete patient record.');
       }
     }
   };
@@ -279,25 +288,9 @@ export default function PatientList() {
         onClose={() => setIsRegisterModalOpen(false)}
         onSave={(data) => {
            handlePatientRegistered(data);
-           setNotification({ type: 'success', message: 'Patient registered successfully.' });
-           setTimeout(() => setNotification(null), 3000);
+           success('Patient registered successfully.');
         }}
       />
-      <AnimatePresence>
-        {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
-          >
-             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <div className="h-5 w-5 rounded-full border-2 border-white" />}
-             </div>
-             {notification.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </DashboardLayout>
   );
 }

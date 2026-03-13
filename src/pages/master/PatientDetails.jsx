@@ -29,6 +29,8 @@ import medicalRecordService from '../../services/medicalRecordService';
 import patientDocumentsService from '../../services/patientDocumentsService';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Printer } from 'lucide-react';
@@ -45,6 +47,8 @@ export default function PatientDetails() {
   const [isUploading, setIsUploading] = useState(false);
 
   const { userData } = useAuth();
+  const { success, error: toastError } = useToast();
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     if (id) {
@@ -173,8 +177,10 @@ export default function PatientDetails() {
       await patientService.updatePatient(id, formData);
       setPatient(formData);
       setIsEditing(false);
+      success('Patient bio-data updated successfully.');
     } catch (error) {
       console.error('Error updating patient:', error);
+      toastError('Failed to update patient data.');
     }
   };
 
@@ -204,16 +210,27 @@ export default function PatientDetails() {
          description: `Uploaded digital archive: ${file.name} for ${patient.name}`,
          metadata: { patientId: id, fileName: file.name }
        });
+       
+       success('Document archived successfully.');
 
      } catch (error) {
        console.error('Upload error:', error);
+       toastError('Failed to upload document.');
      } finally {
        setIsUploading(false);
      }
   };
 
   const handleDeleteDocument = async (docId, fileName) => {
-    if (window.confirm(`Are you sure you want to PERMANENTLY delete ${fileName}?`)) {
+    const isConfirmed = await confirm({
+      title: 'Delete Document',
+      message: `Are you sure you want to PERMANENTLY delete ${fileName}? This will completely remove it from the patient's archives.`,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
+      isDestructive: true
+    });
+    
+    if (isConfirmed) {
       try {
         await patientDocumentsService.deleteDocument(docId);
         setDocuments(prev => prev.filter(d => d.id !== docId));
@@ -226,8 +243,11 @@ export default function PatientDetails() {
           description: `Deleted digital archive: ${fileName} from ${patient.name}'s profile`,
           metadata: { patientId: id, documentId: docId }
         });
+        
+        success('Document deleted successfully.');
       } catch (error) {
         console.error('Delete error:', error);
+        toastError('Failed to delete document.');
       }
     }
   };

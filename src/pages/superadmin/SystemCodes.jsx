@@ -16,14 +16,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import firestoreService from '../../services/firestoreService';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export default function SystemCodes() {
   const { userData } = useAuth();
+  const { success, error } = useToast();
+  const { confirm } = useConfirm();
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState('All');
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [newCode, setNewCode] = useState({ code: '', description: '', type: 'ICD-10', category: 'General' });
 
   useEffect(() => {
@@ -49,6 +54,8 @@ export default function SystemCodes() {
 
   const handleInject = async (e) => {
     e.preventDefault();
+    if (isSaving) return;
+    setIsSaving(true);
     try {
       const collection = newCode.type === 'ICD-10' 
         ? firestoreService.collections.icd_masters 
@@ -67,14 +74,26 @@ export default function SystemCodes() {
 
       setIsAdding(false);
       setNewCode({ code: '', description: '', type: 'ICD-10', category: 'General' });
+      success(`Successfully injected master code: ${newCode.code}`);
       fetchCodes();
-    } catch (error) {
-       console.error('Error injecting code:', error);
+    } catch (err) {
+       console.error('Error injecting code:', err);
+       error(`Failed to inject system code: ${err.message || 'Unknown error'}`);
+    } finally {
+       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id, type) => {
-    if (window.confirm('Are you sure you want to delete this global master code?')) {
+    const isConfirmed = await confirm({
+       title: 'Delete Global Master Code',
+       message: `Are you sure you want to delete this global ${type} code? This terminology change impacts all running organizations.`,
+       confirmText: 'Delete Code',
+       cancelText: 'Cancel',
+       isDestructive: true
+    });
+    
+    if (isConfirmed) {
       try {
         const collection = type === 'ICD-10' 
           ? firestoreService.collections.icd_masters 
@@ -92,9 +111,11 @@ export default function SystemCodes() {
           metadata: { codeId: id, code: codeToRemove?.code, type }
         });
 
+        success(`Code ${codeToRemove?.code} successfully removed.`);
         fetchCodes();
-      } catch (error) {
-        console.error('Error deleting code:', error);
+      } catch (err) {
+        console.error('Error deleting code:', err);
+        error('Failed to eliminate master code.');
       }
     }
   };
@@ -258,8 +279,10 @@ export default function SystemCodes() {
                         />
                      </div>
                      <div className="flex gap-3 pt-4">
-                        <button type="button" onClick={() => setIsAdding(false)} className="flex-1 py-4 bg-slate-50 font-medium text-[10px] uppercase tracking-widest text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
-                        <button type="submit" className="flex-1 py-4 bg-slate-900 font-medium text-[10px] uppercase tracking-widest text-white rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all">Commit Injection</button>
+                        <button type="button" disabled={isSaving} onClick={() => setIsAdding(false)} className="flex-1 py-4 bg-slate-50 font-medium text-[10px] uppercase tracking-widest text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
+                        <button type="submit" disabled={isSaving} className={`flex-1 py-4 bg-slate-900 font-medium text-[10px] uppercase tracking-widest text-white rounded-2xl transition-all ${isSaving ? 'opacity-50 cursor-not-allowed shadow-none' : 'shadow-xl shadow-slate-200 hover:bg-slate-800'}`}>
+                           {isSaving ? 'Injecting...' : 'Commit Injection'}
+                        </button>
                      </div>
                   </form>
                </motion.div>

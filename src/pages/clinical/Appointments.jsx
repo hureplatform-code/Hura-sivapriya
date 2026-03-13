@@ -24,6 +24,8 @@ import AppointmentModal from '../../components/modals/AppointmentModal';
 import appointmentService from '../../services/appointmentService';
 import AppointmentSummaryModal from '../../components/modals/AppointmentSummaryModal';
 import medicalRecordService from '../../services/medicalRecordService';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export default function Appointments() {
   const navigate = useNavigate();
@@ -39,7 +41,8 @@ export default function Appointments() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [specialtyFilter, setSpecialtyFilter] = useState('All');
-  const [notification, setNotification] = useState(null);
+  const { success, warning, error: toastError } = useToast();
+  const { confirm } = useConfirm();
 
   if (userData?.role === 'superadmin') {
     return (
@@ -100,13 +103,11 @@ export default function Appointments() {
     try {
       const newAppointment = await appointmentService.bookAppointment(data);
       setAppointments(prev => [newAppointment, ...prev]);
-      setNotification({ type: 'success', message: 'Appointment booked successfully!' });
-      setTimeout(() => setNotification(null), 3000);
+      success('Appointment booked successfully!');
     } catch (error) {
       console.error("Error booking appointment, adding with mock ID:", error);
       setAppointments(prev => [{ ...data, id: Date.now().toString(), status: 'scheduled' }, ...prev]);
-      setNotification({ type: 'warning', message: 'Offline booking created.' });
-      setTimeout(() => setNotification(null), 3000);
+      warning('Offline booking created.');
     }
     setIsModalOpen(false);
   };
@@ -121,8 +122,7 @@ export default function Appointments() {
     try {
       await appointmentService.updateAppointmentStatus(id, status);
       fetchAppointments();
-      setNotification({ type: 'success', message });
-      setTimeout(() => setNotification(null), 3000);
+      success(message);
     } catch (error) {
       console.error(`Error updating status to ${status}:`, error);
     }
@@ -136,35 +136,50 @@ export default function Appointments() {
       // In a real app we would log the staff id/time for audit here.
       await appointmentService.updateAppointment(id, { confirmationStatus: nextStatus });
       fetchAppointments();
-      setNotification({ type: 'success', message: `Confirmation status updated to ${nextStatus}.` });
-      setTimeout(() => setNotification(null), 3000);
+      success(`Confirmation status updated to ${nextStatus}.`);
     } catch (error) {
       console.error('Error updating confirmation:', error);
     }
   };
 
   const handleCancelAppointment = async (id) => {
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
+    const isConfirmed = await confirm({
+      title: 'Cancel Appointment',
+      message: 'Are you sure you want to cancel this appointment?',
+      confirmText: 'Cancel Appointment',
+      cancelText: 'Keep Appointment',
+      isDestructive: true
+    });
+    
+    if (isConfirmed) {
       try {
         await appointmentService.updateAppointment(id, { status: 'cancelled' });
         fetchAppointments();
-        setNotification({ type: 'success', message: 'Appointment cancelled successfully.' });
-        setTimeout(() => setNotification(null), 3000);
+        success('Appointment cancelled successfully.');
       } catch (error) {
         console.error('Error cancelling appointment:', error);
+        toastError('Failed to cancel appointment.');
       }
     }
   };
 
   const handleDeleteAppointment = async (id) => {
-    if (window.confirm('Are you sure you want to permanently delete this appointment?')) {
+    const isConfirmed = await confirm({
+      title: 'Delete Appointment',
+      message: 'Are you sure you want to permanently delete this appointment? This action cannot be undone.',
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
+      isDestructive: true
+    });
+    
+    if (isConfirmed) {
       try {
         await appointmentService.deleteAppointment(id);
         fetchAppointments();
-        setNotification({ type: 'success', message: 'Appointment deleted successfully.' });
-        setTimeout(() => setNotification(null), 3000);
+        success('Appointment deleted successfully.');
       } catch (error) {
         console.error('Error deleting appointment:', error);
+        toastError('Failed to delete appointment.');
       }
     }
   };
@@ -557,22 +572,6 @@ export default function Appointments() {
             onClose={() => setIsTriageOpen(false)}
             onSave={handleSaveTriage}
           />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
-          >
-             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-             </div>
-             {notification.message}
-          </motion.div>
         )}
       </AnimatePresence>
     </DashboardLayout>
