@@ -36,9 +36,11 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
     e.preventDefault();
     setLoading(true);
     try {
+      const sanitizedMobile = formData.mobile.replace(/[\s\-\(\)]/g, '');
       const patientId = `PAT-${Date.now().toString().slice(-6)}`;
       const newPatient = {
         ...formData,
+        mobile: sanitizedMobile,
         id: patientId,
         facilityId: userData?.facilityId, // Associate with clinic
         createdAt: new Date()

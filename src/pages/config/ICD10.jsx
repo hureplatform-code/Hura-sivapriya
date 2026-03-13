@@ -187,7 +187,7 @@ export default function ICD10() {
                         <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">{icd.category}</span>
                       </td>
                       <td className="py-5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="flex items-center justify-end gap-1 transition-all">
                           <button onClick={() => openEdit(icd)}
                             className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all">
                             <Edit2 className="h-4 w-4" />

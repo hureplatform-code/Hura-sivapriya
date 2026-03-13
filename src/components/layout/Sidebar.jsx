@@ -19,7 +19,8 @@ import {
   ListRestart,
   History,
   Database,
-  Shield
+  Shield,
+  MessageSquare
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -97,6 +98,7 @@ const menuItems = [
       { label: 'Billing / Invoices', path: '/billing', roles: ['clinic_owner', 'admin', 'receptionist'] },
       { label: 'General Ledger', path: '/accounting', roles: ['clinic_owner', 'admin'] },
       { label: 'Platform Revenue', path: '/accounting', roles: ['superadmin'] },
+      { label: 'Expenses', path: '/expenses', roles: ['superadmin', 'clinic_owner', 'admin'] },
     ]
   },
   {
@@ -176,6 +178,7 @@ export default function Sidebar() {
   
   if (!role) return null; // Still loading or something else
   const [facilityProfile, setFacilityProfile] = useState(null);
+  const [providerBalance, setProviderBalance] = useState(null);
 
   React.useEffect(() => {
     if (userData?.facilityId) {
@@ -185,7 +188,15 @@ export default function Sidebar() {
           });
        });
     }
-  }, [userData?.facilityId]);
+
+    if (role === 'superadmin') {
+      import('../../services/smsSettingsService').then(m => {
+        m.default.getAtBalance().then(bal => {
+          if (bal) setProviderBalance(bal);
+        });
+      });
+    }
+  }, [userData?.facilityId, role]);
 
   const filteredMenuItems = menuItems.filter(item => 
     !item.roles || item.roles.includes(role)
@@ -291,6 +302,23 @@ export default function Sidebar() {
             Logout Session
           </button>
         </div>
+
+        {/* Superadmin Provider Balance Health Widget */}
+        {role === 'superadmin' && providerBalance && (
+          <div className="mt-4 p-4 rounded-[1.5rem] bg-slate-900 text-white shadow-xl shadow-slate-200 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">AT Master Balance</span>
+                <div className={`h-2 w-2 rounded-full ${providerBalance.includes('-') ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
+              </div>
+              <p className="text-lg font-bold tabular-nums">{providerBalance}</p>
+              {providerBalance.includes('-') && (
+                <p className="text-[9px] text-red-400 font-medium mt-1 leading-tight">Critical: SMS Delivery Halted. Re-charge required.</p>
+              )}
+            </div>
+            <MessageSquare className="absolute -right-4 -bottom-4 h-16 w-16 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
+          </div>
+        )}
       </div>
     </aside>
   );

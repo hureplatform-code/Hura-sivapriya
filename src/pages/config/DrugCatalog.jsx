@@ -201,13 +201,13 @@ export default function DrugCatalog() {
                         <Tag className={`h-5 w-5 mx-auto ${item.taxable ? 'text-emerald-500' : 'text-slate-200'}`} />
                       </td>
                       <td className="px-8 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="flex items-center justify-end gap-2 transition-all">
                           <button onClick={() => openEdit(item)}
-                            className="p-2 text-slate-300 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all">
+                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all">
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button onClick={() => setDeleteConfirm(item)}
-                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>

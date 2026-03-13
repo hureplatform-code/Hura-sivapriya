@@ -1,10 +1,13 @@
 import firestoreService from './firestoreService';
+import { where, orderBy } from 'firebase/firestore';
 
 const accountingService = {
   collection: firestoreService.collections.ledgers,
 
-  async getAllEntries() {
-    return firestoreService.getAll(this.collection);
+  async getAllEntries(facilityId) {
+    const q = [orderBy('createdAt', 'desc')];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
+    return firestoreService.getAll(this.collection, q);
   },
 
   async createEntry(entryData) {

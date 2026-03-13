@@ -32,6 +32,7 @@ export default function Ward() {
   const [isAdmitting, setIsAdmitting] = useState(false);
   const [isAddingWard, setIsAddingWard] = useState(false);
   const [isAddingBed, setIsAddingBed] = useState(false);
+  const [activeBedMenu, setActiveBedMenu] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -109,6 +110,16 @@ export default function Ward() {
     await wardService.updateBedStatus(data.wardId, data.bedId, 'occupied', data);
     fetchWards();
     setIsAdmitting(false);
+  };
+
+  const handleStatusChange = async (bed, newStatus) => {
+    try {
+      await wardService.updateBedStatus(selectedWard.id, bed.id, newStatus, null);
+      fetchWards();
+      setActiveBedMenu(null);
+    } catch (e) {
+      console.error("Error updating bed status", e);
+    }
   };
 
   if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-medium text-slate-500">Mapping Units...</div></DashboardLayout>;
@@ -224,9 +235,67 @@ export default function Ward() {
                         `}>
                            <Bed className="h-6 w-6" />
                         </div>
-                        <button className="p-2 text-slate-300 hover:text-slate-900 opacity-0 group-hover:opacity-100 transition-all">
-                           <MoreVertical className="h-5 w-5" />
-                        </button>
+                        <div className="relative">
+                           <button 
+                             onClick={() => setActiveBedMenu(activeBedMenu === bed.id ? null : bed.id)}
+                             className="p-2 text-slate-400 hover:text-slate-900 transition-all rounded-lg hover:bg-slate-50"
+                           >
+                             <MoreVertical className="h-5 w-5" />
+                           </button>
+
+                           <AnimatePresence>
+                             {activeBedMenu === bed.id && (
+                               <>
+                                 <div 
+                                   className="fixed inset-0 z-10" 
+                                   onClick={() => setActiveBedMenu(null)}
+                                 ></div>
+                                 <motion.div
+                                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                   className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-20 overflow-hidden"
+                                 >
+                                    <h4 className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50/50">Management</h4>
+                                    {bed.status === 'occupied' ? (
+                                      <button 
+                                        onClick={() => handleStatusChange(bed, 'empty')}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                      >
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Discharge Patient
+                                      </button>
+                                    ) : (
+                                      <button 
+                                        onClick={() => { setIsAdmitting(true); setActiveBedMenu(null); }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                                      >
+                                        <UserPlus className="h-4 w-4" />
+                                        Admit Patient
+                                      </button>
+                                    )}
+                                    <button 
+                                      onClick={() => handleStatusChange(bed, bed.status === 'maintenance' ? 'empty' : 'maintenance')}
+                                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors
+                                        ${bed.status === 'maintenance' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'}
+                                      `}
+                                    >
+                                      <AlertCircle className="h-4 w-4" />
+                                      {bed.status === 'maintenance' ? 'Back to Service' : 'Maintenance Mode'}
+                                    </button>
+                                    <div className="h-px bg-slate-50 my-1"></div>
+                                    <button 
+                                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-50 transition-colors"
+                                      onClick={() => setActiveBedMenu(null)}
+                                    >
+                                      <Layers className="h-4 w-4" />
+                                      Bed Details
+                                    </button>
+                                 </motion.div>
+                               </>
+                             )}
+                           </AnimatePresence>
+                        </div>
                      </div>
 
                      <div className="space-y-1">

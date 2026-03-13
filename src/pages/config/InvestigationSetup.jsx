@@ -173,7 +173,7 @@ export default function InvestigationSetup() {
                       <td className="py-5 px-4 text-sm font-medium text-slate-500">{item.category || '—'}</td>
                       <td className="py-5 px-4 font-medium text-slate-900 text-sm">{item.price ? `${currency} ${item.price}` : '—'}</td>
                       <td className="py-5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="flex items-center justify-end gap-1 transition-all">
                           <button onClick={() => openEdit(item)}
                             className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all">
                             <Edit2 className="h-4 w-4" />

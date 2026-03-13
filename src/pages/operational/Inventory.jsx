@@ -34,6 +34,8 @@ export default function Inventory() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('All');
 
@@ -81,6 +83,21 @@ export default function Inventory() {
     (category === 'All' || item.category === category)
   );
 
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setIsAdding(true);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await inventoryService.deleteItem(id);
+      fetchInventory();
+      setDeleteConfirmation(null);
+    } catch (e) {
+      console.error('Error deleting item:', e);
+    }
+  };
+
   const stats = [
     { label: 'Total Items', value: items.length, icon: Package, color: 'text-slate-900', bg: 'bg-slate-50' },
     { label: 'Low Stock', value: items.filter(i => i.stock < 20).length, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
@@ -98,7 +115,10 @@ export default function Inventory() {
             <p className="text-slate-500 font-medium mt-1">Manage stocks, batches, and categorical supplies.</p>
           </div>
           <button 
-            onClick={() => setIsAdding(true)}
+            onClick={() => {
+              setEditingItem(null);
+              setIsAdding(true);
+            }}
             className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
           >
             <PlusCircle className="h-5 w-5" />
@@ -213,11 +233,17 @@ export default function Inventory() {
                       <p className="font-medium text-slate-900 text-base">{currency} {item.price.toFixed(2)}</p>
                     </td>
                     <td className="py-6 px-6 text-right">
-                       <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-3 bg-white text-slate-400 hover:text-slate-900 rounded-xl shadow-sm border border-slate-100 transition-all">
+                       <div className="flex items-center justify-end gap-3 transition-opacity">
+                          <button 
+                            onClick={() => handleEdit(item)}
+                            className="p-3 bg-white text-slate-400 hover:text-slate-900 rounded-xl shadow-sm border border-slate-100 transition-all"
+                          >
                              <Edit2Icon className="h-4.5 w-4.5" />
                           </button>
-                          <button className="p-3 bg-white text-slate-400 hover:text-red-500 rounded-xl shadow-sm border border-slate-100 transition-all">
+                          <button 
+                            onClick={() => setDeleteConfirmation(item)}
+                            className="p-3 bg-white text-slate-400 hover:text-red-500 rounded-xl shadow-sm border border-slate-100 transition-all"
+                          >
                              <Trash2 className="h-4.5 w-4.5" />
                           </button>
                        </div>
@@ -230,31 +256,75 @@ export default function Inventory() {
         </div>
       </div>
 
-      <AnimatePresence>
+       <AnimatePresence>
         {isAdding && (
           <InboundModal 
-            onClose={() => setIsAdding(false)} 
-            onSave={() => { setIsAdding(false); fetchInventory(); }}
+            onClose={() => {
+              setIsAdding(false);
+              setEditingItem(null);
+            }} 
+            onSave={() => { 
+              setIsAdding(false); 
+              setEditingItem(null);
+              fetchInventory(); 
+            }}
+            editData={editingItem}
           />
+        )}
+
+        {deleteConfirmation && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl text-center"
+            >
+              <div className="h-20 w-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Trash2 className="h-10 w-10" />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 tracking-tight mb-2">Confirm Delete</h3>
+              <p className="text-sm text-slate-500 font-medium mb-8">
+                Are you sure you want to remove <b>{deleteConfirmation.name}</b> from inventory? This action cannot be undone.
+              </p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setDeleteConfirmation(null)}
+                  className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => handleDelete(deleteConfirmation.id)}
+                  className="flex-1 py-4 bg-red-500 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </DashboardLayout>
   );
 }
 
-function InboundModal({ onClose, onSave }) {
+function InboundModal({ onClose, onSave, editData }) {
   const [formData, setFormData] = useState({
-    name: '',
-    category: 'Pharmacological',
-    stock: 0,
-    batch: '',
-    expiry: '',
-    price: 0
+    name: editData?.name || '',
+    category: editData?.category || 'Pharmacological',
+    stock: editData?.stock || 0,
+    batch: editData?.batch || '',
+    expiry: editData?.expiry || '',
+    price: editData?.price || 0
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await inventoryService.addStock(formData);
+    if (editData) {
+      await inventoryService.updateItem(editData.id, formData);
+    } else {
+      await inventoryService.addStock(formData);
+    }
     onSave();
   };
 
@@ -276,7 +346,7 @@ function InboundModal({ onClose, onSave }) {
                  <Package className="h-7 w-7" />
               </div>
               <div>
-                <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Stock Inbound</h3>
+                <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">{editData ? 'Update Stock' : 'Stock Inbound'}</h3>
                 <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">Inventory Logistics Portal</p>
               </div>
            </div>
@@ -346,7 +416,9 @@ function InboundModal({ onClose, onSave }) {
 
           <div className="flex gap-4 pt-6">
             <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-100 transition-all">Cancel</button>
-            <button type="submit" className="flex-1 px-8 py-5 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200">Commit to Stock</button>
+            <button type="submit" className="flex-1 px-8 py-5 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200">
+               {editData ? 'Sync Changes' : 'Commit to Stock'}
+            </button>
           </div>
         </form>
       </motion.div>

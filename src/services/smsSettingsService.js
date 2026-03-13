@@ -120,8 +120,9 @@ const smsSettingsService = {
       const res = await fetch(functionUrl);
       if (!res.ok) return null;
       const data = await res.json();
-      // Africa's Talking returns something like { userData: { balance: "KES 5.00" } }
-      return data.userData?.balance || 'Unknown';
+      // Africa's Talking returns keys in different casing depending on SDK version
+      const userData = data.UserData || data.userData;
+      return userData?.balance || 'Unknown';
     } catch (error) {
       console.error('Failed to fetch AT balance:', error);
       return null;

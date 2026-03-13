@@ -69,8 +69,13 @@ export default function SmsSettings() {
     try {
       const data = await facilityService.getAllFacilities();
       setFacilities(data || []);
-      if (data && data.length > 0 && !selectedFacilityId) {
-        setSelectedFacilityId(data[0].id);
+      
+      // If superadmin and current selected id is invalid/missing, select first available
+      if (data && data.length > 0) {
+        const isValid = data.some(f => f.id === selectedFacilityId);
+        if (!selectedFacilityId || !isValid) {
+            setSelectedFacilityId(data[0].id);
+        }
       }
     } catch (err) {
       console.error('Error fetching facilities:', err);
@@ -103,13 +108,23 @@ export default function SmsSettings() {
         toastError("Please select a facility first.");
         return;
     }
+
+    // Check if provider has enough real balance to fulfill this (warn superadmin)
+    if (isSuperadmin && providerBalance && providerBalance.includes('-')) {
+        const proceed = window.confirm("CRITICAL: The master Africa's Talking balance is NEGATIVE. Clinics can buy credits, but SMS WILL NOT BE DELIVERED until you top up the AT account. Proceed with credit assignment anyway?");
+        if (!proceed) return;
+    }
+
     try {
       setBuying(bundle.id);
       await smsSettingsService.buyBundle(selectedFacilityId, bundle.sms);
       
-      // Update local balance
+      // Update local wallet view
       setWallet(prev => ({ ...prev, balance: prev.balance + bundle.sms }));
-      success(`Successfully added ${bundle.sms} SMS credits to your wallet!`);
+      success(`Successfully added ${bundle.sms} SMS credits to the clinic wallet!`);
+      
+      // Refresh provider balance if it's the superadmin
+      if (isSuperadmin) fetchProviderBalance();
     } catch (err) {
       toastError('Payment failed. Could not add credits.');
     } finally {
@@ -215,6 +230,31 @@ export default function SmsSettings() {
             </button>
           </div>
         </div>
+
+        {isSuperadmin && providerBalance && providerBalance.includes('-') && (
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-50 border-2 border-red-200 p-6 rounded-[2rem] flex items-center gap-6 shadow-lg shadow-red-100"
+            >
+                <div className="h-16 w-16 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 shrink-0">
+                    <AlertTriangle className="h-8 w-8 animate-pulse" />
+                </div>
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold text-red-900">Africa's Talking Account Depleted</h3>
+                    <p className="text-red-700 font-medium text-sm mt-1">
+                        Your master balance is <span className="underline font-bold">{providerBalance}</span>. 
+                        No SMS can be sent across the entire platform until you top up the Africa's Talking account.
+                    </p>
+                </div>
+                <button 
+                    onClick={() => window.open('https://dashboard.africastalking.com', '_blank')}
+                    className="px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all whitespace-nowrap shadow-xl shadow-red-200"
+                >
+                    Top Up Provider
+                </button>
+            </motion.div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             

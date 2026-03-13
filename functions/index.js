@@ -52,13 +52,29 @@ async function sendSmsLogic(facilityId, phone, message, type = 'reminder', meta 
         // 1. Check & Deduct Wallet Balance
         await deductWalletBalance(facilityId, 1);
         
-        // 2. Format phone number (Africa's talking requires +254... format mostly)
-        // Ensure phone starts with +
+        // 2. Format phone number (Africa's talking requires +[countryCode][number] format)
+        // Remove all non-digit characters except for a leading '+'
         let toPhone = phone.trim();
-        if (!toPhone.startsWith('+')) {
-            // Assume Kenyan default if no plus
-            if (toPhone.startsWith('0')) toPhone = '+254' + toPhone.substring(1);
-            else toPhone = '+' + toPhone;
+        const hasPlus = toPhone.startsWith('+');
+        
+        // Strip everything except digits
+        toPhone = toPhone.replace(/\D/g, '');
+        
+        if (hasPlus) {
+            toPhone = '+' + toPhone;
+        } else {
+            // If it starts with 00, treat it as +
+            if (toPhone.startsWith('00')) {
+                toPhone = '+' + toPhone.substring(2);
+            } else if (toPhone.startsWith('0')) {
+                // Default to Kenya if starts with 0 and no other info
+                // In future, this should use facility's country code
+                toPhone = '+254' + toPhone.substring(1);
+            } else {
+                // If no prefix, we attempt a generic '+' prefix but this is risky
+                // Better to prepend facility default or +
+                toPhone = '+' + toPhone;
+            }
         }
 
         // 3. Send SMS via Africa's Talking
@@ -72,6 +88,8 @@ async function sendSmsLogic(facilityId, phone, message, type = 'reminder', meta 
         // 4. Log to Firestore
         const msgData = response.SMSMessageData;
         const recipient = msgData.Recipients[0];
+        
+        functions.logger.info(`AT Response Detail: ${JSON.stringify(response)}`);
         
         const logEntry = {
             facilityId,
@@ -88,8 +106,16 @@ async function sendSmsLogic(facilityId, phone, message, type = 'reminder', meta 
         };
 
         await db.collection('sms_logs').add(logEntry);
-        functions.logger.info(`SMS Sent via AT to ${toPhone}. MsgId: ${recipient.messageId}`);
-        return { success: true, messageId: recipient.messageId };
+        functions.logger.info(`SMS Processed via AT for ${toPhone}. Status: ${recipient.status}`);
+        
+        const isActuallySent = recipient.status === 'Success' || recipient.status === 'Sent';
+        
+        return { 
+            success: isActuallySent, 
+            messageId: recipient.messageId,
+            status: recipient.status,
+            error: isActuallySent ? null : `Provider returned status: ${recipient.status}`
+        };
 
     } catch (err) {
         functions.logger.error(`SMS send failed for ${facilityId} to ${phone}:`, err);
@@ -140,7 +166,25 @@ exports.getAtBalance = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
         try {
             const data = await AfricasTalking.APPLICATION.fetchApplicationData();
+            functions.logger.info("AT Application Data fetched:", JSON.stringify(data));
             res.status(200).json(data);
+        } catch (err) {
+            functions.logger.error("Failed to fetch AT Application data:", err);
+            res.status(500).json({ success: false, error: err.message });
+        }
+    });
+});
+
+exports.debugGetSmsLogs = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        try {
+            const { phone } = req.query;
+            let q = db.collection('sms_logs').orderBy('sentAt', 'desc').limit(10);
+            if (phone) q = db.collection('sms_logs').where('to', '==', phone).orderBy('sentAt', 'desc').limit(10);
+            
+            const snap = await q.get();
+            const logs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            res.status(200).json(logs);
         } catch (err) {
             res.status(500).json({ error: err.message });
         }

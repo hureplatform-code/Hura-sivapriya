@@ -57,7 +57,7 @@ export default function Dashboard() {
         appointmentService.getAllAppointments(isSuperadmin ? null : userData?.facilityId),
         billingService.getAllInvoices(isSuperadmin ? null : userData?.facilityId),
         billingService.getFinancialStats(isSuperadmin ? null : userData?.facilityId),
-        auditService.getRecentLogs(6, isSuperadmin ? null : userData?.facilityId)
+        auditService.getRecentLogs(4, isSuperadmin ? null : userData?.facilityId)
       ];
       
       if (!isSuperadmin) {
@@ -86,11 +86,18 @@ export default function Dashboard() {
            return sum + monthly;
         }, 0);
 
+        // Fetch AT Balance for dashboard widget
+        let providerBal = 'N/A';
+        try {
+          const smsService = await import('../services/smsSettingsService');
+          providerBal = await smsService.default.getAtBalance() || 'N/A';
+        } catch (e) { console.error("Error loading sms service", e); }
+
         setStats([
           { label: 'Total Clinics', value: totalOrganizations.toString(), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Active Orgs', value: activeSubscribers.toString(), icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Platform Revenue', value: `${currency} ${totalRevenueEstimate.toLocaleString()}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'Global Audit Logs', value: logs.length.toString(), icon: History, color: 'text-slate-600', bg: 'bg-slate-50' },
+          { label: 'AT Master Balance', value: providerBal, icon: History, color: providerBal.includes('-') ? 'text-red-600' : 'text-slate-600', bg: providerBal.includes('-') ? 'bg-red-50' : 'bg-slate-50' },
         ]);
         setArrears([]); // Hide clinic arrears
       } else if (role === 'doctor') {
@@ -115,7 +122,7 @@ export default function Dashboard() {
         setArrears(invoices.filter(i => i.paymentStatus !== 'paid').slice(0, 4));
       }
 
-      setAuditLogs(logs || []);
+      setAuditLogs(logs?.slice(0, 4) || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

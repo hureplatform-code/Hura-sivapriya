@@ -29,6 +29,7 @@ export default function SystemCodes() {
   const [activeType, setActiveType] = useState('All');
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [newCode, setNewCode] = useState({ code: '', description: '', type: 'ICD-10', category: 'General' });
 
   useEffect(() => {
@@ -52,6 +53,24 @@ export default function SystemCodes() {
     }
   };
 
+  const openAdd = () => {
+    setEditingItem(null);
+    setNewCode({ code: '', description: '', type: 'ICD-10', category: 'General' });
+    setIsAdding(true);
+  };
+
+  const openEdit = (item) => {
+    setEditingItem(item);
+    setNewCode({ 
+      code: item.code || '', 
+      description: item.description || '', 
+      type: item.type || 'ICD-10', 
+      category: item.category || 'General' 
+    });
+    setIsAdding(true);
+  };
+
+
   const handleInject = async (e) => {
     e.preventDefault();
     if (isSaving) return;
@@ -61,20 +80,33 @@ export default function SystemCodes() {
         ? firestoreService.collections.icd_masters 
         : firestoreService.collections.pharma_masters;
       
-      const result = await firestoreService.create(collection, newCode);
-      
-      await auditService.logActivity({
-        userId: userData?.uid,
-        userName: userData?.name || 'Superadmin',
-        action: 'INJECT_SYSTEM_CODE',
-        module: 'GOVERNANCE',
-        description: `Injected new ${newCode.type} code: ${newCode.code}`,
-        metadata: { codeId: result.id, code: newCode.code, type: newCode.type }
-      });
+      if (editingItem) {
+        await firestoreService.update(collection, editingItem.id, newCode);
+        await auditService.logActivity({
+          userId: userData?.uid,
+          userName: userData?.name || 'Superadmin',
+          action: 'UPDATE_SYSTEM_CODE',
+          module: 'GOVERNANCE',
+          description: `Updated ${newCode.type} code: ${newCode.code}`,
+          metadata: { codeId: editingItem.id, code: newCode.code, type: newCode.type }
+        });
+        success(`Successfully updated master code: ${newCode.code}`);
+      } else {
+        const result = await firestoreService.create(collection, newCode);
+        await auditService.logActivity({
+          userId: userData?.uid,
+          userName: userData?.name || 'Superadmin',
+          action: 'INJECT_SYSTEM_CODE',
+          module: 'GOVERNANCE',
+          description: `Injected new ${newCode.type} code: ${newCode.code}`,
+          metadata: { codeId: result.id, code: newCode.code, type: newCode.type }
+        });
+        success(`Successfully injected master code: ${newCode.code}`);
+      }
 
       setIsAdding(false);
+      setEditingItem(null);
       setNewCode({ code: '', description: '', type: 'ICD-10', category: 'General' });
-      success(`Successfully injected master code: ${newCode.code}`);
       fetchCodes();
     } catch (err) {
        console.error('Error injecting code:', err);
@@ -136,7 +168,7 @@ export default function SystemCodes() {
             <p className="text-slate-500 font-medium mt-1">Global ICD-10 and CDT terminology management for platform-wide clinical accuracy.</p>
           </div>
           <button 
-            onClick={() => setIsAdding(true)}
+            onClick={openAdd}
             className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
           >
             <Plus className="h-5 w-5" />
@@ -200,8 +232,11 @@ export default function SystemCodes() {
                        </span>
                     </td>
                     <td className="py-6 px-4">
-                      <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="h-9 w-9 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary-600 transition-all">
+                      <div className="flex items-center justify-center gap-2 transition-opacity">
+                        <button 
+                          onClick={() => openEdit(code)}
+                          className="h-9 w-9 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary-600 transition-all"
+                        >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button 
@@ -228,8 +263,8 @@ export default function SystemCodes() {
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden">
                   <div className="p-8 border-b border-slate-100">
-                     <h3 className="text-xl font-semibold text-slate-900 uppercase">Inject Master Code</h3>
-                     <p className="text-xs text-slate-500 font-medium mt-1">Add verified ICD-10 or CDT terminology.</p>
+                     <h3 className="text-xl font-semibold text-slate-900 uppercase">{editingItem ? 'Update' : 'Inject'} Master Code</h3>
+                     <p className="text-xs text-slate-500 font-medium mt-1">{editingItem ? 'Modify existing terminology.' : 'Add verified ICD-10 or CDT terminology.'}</p>
                   </div>
                   <form onSubmit={handleInject} className="p-8 space-y-6">
                      <div className="grid grid-cols-2 gap-4">
@@ -281,7 +316,7 @@ export default function SystemCodes() {
                      <div className="flex gap-3 pt-4">
                         <button type="button" disabled={isSaving} onClick={() => setIsAdding(false)} className="flex-1 py-4 bg-slate-50 font-medium text-[10px] uppercase tracking-widest text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
                         <button type="submit" disabled={isSaving} className={`flex-1 py-4 bg-slate-900 font-medium text-[10px] uppercase tracking-widest text-white rounded-2xl transition-all ${isSaving ? 'opacity-50 cursor-not-allowed shadow-none' : 'shadow-xl shadow-slate-200 hover:bg-slate-800'}`}>
-                           {isSaving ? 'Injecting...' : 'Commit Injection'}
+                           {isSaving ? 'Saving...' : editingItem ? 'Save Changes' : 'Commit Injection'}
                         </button>
                      </div>
                   </form>

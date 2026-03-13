@@ -221,7 +221,7 @@ export default function Investigation() {
                       </span>
                     </td>
                     <td className="py-5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-2 transition-opacity">
                         {inv.status === 'completed' ? (
                           <>
                             {inv.resultFile && (
@@ -279,6 +279,20 @@ export default function Investigation() {
                                     <FileText className="h-4 w-4" />
                                     View Details
                                   </button>
+                                  {inv.status === 'Completed' && (
+                                    <button 
+                                      onClick={() => { 
+                                        if (inv.resultFile) {
+                                          window.open(inv.resultFile, '_blank');
+                                        }
+                                        setActiveMenu(null); 
+                                      }}
+                                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                      Download Report
+                                    </button>
+                                  )}
                                   <div className="h-px bg-slate-50 my-1"></div>
                                   <button 
                                     onClick={() => { handleCancelRequest(inv); setActiveMenu(null); }}

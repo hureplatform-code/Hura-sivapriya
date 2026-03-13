@@ -116,11 +116,13 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
       const todayString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const isSameDay = formData.date === todayString;
 
+      const sanitizedPhone = (selectedPatient.mobile || '').replace(/[\s\-\(\)]/g, '');
       const appointmentData = {
         ...formData,
         facilityId: userData?.facilityId,
         patient: selectedPatient.name,
         patientId: selectedPatient.id,
+        patientPhone: sanitizedPhone,
         status: 'scheduled',
         bookingType: isSameDay ? 'SD' : 'ADV',
         confirmationStatus: 'NC', // Default Not Confirmed

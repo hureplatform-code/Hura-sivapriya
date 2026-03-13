@@ -27,6 +27,7 @@ export default function Branches() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [newBranch, setNewBranch] = useState({
     name: '',
     location: '',
@@ -57,9 +58,9 @@ export default function Branches() {
     }
   };
 
-  const handleAddBranch = async (e) => {
+  const handleSaveBranch = async (e) => {
     e.preventDefault();
-    if (userData?.role === 'clinic_owner' && subscriptionStatus) {
+    if (!editingItem && userData?.role === 'clinic_owner' && subscriptionStatus) {
        // maxLocations includes main clinic. Allowed branches = maxLocations - 1
        const allowedBranches = Math.max(0, (subscriptionStatus.maxLocations || 1) - 1);
        if (branches.length >= allowedBranches) {
@@ -70,27 +71,51 @@ export default function Branches() {
     
     setIsSaving(true);
     try {
-      const result = await facilityService.addBranch(userData.facilityId, newBranch);
-      
-      await auditService.logActivity({
-        userId: userData?.uid,
-        userName: userData?.name || 'Clinic Owner',
-        action: 'ADD_BRANCH',
-        module: 'MASTER_SETUP',
-        description: `Added new facility branch: ${newBranch.name} at ${newBranch.location}`,
-        metadata: { branchId: result.id, branchName: newBranch.name, facilityId: userData.facilityId }
-      });
+      if (editingItem) {
+        await facilityService.updateBranch(editingItem.id, newBranch);
+        await auditService.logActivity({
+          userId: userData?.uid,
+          userName: userData?.name || 'Clinic Owner',
+          action: 'UPDATE_BRANCH',
+          module: 'MASTER_SETUP',
+          description: `Updated facility branch: ${newBranch.name}`,
+          metadata: { branchId: editingItem.id, branchName: newBranch.name, facilityId: userData.facilityId }
+        });
+      } else {
+        const result = await facilityService.addBranch(userData.facilityId, newBranch);
+        await auditService.logActivity({
+          userId: userData?.uid,
+          userName: userData?.name || 'Clinic Owner',
+          action: 'ADD_BRANCH',
+          module: 'MASTER_SETUP',
+          description: `Added new facility branch: ${newBranch.name} at ${newBranch.location}`,
+          metadata: { branchId: result.id, branchName: newBranch.name, facilityId: userData.facilityId }
+        });
+      }
 
       setShowAdd(false);
+      setEditingItem(null);
       setNewBranch({ name: '', location: '', phone: '', email: '', status: 'Active' });
-      success('Branch successfully registered!');
+      success(editingItem ? 'Branch successfully updated!' : 'Branch successfully registered!');
       fetchBranches();
     } catch (error) {
-      console.error('Error adding branch:', error);
-      toastError('Failed to add branch.');
+      console.error('Error saving branch:', error);
+      toastError('Failed to save branch.');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const openEdit = (branch) => {
+    setEditingItem(branch);
+    setNewBranch({
+      name: branch.name,
+      location: branch.location,
+      phone: branch.phone,
+      email: branch.email || '',
+      status: branch.status
+    });
+    setShowAdd(true);
   };
 
   const handleDeleteBranch = async (id) => {
@@ -142,6 +167,8 @@ export default function Branches() {
                      return;
                  }
               }
+              setEditingItem(null);
+              setNewBranch({ name: '', location: '', phone: '', email: '', status: 'Active' });
               setShowAdd(true);
             }}
             className="flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
@@ -184,7 +211,10 @@ export default function Branches() {
                           >
                              <Trash2 className="h-5 w-5" />
                           </button>
-                          <button className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition-all">
+                          <button 
+                            onClick={() => openEdit(branch)}
+                            className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition-all"
+                          >
                              <ChevronRight className="h-5 w-5" />
                           </button>
                        </div>
@@ -226,8 +256,8 @@ export default function Branches() {
             >
               <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0">
                 <div>
-                  <h2 className="text-2xl font-semibold text-slate-900">Add New Branch</h2>
-                  <p className="text-slate-500 text-sm">Register a new facility location.</p>
+                  <h2 className="text-2xl font-semibold text-slate-900">{editingItem ? 'Update Branch' : 'Add New Branch'}</h2>
+                  <p className="text-slate-500 text-sm">{editingItem ? 'Modify details for this facility location.' : 'Register a new facility location.'}</p>
                 </div>
                 <button 
                   onClick={() => setShowAdd(false)}
@@ -237,7 +267,7 @@ export default function Branches() {
                 </button>
               </div>
 
-              <form onSubmit={handleAddBranch} className="p-8 space-y-6">
+              <form onSubmit={handleSaveBranch} className="p-8 space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-slate-400 uppercase tracking-widest ml-1">Branch Name</label>
                   <input 
@@ -287,7 +317,7 @@ export default function Branches() {
                 <div className="pt-4 flex gap-4">
                   <button 
                     type="button"
-                    onClick={() => setShowAdd(false)}
+                    onClick={() => { setShowAdd(false); setEditingItem(null); }}
                     className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium rounded-2xl hover:bg-slate-100 transition-all"
                   >
                     Cancel
@@ -300,7 +330,7 @@ export default function Branches() {
                     {isSaving ? (
                       <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     ) : (
-                      'Create Branch'
+                      editingItem ? 'Save Changes' : 'Create Branch'
                     )}
                   </button>
                 </div>

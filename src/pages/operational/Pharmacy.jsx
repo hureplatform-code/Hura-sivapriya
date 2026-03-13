@@ -152,7 +152,7 @@ export default function Pharmacy() {
                     </div>
                   </div>
 
-                  <div className="mt-8 pt-6 border-t border-slate-50 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  <div className="mt-8 pt-6 border-t border-slate-50 flex items-center gap-2 transition-all">
                     <button className="flex-1 py-2 bg-slate-900 text-white text-[10px] font-medium rounded-xl hover:bg-slate-800 transition-all uppercase tracking-widest">
                       Dispense
                     </button>

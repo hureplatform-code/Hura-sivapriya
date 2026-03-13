@@ -174,8 +174,15 @@ export default function PatientDetails() {
 
   const handleUpdate = async () => {
     try {
-      await patientService.updatePatient(id, formData);
-      setPatient(formData);
+      const normalizedData = {
+        ...formData,
+        mobile: (formData.mobile || '').replace(/[\s\-\(\)]/g, ''),
+        contact: (formData.contact || '').replace(/[\s\-\(\)]/g, ''),
+        nextOfKinPhone: (formData.nextOfKinPhone || '').replace(/[\s\-\(\)]/g, '')
+      };
+      await patientService.updatePatient(id, normalizedData);
+      setPatient(normalizedData);
+      setFormData(normalizedData);
       setIsEditing(false);
       success('Patient bio-data updated successfully.');
     } catch (error) {

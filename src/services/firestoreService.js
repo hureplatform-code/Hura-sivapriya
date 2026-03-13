@@ -51,7 +51,8 @@ const firestoreService = {
     icd_masters: 'icd_masters',
     lab_masters: 'lab_masters',
     imaging_masters: 'imaging_masters',
-    patient_documents: 'patient_documents'
+    patient_documents: 'patient_documents',
+    ledgers: 'ledgers'
   },
 
   // Generic CRUD

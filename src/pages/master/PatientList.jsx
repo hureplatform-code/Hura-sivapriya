@@ -234,7 +234,7 @@ export default function PatientList() {
                         </span>
                       </td>
                       <td className="py-5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2 transition-opacity">
                           <button 
                             onClick={(e) => { e.stopPropagation(); navigate(`/master/patients/${pat.id}`); }}
                             className="p-2.5 text-slate-400 hover:text-primary-600 bg-white rounded-xl shadow-sm border border-slate-100"

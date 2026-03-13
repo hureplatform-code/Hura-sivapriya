@@ -30,6 +30,7 @@ import ClinicalForms from './pages/clinical/ClinicalForms';
 import Investigation from './pages/clinical/Investigation';
 import Billing from './pages/financial/Billing';
 import Accounting from './pages/financial/Accounting';
+import Expenses from './pages/financial/Expenses';
 import Inventory from './pages/operational/Inventory';
 import Ward from './pages/clinical/Ward';
 import InpatientChart from './pages/clinical/InpatientChart';
@@ -124,6 +125,7 @@ function App() {
           {/* Billing & Pharmacy */}
           <Route path="/billing" element={<PrivateRoute><Billing /></PrivateRoute>} />
           <Route path="/accounting" element={<PrivateRoute><Accounting /></PrivateRoute>} />
+          <Route path="/expenses" element={<PrivateRoute><Expenses /></PrivateRoute>} />
           <Route path="/pharmacy" element={<PrivateRoute><Inventory /></PrivateRoute>} />
           
           {/* Reports */}

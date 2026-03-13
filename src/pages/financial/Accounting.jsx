@@ -67,10 +67,16 @@ export default function Accounting() {
             return sum + monthly;
          }, 0);
 
+         // Fetch Platform Expenses (Any entry not tied to a specific facility, or marked as platform)
+         const allLedgers = await accountingService.getAllEntries();
+         const platformExpenses = allLedgers
+           .filter(e => e.type === 'PLATFORM_COST' || e.createdByRole === 'superadmin')
+           .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+
          setAccStats({
-           expenses: 45000, // Platform server/staff costs
-           vendorBalance: clinicsCount, // Re-use for Clinic Count
-           netProfit: globalRevenue - 45000,
+           expenses: platformExpenses,
+           vendorBalance: clinicsCount,
+           netProfit: globalRevenue - platformExpenses,
            revenue: globalRevenue,
            isPlatform: true,
            activeSubscribers
@@ -85,7 +91,8 @@ export default function Accounting() {
                vendor: plan.toUpperCase() + ' PLAN',
                category: 'Subscription',
                amount: monthly,
-               status: f.subscription?.status === 'active' ? 'Paid' : 'Pending'
+               status: f.subscription?.status === 'active' ? 'Paid' : 'Pending',
+               expiry: f.subscription?.expiryDate
             };
          });
          
@@ -93,7 +100,7 @@ export default function Accounting() {
       } else {
          const [billingStats, ledgerEntries] = await Promise.all([
            billingService.getFinancialStats(),
-           accountingService.getAllEntries()
+           accountingService.getAllEntries(userData?.facilityId)
          ]);
 
          const revenue = billingStats.revenue;
@@ -117,7 +124,7 @@ export default function Accounting() {
 
   const stats = accStats.isPlatform ? [
     { label: 'Platform Revenue', currency: currency, value: accStats.revenue.toLocaleString(), change: '+12%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Server/Dev Costs', currency: currency, value: '45,000', change: '-5.2%', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50' },
+    { label: 'Server/Dev Costs', currency: currency, value: accStats.expenses.toLocaleString(), change: '-5.2%', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50' },
     { label: 'Total Clinics', currency: '', value: accStats.vendorBalance.toString(), change: 'Active Orgs', icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Platform Profit', currency: currency, value: accStats.netProfit.toLocaleString(), change: '+20%', icon: DollarSign, color: 'text-slate-900', bg: 'bg-slate-50' },
   ] : [
@@ -129,15 +136,18 @@ export default function Accounting() {
 
   const handlePostEntry = async (data) => {
     try {
-      const result = await accountingService.createEntry(data);
+      const result = await accountingService.createEntry({
+        ...data,
+        facilityId: userData?.facilityId
+      });
       
       await auditService.logActivity({
         userId: userData?.uid,
         userName: userData?.name || 'Accountant',
         action: 'POST_LEDGER_ENTRY',
         module: 'FINANCIAL',
-        description: `Posted ${data.type} entry: ${data.item} for ${currency} ${data.amount}`,
-        metadata: { entryId: result.id, type: data.type, amount: data.amount }
+        description: `Posted ${data.type} entry: ${data.item || data.name} for ${currency} ${data.amount}`,
+        metadata: { entryId: result.id, type: data.type || data.category, amount: data.amount, role: userData?.role }
       });
 
       setIsAdding(false);
@@ -163,15 +173,13 @@ export default function Accounting() {
                 : 'General accounting, expense tracking, and vendor management.'}
             </p>
           </div>
-          {!accStats.isPlatform && (
-            <button 
-              onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-semibold text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
-            >
-              <PlusCircle className="h-5 w-5" />
-              Post Ledger Entry
-            </button>
-          )}
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-semibold text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+          >
+            <PlusCircle className="h-5 w-5" />
+            {accStats.isPlatform ? 'Post Platform Expense' : 'Post Ledger Entry'}
+          </button>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
@@ -211,11 +219,11 @@ export default function Accounting() {
                       <div className="flex gap-2">
                          {['All', 'Paid', 'Pending'].map(s => (
                             <button 
-                              key={s}
-                              onClick={() => setFilterType(s)}
-                              className={`px-4 py-2 rounded-xl text-[10px] font-medium uppercase tracking-widest transition-all
-                                ${filterType === s ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
-                              `}
+                               key={s}
+                               onClick={() => setFilterType(s)}
+                               className={`px-4 py-2 rounded-xl text-[10px] font-medium uppercase tracking-widest transition-all
+                                 ${filterType === s ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
+                               `}
                             >
                                {s}
                             </button>
@@ -232,6 +240,7 @@ export default function Accounting() {
                              <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-4">Vendor</th>
                              <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-4">Category</th>
                              <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-4 text-right">Amount</th>
+                             {accStats.isPlatform && <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-4">Expiry</th>}
                              <th className="pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] px-4 text-center">Status</th>
                           </tr>
                        </thead>
@@ -253,6 +262,13 @@ export default function Accounting() {
                                    </span>
                                 </td>
                                 <td className="py-5 px-4 text-right text-sm font-medium text-slate-900">{currency} {parseFloat(entry.amount).toLocaleString()}</td>
+                                {accStats.isPlatform && (
+                                   <td className="py-5 px-4">
+                                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight">
+                                        {entry.expiry ? new Date(entry.expiry).toLocaleDateString() : '—'}
+                                      </span>
+                                   </td>
+                                )}
                                 <td className="py-5 px-4 text-center">
                                    <span className={`px-3 py-1 rounded-full text-[9px] font-medium uppercase tracking-widest
                                       ${entry.status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : 
@@ -264,7 +280,7 @@ export default function Accounting() {
                              </tr>
                           )) : (
                               <tr>
-                                <td colSpan="5" className="py-24 text-center">
+                                <td colSpan={accStats.isPlatform ? "6" : "5"} className="py-24 text-center">
                                   <div className="flex flex-col items-center justify-center">
                                     <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4">
                                       <FileText className="h-8 w-8" />
@@ -312,25 +328,7 @@ export default function Accounting() {
                  </div>
               </div>
 
-              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                 <h3 className="text-lg font-semibold text-slate-900 tracking-tight mb-6">Quick Actions</h3>
-                 <div className="grid grid-cols-1 gap-3">
-                    <button className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl group hover:bg-slate-100 transition-all">
-                       <div className="flex items-center gap-3">
-                          <History className="h-5 w-5 text-slate-400" />
-                          <span className="text-[10px] font-medium uppercase tracking-widest text-slate-900">Fiscal History</span>
-                       </div>
-                       <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-slate-900 transition-all" />
-                    </button>
-                    <button className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl group hover:bg-slate-100 transition-all">
-                       <div className="flex items-center gap-3">
-                          <CreditCard className="h-5 w-5 text-slate-400" />
-                          <span className="text-[10px] font-medium uppercase tracking-widest text-slate-900">Vendors</span>
-                       </div>
-                       <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-slate-900 transition-all" />
-                    </button>
-                 </div>
-              </div>
+              {/* Deprecated Quick Actions Block */}
            </div>
         </div>
       </div>
@@ -348,6 +346,7 @@ export default function Accounting() {
 }
 
 function LedgerModal({ onClose, onSave }) {
+  const { userData } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     category: 'Operating Expense',
@@ -359,7 +358,12 @@ function LedgerModal({ onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    const isPlatform = formData.category.includes('Platform') || formData.category.includes('R&D');
+    onSave({
+      ...formData,
+      type: isPlatform ? 'PLATFORM_COST' : 'CLINIC_COST',
+      createdByRole: userData?.role
+    });
   };
 
   return (
@@ -414,10 +418,12 @@ function LedgerModal({ onClose, onSave }) {
                    <option>Payroll</option>
                    <option>Taxes & Fees</option>
                    <option>Capital Purchase</option>
+                   <option>Platform Infrastructure</option>
+                   <option>R&D / Development</option>
                 </select>
               </div>
               <div className="space-y-4">
-                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Amount (Ksh)</label>
+                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Amount</label>
                 <input 
                   type="number"
                   value={formData.amount}
@@ -449,4 +455,3 @@ function LedgerModal({ onClose, onSave }) {
     </motion.div>
   );
 }
-
