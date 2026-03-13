@@ -1,28 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { 
-  Pill, 
-  FlaskConical, 
-  Plus, 
-  Search, 
-  Trash2, 
-  Edit2, 
+import {
+  Pill,
+  FlaskConical,
+  Plus,
+  Search,
+  Trash2,
+  Edit2,
   Package,
-  Tag, 
-  DollarSign,
+  Tag,
   Box,
   CheckCircle2,
-  Filter,
-  Layers,
   X,
+  Loader2,
+  DollarSign,
+  Layers,
   Save
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import medicalMasterService from '../../services/medicalMasterService';
+import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 export default function DrugCatalog() {
   const { userData } = useAuth();
+  const { success, error: toastError } = useToast();
+  const { currency } = useCurrency();
   const [activeTab, setActiveTab] = useState('pharma');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +36,7 @@ export default function DrugCatalog() {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ name: '', strength: '', form: '', price: '', taxable: false });
 
   useEffect(() => { fetchCatalog(); }, []);
@@ -39,8 +45,8 @@ export default function DrugCatalog() {
     try {
       setLoading(true);
       const [pharma, nonPharma] = await Promise.all([
-        medicalMasterService.getAll('pharma_masters'),
-        medicalMasterService.getAll('non_pharma_masters'),
+        medicalMasterService.getAll('pharma'),
+        medicalMasterService.getAll('nonPharma'),
       ]);
       const tagged = [
         ...pharma.map(i => ({ ...i, type: 'pharma' })),
@@ -76,19 +82,48 @@ export default function DrugCatalog() {
     if (!form.name) return;
     try {
       setSaving(true);
-      const collection = activeTab === 'pharma' ? 'pharma_masters' : 'non_pharma_masters';
-      const payload = { name: form.name, strength: form.strength, form: form.form, price: form.price, taxable: form.taxable };
+      const typeKey = activeTab === 'pharma' ? 'pharma' : 'nonPharma';
+      const payload = { 
+        name: form.name.trim(), 
+        strength: form.strength?.trim() || '', 
+        form: form.form?.trim() || '', 
+        price: parseFloat(form.price) || 0, 
+        taxable: !!form.taxable 
+      };
 
       if (editingItem) {
-        await medicalMasterService.update(collection, editingItem.id, payload);
+        await medicalMasterService.update(typeKey, editingItem.id, payload);
+        
+        await auditService.logActivity({
+            userId: userData?.uid,
+            userName: userData?.name,
+            action: 'UPDATE_CATALOG_ITEM',
+            module: 'INVENTORY',
+            description: `Updated master item: ${payload.name}`,
+            metadata: { itemId: editingItem.id, type: activeTab }
+        });
+
         setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...payload } : i));
+        success("Item updated in catalog.");
       } else {
-        const created = await medicalMasterService.create(collection, payload);
+        const created = await medicalMasterService.create(typeKey, payload);
+        
+        await auditService.logActivity({
+            userId: userData?.uid,
+            userName: userData?.name,
+            action: 'ADD_CATALOG_ITEM',
+            module: 'INVENTORY',
+            description: `Added new master item: ${payload.name}`,
+            metadata: { itemId: created.id, type: activeTab }
+        });
+
         setItems(prev => [...prev, { ...created, type: activeTab }]);
+        success("New item added to catalog.");
       }
       setIsModalOpen(false);
     } catch (err) {
       console.error('Error saving item:', err);
+      toastError("Failed to save item to catalog.");
     } finally {
       setSaving(false);
     }
@@ -97,12 +132,27 @@ export default function DrugCatalog() {
   const handleDelete = async () => {
     if (!deleteConfirm) return;
     try {
-      const collection = deleteConfirm.type === 'pharma' ? 'pharma_masters' : 'non_pharma_masters';
-      await medicalMasterService.delete(collection, deleteConfirm.id);
+      setDeleting(true);
+      const typeKey = deleteConfirm.type === 'pharma' ? 'pharma' : 'nonPharma';
+      await medicalMasterService.delete(typeKey, deleteConfirm.id);
+      
+      await auditService.logActivity({
+        userId: userData?.uid,
+        userName: userData?.name,
+        action: 'DELETE_CATALOG_ITEM',
+        module: 'INVENTORY',
+        description: `Deleted master item: ${deleteConfirm.name}`,
+        metadata: { itemId: deleteConfirm.id, type: deleteConfirm.type }
+      });
+
       setItems(prev => prev.filter(i => i.id !== deleteConfirm.id));
       setDeleteConfirm(null);
+      success("Item removed from catalog.");
     } catch (err) {
       console.error('Error deleting item:', err);
+      toastError("Failed to delete item.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -195,7 +245,7 @@ export default function DrugCatalog() {
                         </span>
                       </td>
                       <td className="px-8 py-5 text-center">
-                        <p className="font-medium text-slate-900">{item.price ? `MVR ${item.price}` : '—'}</p>
+                        <p className="font-medium text-slate-900">{item.price ? `${currency} ${item.price}` : '—'}</p>
                       </td>
                       <td className="px-8 py-5 text-center">
                         <Tag className={`h-5 w-5 mx-auto ${item.taxable ? 'text-emerald-500' : 'text-slate-200'}`} />
@@ -246,7 +296,7 @@ export default function DrugCatalog() {
                   { label: 'Item Name', key: 'name', placeholder: 'e.g. Paracetamol', required: true },
                   { label: 'Strength / Size', key: 'strength', placeholder: 'e.g. 500mg or 7.5cm' },
                   { label: 'Drug Form / Category', key: 'form', placeholder: 'e.g. Tablet, Capsule, Roll' },
-                  { label: 'Base Price (MVR)', key: 'price', placeholder: 'e.g. 5.00' },
+                  { label: `Base Price (${currency})`, key: 'price', placeholder: 'e.g. 5.00' },
                 ].map(f => (
                   <div key={f.key} className="space-y-1.5">
                     <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>
@@ -267,8 +317,8 @@ export default function DrugCatalog() {
 
                 <button type="submit" disabled={saving}
                   className="w-full h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50">
-                  <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : editingItem ? 'Update Item' : 'Add to Catalog'}
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {saving ? 'Processing...' : editingItem ? 'Update Item' : 'Add to Catalog'}
                 </button>
               </form>
             </motion.div>
@@ -286,13 +336,13 @@ export default function DrugCatalog() {
               <h3 className="text-xl font-semibold text-slate-900 mb-2">Remove Item?</h3>
               <p className="text-sm text-slate-500 mb-8">Are you sure you want to delete <strong>{deleteConfirm.name}</strong>? This cannot be undone.</p>
               <div className="flex gap-4">
-                <button onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 py-4 bg-slate-50 text-slate-600 font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all">
+                <button onClick={() => setDeleteConfirm(null)} disabled={deleting}
+                  className="flex-1 py-4 bg-slate-50 text-slate-600 font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all disabled:opacity-50">
                   Cancel
                 </button>
-                <button onClick={handleDelete}
-                  className="flex-1 py-4 bg-red-500 text-white font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100">
-                  Delete
+                <button onClick={handleDelete} disabled={deleting}
+                  className="flex-1 py-4 bg-red-500 text-white font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100 disabled:opacity-50">
+                  {deleting ? 'Removing...' : 'Delete'}
                 </button>
               </div>
             </motion.div>

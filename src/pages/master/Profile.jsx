@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { APP_CONFIG } from '../../config';
+
 const tabs = [
   { id: 'general', label: 'General Info', icon: Building2 },
   { id: 'contact', label: 'Contact Details', icon: Phone },
@@ -32,7 +34,7 @@ export default function Profile() {
   const [fetching, setFetching] = useState(true);
   const [notification, setNotification] = useState(null);
   const [profile, setProfile] = useState({
-    name: 'Hospital ERP',
+    name: APP_CONFIG.HOSPITAL_NAME,
     type: 'Multi-Speciality Hospital',
     tagline: 'Providing premium healthcare services.',
     phone: '',

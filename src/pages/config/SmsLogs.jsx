@@ -35,6 +35,13 @@ export default function SmsLogs() {
   };
 
   const fetchLogs = async () => {
+    // Security Check: Non-admins must have a facilityId set
+    if (!isSuperadmin && (!selectedFacilityId || selectedFacilityId === 'all')) {
+        setLogs([]);
+        setLoading(false);
+        return;
+    }
+
     try {
       setLoading(true);
       const data = await smsSettingsService.getLogs(selectedFacilityId, 100);
@@ -51,7 +58,7 @@ export default function SmsLogs() {
     if (s === 'success' || s === 'sent' || s === 'delivered') {
         return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
     }
-    if (s === 'failed' || s === 'rejected') {
+    if (s === 'failed' || s === 'rejected' || s === 'userinblacklist' || s === 'invalidphonenumber') {
         return retried 
             ? <RefreshCw className="h-4 w-4 text-amber-500" /> 
             : <XCircle className="h-4 w-4 text-red-500" />;
@@ -64,7 +71,7 @@ export default function SmsLogs() {
     if (s === 'success' || s === 'sent' || s === 'delivered') {
         return <span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">{status}</span>;
     }
-    if (s === 'failed' || s === 'rejected') {
+    if (s === 'failed' || s === 'rejected' || s === 'userinblacklist' || s === 'invalidphonenumber') {
         return (
             <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest ${retried ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'}`}>
                 {retried ? `${status} (Retried)` : status}

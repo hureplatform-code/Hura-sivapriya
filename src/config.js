@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
   CURRENCY: 'USD',
-  HOSPITAL_NAME: 'Hospital ERP',
+  HOSPITAL_NAME: 'Hure Care',
   DEFAULT_TAX_PERCENT: 0,
   ROLES: [
     { id: 'doctor', name: 'Clinical Doctor' },

@@ -159,6 +159,11 @@ const facilityService = {
 
   async updateSubscriptionRequest(requestId, status) {
     return firestoreService.update('subscription_requests', requestId, { status });
+  },
+
+  async deleteFacility(facilityId) {
+    if (!facilityId) throw new Error("Facility ID required");
+    return firestoreService.delete(this.collection, facilityId);
   }
 };
 

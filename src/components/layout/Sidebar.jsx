@@ -65,7 +65,7 @@ const menuItems = [
       { label: 'ICD-10 Catalogue', path: '/config/icd10', roles: ['superadmin', 'clinic_owner'] },
       { label: 'Pharmacy Setup', path: '/config/pharmacy', roles: ['clinic_owner'] },
       { label: 'SMS Notifications', path: '/config/sms', roles: ['superadmin', 'clinic_owner'] },
-      { label: 'AI Note Configuration', path: '/superadmin/settings', roles: ['superadmin'] },
+      { label: 'Global Platform Settings', path: '/superadmin/settings', roles: ['superadmin'] },
     ]
   },
   {

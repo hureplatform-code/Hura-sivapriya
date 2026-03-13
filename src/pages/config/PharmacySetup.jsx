@@ -18,9 +18,11 @@ import {
   Edit2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import medicalMasterService from '../../services/medicalMasterService';
 
 export default function PharmacySetup() {
+  const { currency } = useCurrency();
   const [activeTab, setActiveTab] = useState('pharma');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -202,7 +204,7 @@ export default function PharmacySetup() {
                           <td className="py-4 px-4 font-medium text-slate-900 text-sm">{item.testName}</td>
                           <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.department}</td>
                           <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.sampleType}</td>
-                          <td className="py-4 px-4 font-medium text-slate-900 text-xs">AED {parseFloat(item.cost || 0).toFixed(2)}</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-xs">{currency} {parseFloat(item.cost || 0).toFixed(2)}</td>
                         </>
                       )}
                       {activeTab === 'imaging' && (
@@ -210,7 +212,7 @@ export default function PharmacySetup() {
                           <td className="py-4 px-4 font-medium text-slate-900 text-sm">{item.testName}</td>
                           <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.modality}</td>
                           <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.bodyPart}</td>
-                          <td className="py-4 px-4 font-medium text-slate-900 text-xs">AED {parseFloat(item.cost || 0).toFixed(2)}</td>
+                          <td className="py-4 px-4 font-medium text-slate-900 text-xs">{currency} {parseFloat(item.cost || 0).toFixed(2)}</td>
                         </>
                       )}
                       <td className="py-4 px-4 text-right">
@@ -382,7 +384,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <TextField label="Normal Range" value={formData.normalRange} onChange={val => setFormData({...formData, normalRange: val})} />
-              <TextField label="Cost (AED)" value={formData.cost} onChange={val => setFormData({...formData, cost: val})} type="number" />
+              <TextField label={`Cost (${currency})`} value={formData.cost} onChange={val => setFormData({...formData, cost: val})} type="number" />
             </div>
           </>
         );
@@ -394,7 +396,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
               <SelectField label="Modality Type" options={['X-Ray', 'CT Scan', 'MRI', 'Ultrasound']} value={formData.modality} onChange={val => setFormData({...formData, modality: val})} />
               <TextField label="Body Region" value={formData.bodyPart} onChange={val => setFormData({...formData, bodyPart: val})} placeholder="e.g. Chest, Abdomen" />
             </div>
-            <TextField label="Cost (AED)" value={formData.cost} onChange={val => setFormData({...formData, cost: val})} type="number" />
+            <TextField label={`Cost (${currency})`} value={formData.cost} onChange={val => setFormData({...formData, cost: val})} type="number" />
           </>
         );
       default: return null;

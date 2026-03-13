@@ -75,14 +75,20 @@ export default function Users() {
            };
          });
          
-      } else if (userData?.facilityId) {
-         data = await userService.getUsersByFacility(userData.facilityId);
-      } else {
-         data = [];
-      }
-      setUsers(data);
-      setFacilityUsage(stats);
-      setFacilities(facMap);
+      } else if (userData?.facilityId && userData.facilityId !== 'SYSTEM') {
+          // CLINIC ISOLATION: 
+          const facUsers = await userService.getUsersByFacility(userData.facilityId);
+          // Safety Filter: Never show Superadmins to Clinic Owners/Staff
+          data = facUsers.filter(u => u.role !== 'superadmin');
+       } else if (userData?.facilityId === 'SYSTEM') {
+          // If still in SYSTEM mode, only show themselves to avoid seeing other SYSTEM users (like Jebin)
+          data = [userData];
+       } else {
+          data = [];
+       }
+       setUsers(data);
+       setFacilityUsage(stats);
+       setFacilities(facMap);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);

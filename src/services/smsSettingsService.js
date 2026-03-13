@@ -66,9 +66,20 @@ const smsSettingsService = {
   /**
    * Fetch all topup requests (Superadmin)
    */
-  async getTopupRequests() {
+  async getTopupRequests(facilityId = null) {
     try {
-      const q = query(collection(db, 'topup_requests'), orderBy('createdAt', 'desc'), limit(50));
+      const constraints = [
+        where('status', 'in', ['pending', 'approved']),
+        orderBy('createdAt', 'desc'), 
+        limit(50)
+      ];
+      
+      // If facilityId is provided, filter by it. Otherwise (Superadmin) get all.
+      if (facilityId) {
+          constraints.unshift(where('facilityId', '==', facilityId));
+      }
+      
+      const q = query(collection(db, 'topup_requests'), ...constraints);
       const snap = await getDocs(q);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (error) {
@@ -84,14 +95,19 @@ const smsSettingsService = {
     try {
       const reqDoc = doc(db, 'topup_requests', requestId);
       const reqSnap = await getDoc(reqDoc);
-      if (!reqSnap.exists()) throw new Error("Request not found");
+      if (!reqSnap.exists()) throw new Error("Request no longer exists");
       
       const { facilityId, sms } = reqSnap.data();
       
-      // Update facility balance
-      await updateDoc(doc(db, 'facility_profile', facilityId), {
-        smsWalletBalance: increment(sms)
-      });
+      try {
+        // Update facility balance
+        await updateDoc(doc(db, 'facility_profile', facilityId), {
+          smsWalletBalance: increment(sms)
+        });
+      } catch (err) {
+        console.error("Facility update failed:", err);
+        throw new Error("Target Clinic not found. The facility may have been deleted.");
+      }
       
       // Mark request as approved
       await updateDoc(reqDoc, {
@@ -102,6 +118,22 @@ const smsSettingsService = {
       return true;
     } catch (error) {
       console.error('Error approving topup request:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete or Dismiss a topup request (Superadmin)
+   */
+  async deleteTopupRequest(requestId) {
+    try {
+      await updateDoc(doc(db, 'topup_requests', requestId), {
+          status: 'dismissed',
+          dismissedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error dismissing topup request:', error);
       throw error;
     }
   },
@@ -132,7 +164,10 @@ const smsSettingsService = {
       let q;
       const logsRef = collection(db, 'sms_logs');
       
-      if (facilityId && facilityId !== 'all') {
+      // SECURITY: If no ID is provided, return empty array to prevent leaks
+      if (!facilityId) return [];
+
+      if (facilityId !== 'all') {
         q = query(
           logsRef,
           where('facilityId', '==', facilityId),
@@ -140,7 +175,7 @@ const smsSettingsService = {
           limit(num)
         );
       } else {
-        // Global view for Superadmin
+        // Global view for Superadmin (requires explicit 'all' string)
         q = query(
           logsRef,
           orderBy('sentAt', 'desc'),
@@ -156,7 +191,7 @@ const smsSettingsService = {
             console.warn("Index missing for sms_logs, falling back to un-ordered fetch");
             let q;
             const logsRef = collection(db, 'sms_logs');
-            if (facilityId && facilityId !== 'all') {
+            if (facilityId !== 'all') {
                 q = query(logsRef, where('facilityId', '==', facilityId), limit(num));
             } else {
                 q = query(logsRef, limit(num));

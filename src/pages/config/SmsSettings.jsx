@@ -39,10 +39,10 @@ export default function SmsSettings() {
   const isSuperadmin = userData?.role === 'superadmin';
 
   useEffect(() => {
+    fetchFacilities();
+    fetchTopupRequests();
     if (isSuperadmin) {
-      fetchFacilities();
       fetchProviderBalance();
-      fetchTopupRequests();
     }
   }, []);
 
@@ -60,9 +60,9 @@ export default function SmsSettings() {
     }
   };
 
-  const fetchTopupRequests = async () => {
+   const fetchTopupRequests = async () => {
     try {
-      const data = await smsSettingsService.getTopupRequests();
+      const data = await smsSettingsService.getTopupRequests(isSuperadmin ? null : selectedFacilityId);
       setTopupRequests(data || []);
     } catch (err) {
       console.error("Error fetching topup requests:", err);
@@ -72,10 +72,11 @@ export default function SmsSettings() {
   useEffect(() => {
     if (selectedFacilityId) {
       fetchWallet();
+      fetchTopupRequests(); // Fetch requests when facility changes
     } else {
       setLoading(false);
     }
-  }, [selectedFacilityId]);
+  }, [selectedFacilityId, isSuperadmin]); // Added isSuperadmin to dependencies
 
   const fetchFacilities = async () => {
     try {
@@ -138,6 +139,7 @@ export default function SmsSettings() {
             setBuying(bundle.id);
             await smsSettingsService.requestTopup(selectedFacilityId, bundle);
             success("Purchase request sent to admin! They will contact you for payment.");
+            fetchTopupRequests(); // Refresh requests after sending one
         } catch (err) {
             toastError("Failed to send request.");
         } finally {
@@ -146,7 +148,22 @@ export default function SmsSettings() {
     }
   };
 
-  const handleApproveRequest = async (req) => {
+  const handleManualTopup = async (amount) => {
+    if (!selectedFacilityId || !amount) return;
+    try {
+        setBuying('manual');
+        await smsSettingsService.buyBundle(selectedFacilityId, parseInt(amount));
+        success(`${amount} credits added successfully!`);
+        fetchWallet();
+        fetchProviderBalance();
+    } catch (err) {
+        toastError("Failed to add credits.");
+    } finally {
+        setBuying(null);
+    }
+  };
+
+   const handleApproveRequest = async (req) => {
     try {
         setProcessingRequestId(req.id);
         await smsSettingsService.approveTopupRequest(req.id);
@@ -155,7 +172,21 @@ export default function SmsSettings() {
         if (req.facilityId === selectedFacilityId) fetchWallet();
         fetchProviderBalance();
     } catch (err) {
-        toastError("Approval failed.");
+        toastError(err.message || "Approval failed.");
+    } finally {
+        setProcessingRequestId(null);
+    }
+  };
+
+  const handleDismissRequest = async (requestId) => {
+    if (!window.confirm("Are you sure you want to dismiss this request? It will be permanently removed.")) return;
+    try {
+        setProcessingRequestId(requestId);
+        await smsSettingsService.deleteTopupRequest(requestId);
+        success("Request dismissed.");
+        fetchTopupRequests();
+    } catch (err) {
+        toastError("Failed to dismiss request.");
     } finally {
         setProcessingRequestId(null);
     }
@@ -292,13 +323,13 @@ export default function SmsSettings() {
                 <div className="bg-primary-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-xl shadow-primary-900/20">
                     <div className="relative z-10 h-full flex flex-col">
                         <div className="flex items-start justify-between mb-8">
-                            <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider text-white/60 border border-white/10 flex items-center gap-2">
+                            <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider text-white/60 border border-white/10 flex items-center gap-2" title="This is the balance available to this specific clinic.">
                                 <CreditCard className="h-3 w-3" /> Clinic Wallet Balance
                             </div>
                             {isSuperadmin && (
-                                <div className={`px-3 py-1 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-2 transition-all ${providerError ? 'bg-red-500/20 text-red-300 border-red-500/20' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/20'}`}>
+                                <div className={`px-3 py-1 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-2 transition-all ${providerError ? 'bg-red-500/20 text-red-300 border-red-500/20' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/20'}`} title="This is your main Africa's Talking account balance. All clinics share this pool.">
                                     <Globe className="h-3 w-3" /> 
-                                    Provider Master: {providerError ? 'N/A' : (providerBalance || '...')}
+                                    Platform Master (AT): {providerError ? 'N/A' : (providerBalance || '...')}
                                 </div>
                             )}
                         </div>
@@ -324,12 +355,29 @@ export default function SmsSettings() {
                             </div>
                         )}
                         
-                        <button 
-                            onClick={() => { fetchWallet(); if(isSuperadmin) fetchProviderBalance(); }}
-                            className="mt-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-primary-300 hover:text-white transition-colors"
-                        >
-                            <RefreshCcw className="h-3 w-3" /> Synchronize Balance
-                        </button>
+                        <div className="flex flex-wrap items-center gap-4 mt-6">
+                            <button 
+                                onClick={() => { fetchWallet(); if(isSuperadmin) fetchProviderBalance(); }}
+                                className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-primary-300 hover:text-white transition-colors"
+                            >
+                                <RefreshCcw className="h-3 w-3" /> Synchronize Balance
+                            </button>
+
+                            {isSuperadmin && (
+                                <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Manual Add:</span>
+                                    {[500, 1000, 5000].map(amt => (
+                                        <button
+                                            key={amt}
+                                            onClick={() => handleManualTopup(amt)}
+                                            className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-bold text-primary-200 transition-all"
+                                        >
+                                            +{amt}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-primary-800 to-transparent pointer-events-none" />
@@ -358,17 +406,25 @@ export default function SmsSettings() {
                                 <div>
                                     <h4 className="text-xl font-bold text-slate-900">{bundle.sms.toLocaleString()} <span className="text-sm font-medium text-slate-500">SMS</span></h4>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <p className="text-lg font-semibold text-slate-900">KES {bundle.price}</p>
-                                    <button 
-                                        onClick={() => handleBuyBundle(bundle)}
-                                        disabled={buying === bundle.id}
-                                        className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all
-                                            ${buying === bundle.id ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg'}
-                                        `}
-                                    >
-                                        {buying === bundle.id ? 'Wait...' : (isSuperadmin ? 'Add Direct' : 'Purchase Request')}
-                                    </button>
+                                 <div className="flex items-center gap-4">
+                                    {topupRequests.some(r => r.status === 'pending' && r.bundleId === bundle.id) ? (
+                                        <span className="px-4 py-2 bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-amber-100 flex items-center gap-1.5 animate-pulse">
+                                            <Clock className="h-3 w-3" /> Request Sent
+                                        </span>
+                                    ) : (
+                                        <>
+                                            <p className="text-lg font-semibold text-slate-900">{currency} {bundle.price}</p>
+                                            <button 
+                                                onClick={() => handleBuyBundle(bundle)}
+                                                disabled={buying === bundle.id}
+                                                className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all
+                                                    ${buying === bundle.id ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg'}
+                                                `}
+                                            >
+                                                {buying === bundle.id ? 'Wait...' : (isSuperadmin ? 'Add Direct' : 'Purchase Request')}
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -409,16 +465,26 @@ export default function SmsSettings() {
                                   </div>
                                   <div className="text-right">
                                      <p className="text-lg font-bold text-primary-600">{req.sms.toLocaleString()} Credits</p>
-                                     <p className="text-xs font-semibold text-slate-500">KES {req.price}</p>
+                                     <p className="text-xs font-semibold text-slate-500">{currency} {req.price}</p>
                                   </div>
                                </div>
-                               <button 
-                                  onClick={() => handleApproveRequest(req)}
-                                  disabled={processingRequestId === req.id}
-                                  className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
-                               >
-                                  {processingRequestId === req.id ? 'Processing Approval...' : 'Confirm Payment & Approve'} <Check className="h-4 w-4" />
-                               </button>
+                                <div className="flex gap-2">
+                                    <button 
+                                      onClick={() => handleApproveRequest(req)}
+                                      disabled={processingRequestId === req.id}
+                                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
+                                    >
+                                      {processingRequestId === req.id ? 'Wait...' : 'Approve'} <Check className="h-4 w-4" />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDismissRequest(req.id)}
+                                      disabled={processingRequestId === req.id}
+                                      className="px-4 py-3 bg-slate-200 text-slate-600 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-300 transition-all disabled:opacity-50"
+                                      title="Dismiss/Delete Request"
+                                    >
+                                      <Ban className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
                          ))}
                       </div>

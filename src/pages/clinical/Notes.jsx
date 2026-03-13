@@ -1000,7 +1000,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                   onClick={() => generateIcdSuggestions(formData.subjective + ' ' + formData.objective + ' ' + formData.assessment)}
                   className="px-6 bg-indigo-50 text-indigo-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center gap-2"
                 >
-                  🤖 Auto-Suggest
+                  Auto-Suggest
                 </button>
                 <button 
                   type="button"
