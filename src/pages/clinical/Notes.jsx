@@ -34,6 +34,7 @@ import patientService from '../../services/patientService';
 import appointmentService from '../../services/appointmentService';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 const SPECIALTIES = [
   { id: 'general', name: 'General', icon: Stethoscope },
@@ -58,11 +59,12 @@ export default function Notes() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingNote, setViewingNote] = useState(null);
-  const [notification, setNotification] = useState(null);
+
+  const { success, error: toastError } = useToast();
 
   const showNotification = (type, message) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 3000);
+    if (type === 'success') success(message);
+    else toastError(message);
   };
 
   const { userData } = useAuth();
@@ -274,19 +276,6 @@ export default function Notes() {
             note={viewingNote}
             onClose={() => setViewingNote(null)}
           />
-        )}
-        {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
-          >
-             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <div className="h-5 w-5 rounded-full border-2 border-white" />}
-             </div>
-             {notification.message}
-          </motion.div>
         )}
       </AnimatePresence>
     </DashboardLayout>

@@ -4,6 +4,7 @@ import facilityService from '../../services/facilityService';
 import userService from '../../services/userService';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { 
   CreditCard, 
   Search, 
@@ -42,7 +43,7 @@ export default function Subscriptions() {
   const [loading, setLoading] = useState(true);
   const [selectedFacility, setSelectedFacility] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const { success, error: toastError } = useToast();
   const [requests, setRequests] = useState([]);
   const [staffCounts, setStaffCounts] = useState({});
   const [facilityOwners, setFacilityOwners] = useState({});
@@ -115,8 +116,7 @@ export default function Subscriptions() {
         metadata: { requestId, facilityId: req?.facilityId }
       });
 
-      setNotification({ type: 'success', message: 'Request dismissed.' });
-      setTimeout(() => setNotification(null), 3000);
+      success('Request dismissed.');
     } catch (error) {
       console.error("Error dismissing request:", error);
     }
@@ -183,7 +183,7 @@ export default function Subscriptions() {
 
       setIsModalOpen(false);
       fetchFacilities(); // Refresh
-      setNotification({ type: 'success', message: 'Subscription successfully updated!' });
+      success('Subscription successfully updated!');
       
       // Auto-complete any pending requests for this facility
       const pendingReq = requests.find(r => r.facilityId === selectedFacility.id && r.status === 'pending');
@@ -191,12 +191,9 @@ export default function Subscriptions() {
         await facilityService.updateSubscriptionRequest(pendingReq.id, 'completed');
         setRequests(prev => prev.map(r => r.id === pendingReq.id ? { ...r, status: 'completed' } : r));
       }
-      
-      setTimeout(() => setNotification(null), 3000);
     } catch (error) {
       console.error("Update error:", error);
-      setNotification({ type: 'error', message: 'Failed to update subscription.' });
-      setTimeout(() => setNotification(null), 3000);
+      toastError('Failed to update subscription.');
     }
   };
 
@@ -441,22 +438,6 @@ export default function Subscriptions() {
                </div>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
-          >
-             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                {notification.type === 'success' ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
-             </div>
-             {notification.message}
-          </motion.div>
         )}
       </AnimatePresence>
     </DashboardLayout>

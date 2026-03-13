@@ -214,11 +214,10 @@ export default function Appointments() {
 
       fetchAppointments();
       setIsTriageOpen(false);
-      setNotification({ type: 'success', message: 'Triage data recorded and patient queued for doctor.' });
-      setTimeout(() => setNotification(null), 3000);
+      success('Triage data recorded and patient queued for doctor.');
     } catch (error) {
       console.error('Error saving triage:', error);
-      setNotification({ type: 'error', message: 'Failed to save triage data.' });
+      toastError('Failed to save triage data.');
     }
   };
 

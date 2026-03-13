@@ -33,6 +33,7 @@ import billingService from '../../services/billingService';
 import patientService from '../../services/patientService';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 const BILL_TYPES = [
   { id: '1', name: 'Registration', icon: User, stage: 1 },
@@ -49,7 +50,7 @@ export default function Billing() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState(null);
-  const [notification, setNotification] = useState(null);
+  const { success, info } = useToast();
   const [billingStats, setBillingStats] = useState({
     revenue: 0,
     outstanding: 0,
@@ -148,14 +149,12 @@ export default function Billing() {
     // Or better: just set a notification that it's voided (simulating the action).
     
     // await billingService.voidInvoice(inv.id);
-    setNotification({ type: 'success', message: `Invoice ${inv.invoiceNo} has been voided.` });
-    setTimeout(() => setNotification(null), 3000);
+    success(`Invoice ${inv.invoiceNo} has been voided.`);
     fetchInvoices();
   };
 
   const handleViewDetails = (inv) => {
-    setNotification({ type: 'info', message: `Viewing details for ${inv.invoiceNo} (Patient: ${inv.patientName})` });
-    setTimeout(() => setNotification(null), 3000);
+    info(`Viewing details for ${inv.invoiceNo} (Patient: ${inv.patientName})`);
   };
 
   const handleMarkAsPaid = async (inv) => {
@@ -171,8 +170,7 @@ export default function Billing() {
         metadata: { invoiceId: inv.id, amount: inv.totalAmount, patientName: inv.patientName }
       });
       
-      setNotification({ type: 'success', message: `Invoice ${inv.invoiceNo} marked as paid. Ledger updated.` });
-      setTimeout(() => setNotification(null), 3000);
+      success(`Invoice ${inv.invoiceNo} marked as paid. Ledger updated.`);
       fetchInvoices();
     } catch (error) {
       console.error('Error marking as paid:', error);
@@ -365,21 +363,6 @@ export default function Billing() {
               fetchInvoices();
             }}
           />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
-          >
-             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-blue-500'}`}>
-                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-             </div>
-             {notification.message}
-          </motion.div>
         )}
       </AnimatePresence>
     </DashboardLayout>

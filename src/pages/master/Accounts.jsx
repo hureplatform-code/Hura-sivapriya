@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
+import { useToast } from '../../contexts/ToastContext';
 
 // No mock payment history needed for now.
 // No mock payment history needed for now.
@@ -57,7 +58,7 @@ export default function Accounts() {
   const { userData } = useAuth();
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState(null);
+  const { success, error: toastError } = useToast();
 
   useEffect(() => {
     if (userData?.facilityId) {
@@ -76,12 +77,10 @@ export default function Accounts() {
         requestedPlan: planName,
         message: `Clinic owner requested to upgrade to ${planName} via dashboard.`
       });
-      setNotification({ type: 'success', message: `Request for ${planName} sent! We will contact you shortly.` });
-      setTimeout(() => setNotification(null), 4000);
+      success(`Request for ${planName} sent! We will contact you shortly.`);
     } catch (error) {
       console.error(error);
-      setNotification({ type: 'error', message: 'Failed to send request. Please try again.' });
-      setTimeout(() => setNotification(null), 4000);
+      toastError('Failed to send request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -216,21 +215,6 @@ export default function Accounts() {
           </div>
         </div>
       </div>
-      <AnimatePresence>
-        {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-medium text-sm"
-          >
-             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
-             </div>
-             {notification.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </DashboardLayout>
   );
 }

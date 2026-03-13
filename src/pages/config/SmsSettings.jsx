@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import smsSettingsService from '../../services/smsSettingsService';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { useToast } from '../../contexts/ToastContext';
 
 // We hardcode KSh pricing per requirements, but use current currency for display
 // (If clinic currency is different, conversions would apply in production)
@@ -26,7 +27,7 @@ export default function SmsSettings() {
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(null); // id of bundle being bought
   const [savingLang, setSavingLang] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const { success, error: toastError } = useToast();
 
   useEffect(() => {
     fetchWallet();
@@ -47,8 +48,8 @@ export default function SmsSettings() {
   };
 
   const showNotif = (type, message) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 4000);
+    if (type === 'success') success(message);
+    else toastError(message);
   };
 
   const handleBuyBundle = async (bundle) => {
@@ -126,28 +127,6 @@ export default function SmsSettings() {
              <FileText className="h-5 w-5" /> SMS Logs
           </button>
         </div>
-
-        {/* Notification bar */}
-        <AnimatePresence>
-          {notification && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className={`flex items-center gap-3 p-4 rounded-2xl text-sm font-medium ${
-                notification.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                  : 'bg-red-50 text-red-700 border border-red-100'
-              }`}
-            >
-              {notification.type === 'success'
-                ? <CheckCircle2 className="h-5 w-5 shrink-0" />
-                : <AlertTriangle className="h-5 w-5 shrink-0" />
-              }
-              {notification.message}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             
