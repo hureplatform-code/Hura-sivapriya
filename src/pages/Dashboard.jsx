@@ -39,10 +39,13 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardStats();
-  }, [role]);
+    if (userData) {
+      fetchDashboardStats();
+    }
+  }, [userData, role]);
 
   const fetchDashboardStats = async () => {
+    if (!userData) return;
     try {
       setLoading(true);
       
@@ -119,6 +122,19 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
+  if (loading || !userData) {
+    return (
+      <DashboardLayout>
+        <div className="h-[60vh] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-10 w-10 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin" />
+            <p className="text-slate-400 font-medium animate-pulse text-sm">Synchronizing Clinical Data...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
   return (
     <DashboardLayout>
       <div className="space-y-8">
