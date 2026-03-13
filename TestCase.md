@@ -4,7 +4,7 @@ This document describes the complete lifecycle of a clinic operating within the 
 
 ---
 
-## 🏗️ Phase 1: Platform Setup & Governance (Superadmin Flow)
+## Phase 1: Platform Setup & Governance (Superadmin Flow)
 **Objective:** The Superadmin sets up the platform infrastructure, approves clinics, and manages overarching subscriptions.
 
 ### Test Case 1.1: Superadmin Login & Dashboard Access
@@ -20,7 +20,7 @@ This document describes the complete lifecycle of a clinic operating within the 
 
 ---
 
-## ⚕️ Phase 2: Clinic Onboarding (Clinic Owner Flow)
+## Phase 2: Clinic Onboarding (Clinic Owner Flow)
 **Objective:** A doctor or medical group owner signs up, creates their branches, and invites their operational staff.
 
 ### Test Case 2.1: Clinic Owner Configuration & Branch Limits
@@ -45,7 +45,7 @@ This document describes the complete lifecycle of a clinic operating within the 
 
 ---
 
-## 🏥 Phase 3: The Patient Journey (Reception & Triage Flow)
+## Phase 3: The Patient Journey (Reception & Triage Flow)
 **Objective:** A patient walks in or calls to book an appointment, arrives at the clinic, and has their initial vitals recorded.
 
 ### Test Case 3.1: Patient Registration
@@ -67,7 +67,7 @@ This document describes the complete lifecycle of a clinic operating within the 
 
 ---
 
-## 🩺 Phase 4: Medical Administration (Doctor Flow)
+## Phase 4: Medical Administration (Doctor Flow)
 **Objective:** The doctor conducts the actual consultation, prescribes medication, writes clinical notes, and discharges the patient.
 
 ### Test Case 4.1: Initiating Consultation
@@ -86,7 +86,7 @@ This document describes the complete lifecycle of a clinic operating within the 
 
 ---
 
-## 🛏️ Phase 5: Inpatient & Admissions (Ward Flow)
+## Phase 5: Inpatient & Admissions (Ward Flow)
 **Objective:** If the patient requires extended observation, they are admitted to a ward bed.
 
 ### Test Case 5.1: Ward Management & Bed Allocation
@@ -102,7 +102,7 @@ This document describes the complete lifecycle of a clinic operating within the 
 
 ---
 
-## 💵 Phase 6: Cashier & Billing (Finance Flow)
+## Phase 6: Cashier & Billing (Finance Flow)
 **Objective:** The patient's journey concludes at the cashier, where all services are billed.
 
 ### Test Case 6.1: Generating an Invoice
@@ -118,7 +118,7 @@ This document describes the complete lifecycle of a clinic operating within the 
 
 ---
 
-## ⚠️ Phase 7: Edge Cases & System Constraints
+## Phase 7: Edge Cases & System Constraints
 **Objective:** Verify stability and error handling.
 
 1. **Delete Protection:** Try to delete a patient record or invoice. 

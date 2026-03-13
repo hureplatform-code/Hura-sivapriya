@@ -1,34 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { 
-  FileText, 
-  Plus, 
-  Search, 
-  User, 
-  Calendar, 
-  Clock, 
-  ChevronRight,
-  MoreVertical,
-  History,
-  Activity,
-  ClipboardList,
-  Stethoscope,
-  Eye,
-  Thermometer,
-  Zap,
-  CheckCircle2,
-  X,
-  Search as SearchIcon,
-  Smile,
-  Baby,
-  Heart,
-  Droplets,
-  Scissors,
-  Brain,
-  Wind
+import {
+  User, Activity, CheckCircle2, AlertCircle, FileText, Download, TrendingUp, Search, Calendar, Phone, Activity as ActivityIcon, Edit3, Save, Printer, RefreshCw, Eye, Mic, List, Info, ClipboardCheck, ClipboardList, Thermometer, Droplet, Plus, BrainCircuit, Heart, Eye as EyeIcon, Ear, Stethoscope, ChevronRight, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { APP_CONFIG } from '../../config';
 import medicalRecordService from '../../services/medicalRecordService';
 import patientService from '../../services/patientService';
 import appointmentService from '../../services/appointmentService';
@@ -45,7 +23,7 @@ const SPECIALTIES = [
   { id: 'surgery', name: 'Surgery', icon: Scissors },
   { id: 'ent', name: 'ENT', icon: Wind },
   { id: 'dermatology', name: 'Dermatology', icon: Zap },
-  { id: 'radiology', name: 'Radiology', icon: SearchIcon },
+  { id: 'radiology', name: 'Radiology', icon: Search },
   { id: 'ophthalmology', name: 'Ophthalmology', icon: Eye },
   { id: 'orthopedics', name: 'Orthopedics', icon: Thermometer },
   { id: 'psychiatry', name: 'Psychiatry', icon: Brain },
@@ -55,6 +33,9 @@ const SPECIALTIES = [
 export default function Notes() {
   const location = useLocation();
   const [isCreating, setIsCreating] = useState(false);
+  const [signatureData, setSignatureData] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -567,26 +548,80 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                                  showNotification('error', `Speech Recognition Error: ${event.error}`);
                               };
 
-                              recognition.onend = () => {
+                              recognition.onend = async () => {
                                  setIsRecording(false);
-                                 // Basic Simulated SOAP extraction from transcript
                                  const transcript = fakeTranscript;
-                                 if (transcript) {
-                                    // Simulated logic for splitting transcript into SOAP
-                                    const subjectiveMatch = transcript.match(/Subjective:(.*?)Objective:/i) || transcript.match(/Subjective:(.*)/i);
-                                    const objectiveMatch = transcript.match(/Objective:(.*?)Assessment:/i) || transcript.match(/Objective:(.*)/i);
-                                    
-                                    setFormData(prev => {
-                                       const newData = {
-                                          ...prev,
-                                          subjective: subjectiveMatch ? subjectiveMatch[1].trim() : transcript.split('Objective:')[0].trim(),
-                                          objective: objectiveMatch ? objectiveMatch[1].trim() : (transcript.split('Objective:')[1] || '').split('Assessment:')[0].trim() || prev.objective,
-                                          assessment: (transcript.split('Assessment:')[1] || '').split('Plan:')[0].trim() || prev.assessment,
-                                          plan: (transcript.split('Plan:')[1] || '').trim() || prev.plan
-                                       };
-                                       generateIcdSuggestions(newData.subjective + ' ' + newData.objective + ' ' + newData.assessment);
-                                       return newData;
-                                    });
+                                 if (transcript && transcript.length > 20) {
+                                    setIsAnalyzing(true);
+                                    try {
+                                      // Call Google Gemini API
+                                      // Note: In real production, this should be proxied via backend. For now, we will construct prompt.
+                                      // We don't have an API key inside .env, so we need to add a placeholder or ask the user to provide one.
+                                      // BUT wait, I will implement a powerful placeholder API block using a known free or simulated approach
+                                      // Or if we must, we'll ask user to input their GEMINI_API_KEY in the config.
+                                      
+                                      const prompt = `You are an expert medical AI. Read the following messy clinical dictation transcript and extract it into a structured JSON format containing specific medical fields:
+                                      1. subjective (patient complaints, history)
+                                      2. objective (physical exam findings, vitals)
+                                      3. assessment (your diagnosis or clinical impression)
+                                      4. plan (treatment, prescriptions, follow-up)
+                                      5. icd_suggestion (A short, accurate ICD-10 string like 'J01.9 - Acute Sinusitis')
+                                      
+                                      Transcript: "${transcript}"
+                                      
+                                      Respond ONLY with raw JSON. Format: {"subjective":"", "objective":"", "assessment":"", "plan":"", "icd_suggestion":""}`;
+
+                                      // Look up key from local storage or prompt user (temporarily simulated if no key is found)
+                                      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+                                      
+                                      if (!apiKey) {
+                                          success("Transcript captured. To auto-format with AI, please add a Gemini API Key in Settings (Simulating basic format for now).");
+                                          // basic fallback
+                                          const subjectiveMatch = transcript.match(/Subjective:(.*?)Objective:/i) || transcript.match(/Subjective:(.*)/i);
+                                          const objectiveMatch = transcript.match(/Objective:(.*?)Assessment:/i) || transcript.match(/Objective:(.*)/i);
+                                          setFormData(prev => ({
+                                              ...prev,
+                                              subjective: subjectiveMatch ? subjectiveMatch[1].trim() : transcript,
+                                              objective: objectiveMatch ? objectiveMatch[1].trim() : prev.objective,
+                                              assessment: prev.assessment,
+                                              plan: prev.plan
+                                          }));
+                                      } else {
+                                          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                  contents: [{ parts: [{ text: prompt }] }]
+                                              })
+                                          });
+                                          
+                                          const data = await response.json();
+                                          let resultText = data.candidates[0].content.parts[0].text;
+                                          
+                                          // clean json
+                                          resultText = resultText.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+                                          const parsed = JSON.parse(resultText);
+                                          
+                                          setFormData(prev => ({
+                                             ...prev,
+                                             subjective: parsed.subjective || prev.subjective,
+                                             objective: parsed.objective || prev.objective,
+                                             assessment: parsed.assessment || prev.assessment,
+                                             plan: parsed.plan || prev.plan
+                                          }));
+                                          
+                                          if (parsed.icd_suggestion) {
+                                              setSuggestedIcds([{ code: parsed.icd_suggestion.split('-')[0].trim(), description: parsed.icd_suggestion.split('-')[1]?.trim() }]);
+                                          }
+                                          success("AI Note Generated Successfully!");
+                                      }
+
+                                    } catch (e) {
+                                        console.error("AI Gen Failed:", e);
+                                        toastError("Failed to generate AI note. Please fill manually.");
+                                    } finally {
+                                        setIsAnalyzing(false);
+                                    }
                                  }
                               };
 
@@ -599,11 +634,21 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                            }
                         }}
                         className={`px-6 py-4 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all flex items-center gap-2 ${
-                          isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          isRecording ? 'bg-red-500 text-white animate-pulse' : 
+                          isAnalyzing ? 'bg-indigo-300 text-white cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'
                         }`}
                       >
-                        <span className={`h-3 w-3 rounded-full bg-white`}></span>
-                        {isRecording ? 'Stop Recording' : 'Start Dictation'}
+                        {isAnalyzing ? (
+                            <>
+                               <BrainCircuit className="h-4 w-4 animate-spin text-white" />
+                               Analyzing with AI...
+                            </>
+                        ) : (
+                            <>
+                               <span className={`h-3 w-3 rounded-full bg-white`}></span>
+                               {isRecording ? 'Stop Recording' : 'Start Dictation'}
+                            </>
+                        )}
                       </button>
                    </div>
                    {fakeTranscript && (
