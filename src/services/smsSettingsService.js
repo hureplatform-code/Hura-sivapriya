@@ -90,11 +90,6 @@ const smsSettingsService = {
     try {
       const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'huraplatform';
       let functionUrl = `https://us-central1-${projectId}.cloudfunctions.net/sendManualSms`;
-      
-      // Local development support
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        functionUrl = `http://localhost:5001/${projectId}/us-central1/sendManualSms`;
-      }
 
       const res = await fetch(functionUrl, {
         method: 'POST',
@@ -121,10 +116,6 @@ const smsSettingsService = {
     try {
       const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'huraplatform';
       let functionUrl = `https://us-central1-${projectId}.cloudfunctions.net/getAtBalance`;
-
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        functionUrl = `http://localhost:5001/${projectId}/us-central1/getAtBalance`;
-      }
 
       const res = await fetch(functionUrl);
       if (!res.ok) return null;
