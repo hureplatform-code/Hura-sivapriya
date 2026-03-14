@@ -159,48 +159,54 @@ const smsSettingsService = {
   /**
    * Fetch recent SMS Logs (Clinic specific or all if null)
    */
-  async getLogs(facilityId, num = 100) {
+  async getLogs(facilityId, num = 50, lastDoc = null) {
     try {
       let q;
       const logsRef = collection(db, 'sms_logs');
       
       // SECURITY: If no ID is provided, return empty array to prevent leaks
-      if (!facilityId) return [];
+      if (!facilityId) return { logs: [], lastDoc: null };
 
-      if (facilityId !== 'all') {
-        q = query(
-          logsRef,
-          where('facilityId', '==', facilityId),
-          orderBy('sentAt', 'desc'),
-          limit(num)
-        );
-      } else {
-        // Global view for Superadmin (requires explicit 'all' string)
-        q = query(
-          logsRef,
-          orderBy('sentAt', 'desc'),
-          limit(num)
-        );
+      const constraints = [
+        orderBy('sentAt', 'desc'),
+        limit(num)
+      ];
+
+      if (lastDoc) {
+        constraints.push(startAfter(lastDoc));
       }
 
+      if (facilityId !== 'all') {
+        constraints.unshift(where('facilityId', '==', facilityId));
+      }
+
+      q = query(logsRef, ...constraints);
       const snap = await getDocs(q);
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const lastVisible = snap.docs[snap.docs.length - 1];
+      const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      return { logs, lastDoc: lastVisible };
     } catch (error) {
         // If sorting index is missing, fallback cleanly
         if (error.message.includes('index')) {
             console.warn("Index missing for sms_logs, falling back to un-ordered fetch");
             let q;
             const logsRef = collection(db, 'sms_logs');
+            const constraints = [limit(num)];
+            if (lastDoc) constraints.push(startAfter(lastDoc));
+            
             if (facilityId !== 'all') {
-                q = query(logsRef, where('facilityId', '==', facilityId), limit(num));
+                q = query(logsRef, where('facilityId', '==', facilityId), ...constraints);
             } else {
-                q = query(logsRef, limit(num));
+                q = query(logsRef, ...constraints);
             }
             const snap = await getDocs(q);
-            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const lastVisible = snap.docs[snap.docs.length - 1];
+            const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            return { logs, lastDoc: lastVisible };
         }
       console.error('Error fetching SMS logs:', error);
-      return [];
+      return { logs: [], lastDoc: null };
     }
   },
 

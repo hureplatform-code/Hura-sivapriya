@@ -33,6 +33,9 @@ export default function Inventory() {
   const { userData } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
@@ -41,7 +44,7 @@ export default function Inventory() {
 
   useEffect(() => {
     fetchInventory();
-  }, []);
+  }, [userData]); // Dependency on userData to ensure facilityId is present
 
   if (userData?.role === 'superadmin') {
     return (
@@ -170,6 +173,12 @@ export default function Inventory() {
                    {cat}
                  </button>
               ))}
+              <button 
+                onClick={handleRefresh}
+                className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-slate-900 hover:bg-slate-100 transition-all active:scale-95"
+              >
+                <Activity className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
 
@@ -186,73 +195,99 @@ export default function Inventory() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredItems.map((item, i) => (
-                  <motion.tr 
-                    key={item.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="group hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td className="py-6 px-6">
-                      <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-inner
-                          ${item.category === 'Pharmacological' ? 'bg-blue-50 text-blue-500' : 'bg-purple-50 text-purple-500'}
-                        `}>
-                          {item.category === 'Pharmacological' ? <Activity className="h-6 w-6" /> : <ShoppingBag className="h-6 w-6" />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900 text-base">{item.name}</p>
-                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight">{item.category}</p>
-                        </div>
-                      </div>
+                {loading && !loadingMore ? (
+                  <tr>
+                    <td colSpan="6" className="py-20 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs italic">
+                      Scanning clinical supply chain...
                     </td>
-                    <td className="py-6 px-6 text-center">
-                      <div className="inline-flex flex-col items-center">
-                         <p className={`text-xl font-semibold ${item.stock < 20 ? 'text-amber-500' : 'text-slate-900'}`}>{item.stock}</p>
-                         <div className="flex gap-1 mt-1">
-                            {[1, 2, 3, 4, 5].map(dot => (
-                               <div key={dot} className={`h-1 w-3 rounded-full ${item.stock > (dot * 20) ? 'bg-slate-200' : (item.stock < 20 && dot === 1) ? 'bg-amber-200' : 'bg-slate-100'}`} />
-                            ))}
+                  </tr>
+                ) : filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="py-20 text-center text-slate-500 font-medium">
+                      No stock items found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredItems.map((item, i) => (
+                    <motion.tr 
+                      key={item.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="group hover:bg-slate-50/50 transition-colors"
+                    >
+                      <td className="py-6 px-6">
+                        <div className="flex items-center gap-4">
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-inner
+                            ${item.category === 'Pharmacological' ? 'bg-blue-50 text-blue-500' : 'bg-purple-50 text-purple-500'}
+                          `}>
+                            {item.category === 'Pharmacological' ? <Activity className="h-6 w-6" /> : <ShoppingBag className="h-6 w-6" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900 text-base">{item.name}</p>
+                            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight">{item.category}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-6 px-6 text-center">
+                        <div className="inline-flex flex-col items-center">
+                           <p className={`text-xl font-semibold ${item.stock < 20 ? 'text-amber-500' : 'text-slate-900'}`}>{item.stock}</p>
+                           <div className="flex gap-1 mt-1">
+                              {[1, 2, 3, 4, 5].map(dot => (
+                                 <div key={dot} className={`h-1 w-3 rounded-full ${item.stock > (dot * 20) ? 'bg-slate-200' : (item.stock < 20 && dot === 1) ? 'bg-amber-200' : 'bg-slate-100'}`} />
+                              ))}
+                           </div>
+                        </div>
+                      </td>
+                      <td className="py-6 px-6">
+                        <div className="flex items-center gap-2">
+                          <Hash className="h-3 w-3 text-slate-300" />
+                          <span className="font-medium text-slate-600 text-sm tracking-tighter uppercase">{item.batch || 'UNTRACKED'}</span>
+                        </div>
+                      </td>
+                      <td className="py-6 px-6">
+                         <span className={`text-xs font-semibold uppercase tracking-tight
+                           ${new Date(item.expiry) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) ? 'text-red-500' : 'text-slate-500'}
+                         `}>
+                           {new Date(item.expiry).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                         </span>
+                      </td>
+                      <td className="py-6 px-6 text-right">
+                        <p className="font-medium text-slate-900 text-base">{currency} {item.price.toFixed(2)}</p>
+                      </td>
+                      <td className="py-6 px-6 text-right">
+                         <div className="flex items-center justify-end gap-3 transition-opacity">
+                            <button 
+                              onClick={() => handleEdit(item)}
+                              className="p-3 bg-white text-slate-400 hover:text-slate-900 rounded-xl shadow-sm border border-slate-100 transition-all"
+                            >
+                               <Edit2Icon className="h-4.5 w-4.5" />
+                            </button>
+                            <button 
+                              onClick={() => setDeleteConfirmation(item)}
+                              className="p-3 bg-white text-slate-400 hover:text-red-500 rounded-xl shadow-sm border border-slate-100 transition-all"
+                            >
+                               <Trash2 className="h-4.5 w-4.5" />
+                            </button>
                          </div>
-                      </div>
-                    </td>
-                    <td className="py-6 px-6">
-                      <div className="flex items-center gap-2">
-                        <Hash className="h-3 w-3 text-slate-300" />
-                        <span className="font-medium text-slate-600 text-sm tracking-tighter uppercase">{item.batch || 'UNTRACKED'}</span>
-                      </div>
-                    </td>
-                    <td className="py-6 px-6">
-                       <span className={`text-xs font-semibold uppercase tracking-tight
-                         ${new Date(item.expiry) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) ? 'text-red-500' : 'text-slate-500'}
-                       `}>
-                         {new Date(item.expiry).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                       </span>
-                    </td>
-                    <td className="py-6 px-6 text-right">
-                      <p className="font-medium text-slate-900 text-base">{currency} {item.price.toFixed(2)}</p>
-                    </td>
-                    <td className="py-6 px-6 text-right">
-                       <div className="flex items-center justify-end gap-3 transition-opacity">
-                          <button 
-                            onClick={() => handleEdit(item)}
-                            className="p-3 bg-white text-slate-400 hover:text-slate-900 rounded-xl shadow-sm border border-slate-100 transition-all"
-                          >
-                             <Edit2Icon className="h-4.5 w-4.5" />
-                          </button>
-                          <button 
-                            onClick={() => setDeleteConfirmation(item)}
-                            className="p-3 bg-white text-slate-400 hover:text-red-500 rounded-xl shadow-sm border border-slate-100 transition-all"
-                          >
-                             <Trash2 className="h-4.5 w-4.5" />
-                          </button>
-                       </div>
-                    </td>
-                  </motion.tr>
-                ))}
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+
+          {hasMore && (
+            <div className="pt-8 border-t border-slate-50 flex justify-center">
+              <button
+                onClick={() => fetchInventory(true)}
+                disabled={loadingMore}
+                className="px-10 py-4 bg-slate-50 text-slate-600 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {loadingMore ? 'Syncing...' : 'Load Mode Items'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

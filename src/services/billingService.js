@@ -1,13 +1,36 @@
 import firestoreService from './firestoreService';
 import accountingService from './accountingService';
-import { where } from 'firebase/firestore';
+import { where, query, collection, getDocs, orderBy, limit, startAfter } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const billingService = {
   collection: firestoreService.collections.billing,
 
-  async getAllInvoices(facilityId) {
-    const q = facilityId ? [where('facilityId', '==', facilityId)] : [];
-    return firestoreService.getAll(this.collection, q);
+  async getAllInvoices(facilityId, limitNum = 20, lastDoc = null) {
+    try {
+      const constraints = [
+        orderBy('createdAt', 'desc'),
+        limit(limitNum)
+      ];
+
+      if (lastDoc) {
+        constraints.push(startAfter(lastDoc));
+      }
+
+      if (facilityId) {
+        constraints.unshift(where('facilityId', '==', facilityId));
+      }
+
+      const q = query(collection(db, this.collection), ...constraints);
+      const snap = await getDocs(q);
+      const lastVisible = snap.docs[snap.docs.length - 1];
+      const invoices = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      return { invoices, lastDoc: lastVisible };
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      return { invoices: [], lastDoc: null };
+    }
   },
 
   async createInvoice(invoiceData) {
@@ -52,7 +75,7 @@ const billingService = {
   },
 
   async getFinancialStats(facilityId) {
-    const invoices = await this.getAllInvoices(facilityId);
+    const { invoices } = await this.getAllInvoices(facilityId, 500);
     
     const totalRevenue = invoices
       .filter(inv => inv.status === 'paid')

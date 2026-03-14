@@ -45,6 +45,9 @@ export default function Notes() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingNote, setViewingNote] = useState(null);
 
@@ -62,7 +65,7 @@ export default function Notes() {
     if (location.state?.autoCreate) {
       setIsCreating(true);
     }
-  }, [location.state]);
+  }, [location.state, userData]);
 
   if (userData?.role === 'superadmin') {
     return (
@@ -85,18 +88,6 @@ export default function Notes() {
       </DashboardLayout>
     );
   }
-
-  const fetchNotes = async () => {
-    try {
-      setLoading(true);
-      const data = await medicalRecordService.getAllRecords(userData?.facilityId);
-      setNotes(data || []);
-    } catch (error) {
-      console.error('Error fetching notes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredNotes = notes.filter(note => 
     note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -133,10 +124,16 @@ export default function Notes() {
                   className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-xl text-sm transition-all outline-none"
                 />
               </div>
+              <button 
+                onClick={handleRefresh}
+                className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-900 hover:bg-slate-100 transition-all active:scale-95"
+              >
+                <RefreshCw className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
+              </button>
             </div>
 
             <div className="space-y-4">
-              {loading ? (
+              {loading && !loadingMore ? (
                 <div className="p-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Loading records...</div>
               ) : filteredNotes.length === 0 ? (
                 <div className="bg-white p-12 rounded-2xl border border-slate-100 shadow-sm text-center">
@@ -147,74 +144,88 @@ export default function Notes() {
                   <p className="text-slate-500 text-sm mt-1">Start by creating a new clinical note for a patient.</p>
                 </div>
               ) : (
-                filteredNotes.map((note, i) => (
-                  <motion.div
-                    key={note.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-primary-600 transition-colors">
-                          {(() => {
-                            const spec = SPECIALTIES.find(s => s.id === note.specialty);
-                            return spec?.icon ? React.createElement(spec.icon, { className: 'h-5 w-5' }) : <FileText className="h-5 w-5" />;
-                          })()}
+                <>
+                  {filteredNotes.map((note, i) => (
+                    <motion.div
+                      key={note.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-primary-600 transition-colors">
+                            {(() => {
+                              const spec = SPECIALTIES.find(s => s.id === note.specialty);
+                              return spec?.icon ? React.createElement(spec.icon, { className: 'h-5 w-5' }) : <FileText className="h-5 w-5" />;
+                            })()}
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-slate-900">{note.title || 'Untitled Note'}</h3>
+                            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                              <User className="h-3 w-3" /> {note.patientName} • <Calendar className="h-3 w-3" /> {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-slate-900">{note.title || 'Untitled Note'}</h3>
-                          <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                            <User className="h-3 w-3" /> {note.patientName} • <Calendar className="h-3 w-3" /> {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <span className={`px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[10px] font-semibold uppercase tracking-widest capitalize`}>
-                          {note.specialty}
-                        </span>
-                        {note.status === 'draft' ? (
-                          <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-semibold uppercase tracking-widest">Draft</span>
-                        ) : (
-                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" /> Signed
+                        <div className="flex gap-2 items-center">
+                          <span className={`px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[10px] font-semibold uppercase tracking-widest capitalize`}>
+                            {note.specialty}
                           </span>
-                        )}
-                        {note.entryMode === 'audio' && (
-                          <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-semibold uppercase tracking-widest" title="Created via Audio">
-                             Dictated
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed font-medium">
-                        {note.subjective || note.objective || note.assessment || note.plan || 'No observations documented.'}
-                      </p>
-                      {note.diagnosis && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-medium w-fit uppercase border border-amber-100 italic">
-                          Dx: {note.diagnosis}
+                          {note.status === 'draft' ? (
+                            <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-semibold uppercase tracking-widest">Draft</span>
+                          ) : (
+                            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> Signed
+                            </span>
+                          )}
+                          {note.entryMode === 'audio' && (
+                            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-semibold uppercase tracking-widest" title="Created via Audio">
+                               Dictated
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-                        <ClipboardList className="h-3.5 w-3.5" />
-                        Signed by {note.doctorName || 'Attending Physician'}
                       </div>
-                      <button 
-                        onClick={() => setViewingNote(note)}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all font-medium text-xs"
-                      >
-                        View Full Note
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
+                      
+                      <div className="space-y-2">
+                        <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed font-medium">
+                          {note.subjective || note.objective || note.assessment || note.plan || 'No observations documented.'}
+                        </p>
+                        {note.diagnosis && (
+                          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-medium w-fit uppercase border border-amber-100 italic">
+                            Dx: {note.diagnosis}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                          <ClipboardList className="h-3.5 w-3.5" />
+                          Signed by {note.doctorName || 'Attending Physician'}
+                        </div>
+                        <button 
+                          onClick={() => setViewingNote(note)}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all font-medium text-xs"
+                        >
+                          View Full Note
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {hasMore && (
+                    <div className="pt-8 flex justify-center">
+                       <button
+                         onClick={() => fetchNotes(true)}
+                         disabled={loadingMore}
+                         className="px-8 py-3 bg-slate-50 text-slate-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2 disabled:opacity-50 border border-slate-100"
+                       >
+                         {loadingMore ? 'Retrieving Records...' : 'Load Mode Medical Records'}
+                       </button>
                     </div>
-                  </motion.div>
-                ))
+                  )}
+                </>
               )}
             </div>
           </div>

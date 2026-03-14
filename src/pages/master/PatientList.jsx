@@ -29,6 +29,9 @@ export default function PatientList() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState(null);
   const [genderFilter, setGenderFilter] = useState('All');
@@ -191,7 +194,7 @@ export default function PatientList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {loading ? (
+                {loading && !loadingMore ? (
                    <tr>
                      <td colSpan="5" className="py-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Loading patient registry...</td>
                    </tr>
@@ -281,6 +284,18 @@ export default function PatientList() {
               </tbody>
             </table>
           </div>
+
+          {hasMore && (
+            <div className="pt-8 flex justify-center border-t border-slate-50">
+               <button
+                 onClick={() => fetchPatients(true)}
+                 disabled={loadingMore}
+                 className="px-10 py-3.5 bg-slate-50 text-slate-600 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2 disabled:opacity-50"
+               >
+                 {loadingMore ? 'Loading Records...' : 'Load More Patients'}
+               </button>
+            </div>
+          )}
         </div>
       </div>
       <QuickPatientModal 

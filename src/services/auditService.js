@@ -1,5 +1,5 @@
 import firestoreService from './firestoreService';
-import { serverTimestamp, orderBy, limit, where, query, collection, getDocs } from 'firebase/firestore';
+import { serverTimestamp, orderBy, limit, where, query, collection, getDocs, startAfter } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const auditService = {
@@ -24,14 +24,19 @@ const auditService = {
    * Fetches recent audit logs for the dashboard feed
    * @param {number} limitNum 
    * @param {string|null} facilityId - If provided, filter by facility (Governance Rule)
+   * @param {any} lastDoc - For pagination
    */
-  async getRecentLogs(limitNum = 20, facilityId = null) {
+  async getRecentLogs(limitNum = 20, facilityId = null, lastDoc = null) {
     try {
       const constraints = [
         orderBy('timestamp', 'desc'),
         limit(limitNum)
       ];
       
+      if (lastDoc) {
+        constraints.push(startAfter(lastDoc));
+      }
+
       // If facilityId is provided, scoped to that clinic. 
       // If null, it's a Superadmin viewing GLOBAL audit trail.
       if (facilityId) {
@@ -40,10 +45,14 @@ const auditService = {
       
       const q = query(collection(db, this.collection), ...constraints);
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+      const logs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      return { logs, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching audit logs:', error);
-      return [];
+      return { logs: [], lastDoc: null };
     }
   }
 };

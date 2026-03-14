@@ -16,13 +16,16 @@ export default function SmsLogs() {
   const [facilities, setFacilities] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     if (isSuperadmin) fetchFacilities();
   }, [isSuperadmin]);
 
   useEffect(() => {
-    fetchLogs();
+    handleRefresh();
   }, [selectedFacilityId]);
 
   const fetchFacilities = async () => {
@@ -34,23 +37,41 @@ export default function SmsLogs() {
     }
   };
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (isLoadMore = false) => {
     // Security Check: Non-admins must have a facilityId set
     if (!isSuperadmin && (!selectedFacilityId || selectedFacilityId === 'all')) {
         setLogs([]);
         setLoading(false);
+        setHasMore(false);
         return;
     }
 
     try {
-      setLoading(true);
-      const data = await smsSettingsService.getLogs(selectedFacilityId, 100);
-      setLogs(data);
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const { logs: newLogs, lastDoc } = await smsSettingsService.getLogs(selectedFacilityId, 50, isLoadMore ? lastVisible : null);
+      
+      if (isLoadMore) {
+        setLogs(prev => [...prev, ...newLogs]);
+      } else {
+        setLogs(newLogs);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newLogs.length === 50);
     } catch (err) {
       console.error("Failed to load SMS logs", err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchLogs(false);
   };
 
   const getStatusIcon = (status, retried) => {
@@ -111,18 +132,18 @@ export default function SmsLogs() {
                 </div>
             )}
             <button 
-                onClick={fetchLogs}
+                onClick={handleRefresh}
                 className="p-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all shadow-sm"
                 title="Refresh Logs"
             >
-                <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Logs Table */}
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden p-2">
-            <div className="overflow-x-auto min-h-[60vh]">
+            <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/50">
@@ -136,7 +157,7 @@ export default function SmsLogs() {
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? (
+                        {loading && !loadingMore ? (
                             <tr>
                                 <td colSpan={isSuperadmin ? 7 : 6} className="py-12 text-center text-slate-400 text-sm font-medium italic">
                                     Loading SMS logs...
@@ -242,11 +263,33 @@ export default function SmsLogs() {
                                         </div>
                                     </td>
                                 </motion.tr>
-                            )})
+                                )})
                         )}
                     </tbody>
                 </table>
             </div>
+
+            {hasMore && (
+                <div className="p-8 flex justify-center border-t border-slate-50 bg-slate-50/30">
+                    <button
+                        onClick={() => fetchLogs(true)}
+                        disabled={loadingMore}
+                        className="px-8 py-3 bg-white border border-slate-200 text-slate-900 rounded-2xl font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {loadingMore ? (
+                            <>
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                                Loading...
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw className="h-3 w-3" />
+                                Load More Logs
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
         </div>
 
       </div>

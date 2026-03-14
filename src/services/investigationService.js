@@ -2,12 +2,37 @@ import firestoreService from './firestoreService';
 import auditService from './auditService';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase';
+import { where, query, collection, getDocs, orderBy, limit, startAfter } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const investigationService = {
   collection: firestoreService.collections.investigations,
 
-  async getAllInvestigations() {
-    return firestoreService.getAll(this.collection);
+  async getAllInvestigations(facilityId, limitNum = 20, lastDoc = null) {
+    try {
+      const constraints = [
+        orderBy('createdAt', 'desc'),
+        limit(limitNum)
+      ];
+
+      if (lastDoc) {
+        constraints.push(startAfter(lastDoc));
+      }
+
+      if (facilityId) {
+        constraints.unshift(where('facilityId', '==', facilityId));
+      }
+
+      const q = query(collection(db, this.collection), ...constraints);
+      const snap = await getDocs(q);
+      const lastVisible = snap.docs[snap.docs.length - 1];
+      const investigations = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      return { investigations, lastDoc: lastVisible };
+    } catch (error) {
+      console.error('Error fetching investigations:', error);
+      return { investigations: [], lastDoc: null };
+    }
   },
 
   async getInvestigationById(id) {

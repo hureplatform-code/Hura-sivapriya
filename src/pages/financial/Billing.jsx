@@ -48,6 +48,9 @@ export default function Billing() {
   const [isCreating, setIsCreating] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState(null);
   const { success, info } = useToast();
@@ -63,6 +66,41 @@ export default function Billing() {
   useEffect(() => {
     fetchInvoices();
   }, []);
+
+  const fetchInvoices = async (isLoadMore = false) => {
+    try {
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const [invResult, statsData] = await Promise.all([
+        billingService.getAllInvoices(userData?.facilityId, 20, isLoadMore ? lastVisible : null),
+        !isLoadMore ? billingService.getFinancialStats(userData?.facilityId) : Promise.resolve(null)
+      ]);
+
+      const { invoices: newInvoices, lastDoc } = invResult;
+      
+      if (isLoadMore) {
+        setInvoices(prev => [...prev, ...newInvoices]);
+      } else {
+        setInvoices(newInvoices);
+        if (statsData) setBillingStats(statsData);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newInvoices.length === 20);
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchInvoices(false);
+  };
 
   if (userData?.role === 'superadmin') {
     return (
@@ -85,22 +123,6 @@ export default function Billing() {
       </DashboardLayout>
     );
   }
-
-  const fetchInvoices = async () => {
-    try {
-      setLoading(true);
-      const [invData, statsData] = await Promise.all([
-        billingService.getAllInvoices(),
-        billingService.getFinancialStats()
-      ]);
-      setInvoices(invData || []);
-      setBillingStats(statsData);
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredInvoices = invoices.filter(inv => 
     inv.invoiceNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -250,7 +272,7 @@ export default function Billing() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {loading ? (
+                {loading && !loadingMore ? (
                    <tr>
                      <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Fetching financial records...</td>
                    </tr>
@@ -351,6 +373,17 @@ export default function Billing() {
               </tbody>
             </table>
           </div>
+          {hasMore && (
+            <div className="p-8 border-t border-slate-50 bg-slate-50/30 flex justify-center">
+               <button
+                 onClick={() => fetchInvoices(true)}
+                 disabled={loadingMore}
+                 className="px-12 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+               >
+                 {loadingMore ? 'Loading Invoices...' : 'Load More Invoices'}
+               </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -360,7 +393,7 @@ export default function Billing() {
             onClose={() => setIsCreating(false)} 
             onSave={() => {
               setIsCreating(false);
-              fetchInvoices();
+              handleRefresh();
             }}
           />
         )}

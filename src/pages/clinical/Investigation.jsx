@@ -33,6 +33,9 @@ export default function Investigation() {
   const { userData } = useAuth();
   const [investigations, setInvestigations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
@@ -42,7 +45,47 @@ export default function Investigation() {
 
   useEffect(() => {
     fetchInvestigations();
-  }, []);
+  }, [userData]);
+
+  const fetchInvestigations = async (isLoadMore = false) => {
+    try {
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      if (!userData?.facilityId) {
+        console.warn("Facility ID not available, skipping investigation fetch.");
+        setInvestigations([]);
+        setHasMore(false);
+        return;
+      }
+
+      const { investigations: newInvs, lastDoc } = await investigationService.getAllInvestigations(
+        userData.facilityId,
+        20,
+        isLoadMore ? lastVisible : null
+      );
+      
+      if (isLoadMore) {
+        setInvestigations(prev => [...prev, ...newInvs]);
+      } else {
+        setInvestigations(newInvs || []);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newInvs.length === 20);
+    } catch (error) {
+      console.error('Error fetching investigations:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchInvestigations(false);
+  };
 
   if (userData?.role === 'superadmin') {
     return (
@@ -65,18 +108,6 @@ export default function Investigation() {
       </DashboardLayout>
     );
   }
-
-  const fetchInvestigations = async () => {
-    try {
-      setLoading(true);
-      const data = await investigationService.getAllInvestigations();
-      setInvestigations(data || []);
-    } catch (error) {
-      console.error('Error fetching investigations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCancelRequest = async (inv) => {
     const isConfirmed = await confirm({
@@ -142,6 +173,12 @@ export default function Investigation() {
               />
             </div>
             <div className="flex gap-2 w-full md:w-auto">
+              <button 
+                onClick={handleRefresh}
+                className="p-4 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-900 hover:bg-slate-100 transition-all active:scale-95"
+              >
+                <Beaker className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
+              </button>
               <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-all font-medium text-sm">
                 <Filter className="h-4 w-4" />
                 Filter
@@ -162,7 +199,7 @@ export default function Investigation() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {loading ? (
+                {loading && !loadingMore ? (
                    <tr>
                      <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Analyzing diagnostic baseline...</td>
                    </tr>
@@ -170,156 +207,170 @@ export default function Investigation() {
                   <tr>
                     <td colSpan="6" className="py-12 text-center text-slate-500 font-semibold uppercase tracking-widest text-xs">No records found.</td>
                   </tr>
-                ) : filteredInvestigations.map((inv, i) => (
-                  <motion.tr 
-                    key={inv.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="group hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td className="py-5 px-4">
-                      <div>
-                        <p className="font-medium text-slate-900 text-sm">#{inv.id.slice(-6).toUpperCase()}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight mt-0.5">{inv.testName}</p>
-                      </div>
-                    </td>
-                    <td className="py-5 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center font-medium text-slate-400 text-xs shadow-inner">
-                          {inv.patientName?.split(' ').map(n => n[0]).join('')}
+                ) : (
+                  filteredInvestigations.map((inv, i) => (
+                    <motion.tr 
+                      key={inv.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="group hover:bg-slate-50/50 transition-colors"
+                    >
+                      <td className="py-5 px-4">
+                        <div>
+                          <p className="font-medium text-slate-900 text-sm">#{inv.id.slice(-6).toUpperCase()}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight mt-0.5">{inv.testName}</p>
                         </div>
-                        <p className="text-sm font-medium text-slate-900">{inv.patientName}</p>
-                      </div>
-                    </td>
-                    <td className="py-5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest
-                        ${inv.category === 'Laboratory' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}
-                      `}>
-                        {inv.category === 'Laboratory' ? <FlaskConical className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
-                        {inv.category}
-                      </span>
-                    </td>
-                    <td className="py-5 px-4 text-center">
-                       <span className={`px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest
-                         ${inv.priority === 'Emergency (STAT)' ? 'bg-red-50 text-red-600' : 
-                           inv.priority === 'Urgent' ? 'bg-amber-50 text-amber-600' : 
-                           'bg-slate-50 text-slate-400'}
-                       `}>
-                         {inv.priority || 'Normal'}
-                       </span>
-                    </td>
-                    <td className="py-5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest
-                        ${inv.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 
-                          inv.status === 'pending' ? 'bg-amber-50 text-amber-600' : 
-                          'bg-indigo-50 text-indigo-600'}
-                      `}>
-                        {inv.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : 
-                         inv.status === 'pending' ? <Clock className="h-3 w-3" /> : 
-                         <AlertCircle className="h-3 w-3" />}
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td className="py-5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2 transition-opacity">
-                        {inv.status === 'completed' ? (
-                          <>
-                            {inv.resultFile && (
-                              <button 
-                                onClick={() => window.open(inv.resultFile, '_blank')}
-                                className="p-2.5 text-emerald-500 hover:text-emerald-600 bg-emerald-50 rounded-xl"
-                              >
-                                <Eye className="h-4.5 w-4.5" />
-                              </button>
-                            )}
-                            <button className="p-2.5 text-slate-400 hover:text-primary-600 bg-white rounded-lg shadow-sm border border-slate-100">
-                              <Download className="h-4.5 w-4.5" />
-                            </button>
-                          </>
-                        ) : (
-                          <button 
-                             onClick={() => setUpdatingId(inv.id)}
-                             className="px-4 py-2 bg-slate-900 text-white text-[10px] font-medium rounded-lg hover:bg-slate-800 transition-all uppercase tracking-widest shadow-lg shadow-slate-200"
-                          >
-                            Update Result
-                          </button>
-                        )}
-                        <div className="relative">
-                          <button 
-                            onClick={() => setActiveMenu(activeMenu === inv.id ? null : inv.id)}
-                            className="p-2.5 text-slate-400 hover:text-slate-900 rounded-lg hover:bg-white transition-all shadow-sm"
-                          >
-                            <MoreVertical className="h-4.5 w-4.5" />
-                          </button>
-                          
-                          <AnimatePresence>
-                            {activeMenu === inv.id && (
-                              <>
-                                <div 
-                                  className="fixed inset-0 z-10" 
-                                  onClick={() => setActiveMenu(null)}
-                                ></div>
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                  className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-20"
+                      </td>
+                      <td className="py-5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center font-medium text-slate-400 text-xs shadow-inner">
+                            {inv.patientName?.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <p className="text-sm font-medium text-slate-900">{inv.patientName}</p>
+                        </div>
+                      </td>
+                      <td className="py-5 px-4">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest
+                          ${inv.category === 'Laboratory' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}
+                        `}>
+                          {inv.category === 'Laboratory' ? <FlaskConical className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                          {inv.category}
+                        </span>
+                      </td>
+                      <td className="py-5 px-4 text-center">
+                         <span className={`px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest
+                           ${inv.priority === 'Emergency (STAT)' ? 'bg-red-50 text-red-600' : 
+                             inv.priority === 'Urgent' ? 'bg-amber-50 text-amber-600' : 
+                             'bg-slate-50 text-slate-400'}
+                         `}>
+                           {inv.priority || 'Normal'}
+                         </span>
+                      </td>
+                      <td className="py-5 px-4">
+                        <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest
+                          ${inv.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 
+                            inv.status === 'pending' ? 'bg-amber-50 text-amber-600' : 
+                            'bg-indigo-50 text-indigo-600'}
+                        `}>
+                          {inv.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : 
+                           inv.status === 'pending' ? <Clock className="h-3 w-3" /> : 
+                           <AlertCircle className="h-3 w-3" />}
+                          {inv.status}
+                        </span>
+                      </td>
+                      <td className="py-5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2 transition-opacity">
+                          {inv.status === 'completed' ? (
+                            <>
+                              {inv.resultFile && (
+                                <button 
+                                  onClick={() => window.open(inv.resultFile, '_blank')}
+                                  className="p-2.5 text-emerald-500 hover:text-emerald-600 bg-emerald-50 rounded-xl"
                                 >
-                                  <button 
-                                    onClick={() => { setUpdatingId(inv.id); setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                                  <Eye className="h-4.5 w-4.5" />
+                                </button>
+                              )}
+                              <button className="p-2.5 text-slate-400 hover:text-primary-600 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <Download className="h-4.5 w-4.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <button 
+                               onClick={() => setUpdatingId(inv.id)}
+                               className="px-4 py-2 bg-slate-900 text-white text-[10px] font-medium rounded-lg hover:bg-slate-800 transition-all uppercase tracking-widest shadow-lg shadow-slate-200"
+                            >
+                              Update Result
+                            </button>
+                          )}
+                          <div className="relative">
+                            <button 
+                              onClick={() => setActiveMenu(activeMenu === inv.id ? null : inv.id)}
+                              className="p-2.5 text-slate-400 hover:text-slate-900 rounded-lg hover:bg-white transition-all shadow-sm"
+                            >
+                              <MoreVertical className="h-4.5 w-4.5" />
+                            </button>
+                            
+                            <AnimatePresence>
+                              {activeMenu === inv.id && (
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-10" 
+                                    onClick={() => setActiveMenu(null)}
+                                  ></div>
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-20"
                                   >
-                                    <Activity className="h-4 w-4" />
-                                    Update Result
-                                  </button>
-                                  <button 
-                                    onClick={() => { setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-                                  >
-                                    <FileText className="h-4 w-4" />
-                                    View Details
-                                  </button>
-                                  {inv.status === 'Completed' && (
                                     <button 
-                                      onClick={() => { 
-                                        if (inv.resultFile) {
-                                          window.open(inv.resultFile, '_blank');
-                                        }
-                                        setActiveMenu(null); 
-                                      }}
-                                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                                      onClick={() => { setUpdatingId(inv.id); setActiveMenu(null); }}
+                                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                                     >
-                                      <Download className="h-4 w-4" />
-                                      Download Report
+                                      <Activity className="h-4 w-4" />
+                                      Update Result
                                     </button>
-                                  )}
-                                  <div className="h-px bg-slate-50 my-1"></div>
-                                  <button 
-                                    onClick={() => { handleCancelRequest(inv); setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
-                                  >
-                                    <Clock className="h-4 w-4" />
-                                    Cancel Request
-                                  </button>
-                                  <button 
-                                    onClick={() => { handleDeleteRequest(inv.id); setActiveMenu(null); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                                  >
-                                    <X className="h-4 w-4" />
-                                    Delete Record
-                                  </button>
-                                </motion.div>
-                              </>
-                            )}
-                          </AnimatePresence>
+                                    <button 
+                                      onClick={() => { setActiveMenu(null); }}
+                                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                      View Details
+                                    </button>
+                                    {inv.status === 'Completed' && (
+                                      <button 
+                                        onClick={() => { 
+                                          if (inv.resultFile) {
+                                            window.open(inv.resultFile, '_blank');
+                                          }
+                                          setActiveMenu(null); 
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                                      >
+                                        <Download className="h-4 w-4" />
+                                        Download Report
+                                      </button>
+                                    )}
+                                    <div className="h-px bg-slate-50 my-1"></div>
+                                    <button 
+                                      onClick={() => { handleCancelRequest(inv); setActiveMenu(null); }}
+                                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
+                                    >
+                                      <Clock className="h-4 w-4" />
+                                      Cancel Request
+                                    </button>
+                                    <button 
+                                      onClick={() => { handleDeleteRequest(inv.id); setActiveMenu(null); }}
+                                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                      <X className="h-4 w-4" />
+                                      Delete Record
+                                    </button>
+                                  </motion.div>
+                                </>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+
+          {hasMore && (
+            <div className="pt-8 border-t border-slate-50 flex justify-center">
+              <button
+                onClick={() => fetchInvestigations(true)}
+                disabled={loadingMore}
+                className="px-10 py-4 bg-slate-50 text-slate-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {loadingMore ? 'Loading Records...' : 'Load More Investigations'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,13 +1,35 @@
 import firestoreService from './firestoreService';
-import { where, orderBy, limit } from 'firebase/firestore';
+import { where, query, collection, getDocs, orderBy, limit, startAfter } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const inventoryService = {
   collection: firestoreService.collections.inventory,
 
-  async getInventory(facilityId) {
-    const q = [orderBy('updatedAt', 'desc')];
-    if (facilityId) q.push(where('facilityId', '==', facilityId));
-    return firestoreService.getAll(this.collection, q);
+  async getInventory(facilityId, limitNum = 20, lastDoc = null) {
+    try {
+      const constraints = [
+        orderBy('updatedAt', 'desc'),
+        limit(limitNum)
+      ];
+
+      if (lastDoc) {
+        constraints.push(startAfter(lastDoc));
+      }
+
+      if (facilityId) {
+        constraints.unshift(where('facilityId', '==', facilityId));
+      }
+
+      const q = query(collection(db, this.collection), ...constraints);
+      const snap = await getDocs(q);
+      const lastVisible = snap.docs[snap.docs.length - 1];
+      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      return { items, lastDoc: lastVisible };
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      return { items: [], lastDoc: null };
+    }
   },
 
   async addStock(itemData) {

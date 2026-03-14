@@ -20,6 +20,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function GlobalAudit() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterModule, setFilterModule] = useState('All');
 
@@ -27,16 +30,33 @@ export default function GlobalAudit() {
     fetchLogs();
   }, []);
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (isLoadMore = false) => {
     try {
-      setLoading(true);
-      const data = await auditService.getRecentLogs(50);
-      setLogs(data || []);
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const { logs: newLogs, lastDoc } = await auditService.getRecentLogs(20, null, isLoadMore ? lastVisible : null);
+      
+      if (isLoadMore) {
+        setLogs(prev => [...prev, ...newLogs]);
+      } else {
+        setLogs(newLogs);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newLogs.length === 20);
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchLogs(false);
   };
 
   const filteredLogs = logs.filter(log => {
@@ -138,10 +158,10 @@ export default function GlobalAudit() {
            <div className="lg:col-span-4 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                  {loading ? 'Loading...' : `${filteredLogs.length} event${filteredLogs.length !== 1 ? 's' : ''} found`}
+                  {loading && !loadingMore ? 'Loading...' : `${filteredLogs.length} event${filteredLogs.length !== 1 ? 's' : ''} shown`}
                 </span>
               </div>
-              {loading ? (
+              {loading && !loadingMore ? (
                 <div className="p-20 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs italic">Parsing global event stream...</div>
               ) : filteredLogs.length === 0 ? (
                 <div className="bg-white p-20 rounded-3xl border border-slate-100 shadow-sm text-center">
@@ -150,51 +170,77 @@ export default function GlobalAudit() {
                    <p className="text-slate-500 text-sm mt-1 font-medium">No activity matching your criteria was found.</p>
                 </div>
               ) : (
-                filteredLogs.map((log, i) => (
-                   <motion.div 
-                     key={log.id}
-                     initial={{ opacity: 0, x: -20 }}
-                     animate={{ opacity: 1, x: 0 }}
-                     transition={{ delay: i * 0.05 }}
-                     className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all flex items-start gap-6 group"
-                   >
-                      <div className={`h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 border ${getModuleColor(log.module)}`}>
-                        {log.module === 'SECURITY' ? <ShieldAlert className="h-6 w-6" /> : <Activity className="h-6 w-6" />}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                         <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-3">
-                               <p className="text-sm font-medium text-slate-900">{log.action}</p>
-                               <span className={`px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-widest border ${getModuleColor(log.module)}`}>
-                                 {log.module}
-                               </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-widest">
-                               <Clock className="h-3 w-3" />
-                               {log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000).toLocaleString() : 'Recent'}
-                            </div>
-                         </div>
-                         <p className="text-sm text-slate-600 font-medium mb-3 line-clamp-1">{log.description}</p>
-                         <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-                               <User className="h-3.5 w-3.5 text-slate-300" />
-                               {log.userName} (ID: {log.userId?.slice(-6)})
-                            </div>
-                            {log.metadata?.patientId && (
-                               <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-                                  <FileText className="h-3.5 w-3.5 text-slate-300" />
-                                  Subject: {log.metadata.patientId}
-                               </div>
-                            )}
-                         </div>
-                      </div>
+                <>
+                  <div className="space-y-4">
+                    {filteredLogs.map((log, i) => (
+                       <motion.div 
+                         key={log.id}
+                         initial={{ opacity: 0, x: -20 }}
+                         animate={{ opacity: 1, x: 0 }}
+                         transition={{ delay: i * 0.05 }}
+                         className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all flex items-start gap-6 group"
+                       >
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 border ${getModuleColor(log.module)}`}>
+                            {log.module === 'SECURITY' ? <ShieldAlert className="h-6 w-6" /> : <Activity className="h-6 w-6" />}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                             <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-3">
+                                   <p className="text-sm font-medium text-slate-900">{log.action}</p>
+                                   <span className={`px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-widest border ${getModuleColor(log.module)}`}>
+                                     {log.module}
+                                   </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-widest">
+                                   <Clock className="h-3 w-3" />
+                                   {log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000).toLocaleString() : 'Recent'}
+                                </div>
+                             </div>
+                             <p className="text-sm text-slate-600 font-medium mb-3 line-clamp-1">{log.description}</p>
+                             <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                                   <User className="h-3.5 w-3.5 text-slate-300" />
+                                   {log.userName} (ID: {log.userId?.slice(-6)})
+                                </div>
+                                {log.metadata?.patientId && (
+                                   <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                                      <FileText className="h-3.5 w-3.5 text-slate-300" />
+                                      Subject: {log.metadata.patientId}
+                                   </div>
+                                )}
+                             </div>
+                          </div>
 
-                      <button className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-primary-600 transition-all">
-                        <ChevronRight className="h-4 w-4" />
+                          <button className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-primary-600 transition-all">
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                       </motion.div>
+                    ))}
+                  </div>
+
+                  {hasMore && (
+                    <div className="pt-8 flex justify-center">
+                      <button
+                        onClick={() => fetchLogs(true)}
+                        disabled={loadingMore}
+                        className="px-12 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+                      >
+                        {loadingMore ? (
+                          <>
+                            <RefreshCw className="h-3 w-3 animate-spin" />
+                            Loading Events...
+                          </>
+                        ) : (
+                          <>
+                            <Activity className="h-3 w-3" />
+                            Load More Events
+                          </>
+                        )}
                       </button>
-                   </motion.div>
-                ))
+                    </div>
+                  )}
+                </>
               )}
            </div>
         </div>
