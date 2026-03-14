@@ -14,8 +14,12 @@ import {
   Stethoscope,
   ClipboardList,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Activity,
+  ChevronRight,
+  Plus
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import userService from '../services/userService';
@@ -28,15 +32,20 @@ import facilityService from '../services/facilityService';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_CONFIG } from '../config';
 import { useCurrency } from '../contexts/CurrencyContext';
+import AppointmentModal from '../components/modals/AppointmentModal';
+import { useToast } from '../contexts/ToastContext';
 
 export default function Dashboard() {
   const { currency } = useCurrency();
   const { userData } = useAuth();
+  const navigate = useNavigate();
   const role = userData?.role || 'clinic_owner';
   const [stats, setStats] = useState([]);
   const [arrears, setArrears] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { success } = useToast();
 
   useEffect(() => {
     if (userData) {
@@ -68,10 +77,14 @@ export default function Dashboard() {
         promises.push(Promise.resolve([])); // Records placeholder
       }
 
-      const [users, appointments, invoices, billingStats, logs, patients, allRecords] = await Promise.all(promises);
+      const [users, appointments, invoices, billingStats, logs, patientsRes, allRecordsRes] = await Promise.all(promises);
+
+      // Handle paginated responses if necessary
+      const patients = patientsRes?.patients || patientsRes || [];
+      const allRecords = allRecordsRes?.records || allRecordsRes?.items || allRecordsRes || [];
 
       const today = new Date().toLocaleDateString();
-      const completedToday = appointments.filter(a => a.status === 'completed' && new Date(a.date).toLocaleDateString() === today).length;
+      const completedToday = (appointments || []).filter(a => a.status === 'completed' && new Date(a.date).toLocaleDateString() === today).length;
       const pendingNotes = allRecords ? allRecords.filter(r => r.status === 'draft').length : 0;
       const overdueNotes = allRecords ? allRecords.filter(r => r.status === 'draft' && (new Date() - new Date(r.createdAt?.seconds ? r.createdAt.seconds * 1000 : Date.now())) > 86400000).length : 0;
 
@@ -100,14 +113,15 @@ export default function Dashboard() {
           { label: 'AT Master Balance', value: providerBal, icon: History, color: providerBal.includes('-') ? 'text-red-600' : 'text-slate-600', bg: providerBal.includes('-') ? 'bg-red-50' : 'bg-slate-50' },
         ]);
         setArrears([]); // Hide clinic arrears
-      } else if (role === 'doctor') {
+      } else if (role === 'doctor' || role === 'nurse' || role === 'receptionist') {
+        const focusLabel = role === 'doctor' ? "Today's Focus" : "Today's Schedule";
         setStats([
-          { label: "Today's Patients", value: appointments.filter(a => new Date(a.date).toLocaleDateString() === today).length.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Pending Notes', value: pendingNotes.toString(), icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Avg Time/Visit', value: '15 min', icon: History, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'Completed Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: focusLabel, value: appointments.filter(a => new Date(a.date).toLocaleDateString() === today).length.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Clinical Documentation', value: pendingNotes.toString() + ' Pending', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Workload Status', value: 'Steady', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Discharged Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         ]);
-        setArrears(invoices.filter(i => i.paymentStatus !== 'paid').slice(0, 4));
+        setArrears(appointments.filter(a => new Date(a.date).toLocaleDateString() === today).slice(0, 4));
       } else {
         const arrearsRate = billingStats.revenue > 0 
           ? ((billingStats.outstanding / (billingStats.revenue + billingStats.outstanding)) * 100).toFixed(1) + '%' 
@@ -128,6 +142,17 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveAppointment = async (data) => {
+    try {
+      await appointmentService.bookAppointment(data);
+      success('Appointment booked successfully!');
+      fetchDashboardStats(); // Refresh stats
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+    }
+    setIsModalOpen(false);
   };
 
   if (loading || !userData) {
@@ -154,10 +179,21 @@ export default function Dashboard() {
                Welcome back, <span className="font-medium text-slate-900">{userData?.name || 'Jon Day'}</span>. Here's your {role} focus for today.
              </p>
            </div>
-           <div className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-100 rounded-2xl shadow-sm">
-             <Calendar className="h-4 w-4 text-primary-500" />
-             <span className="text-sm font-medium text-slate-700">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-           </div>
+            <div className="flex items-center gap-3">
+               {role === 'receptionist' && (
+                 <button 
+                   onClick={() => setIsModalOpen(true)}
+                   className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+                 >
+                   <Plus className="h-4 w-4" />
+                   <span className="text-sm">Book Appointment</span>
+                 </button>
+               )}
+               <div className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                 <Calendar className="h-4 w-4 text-primary-500" />
+                 <span className="text-sm font-medium text-slate-700">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+               </div>
+            </div>
         </header>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -182,30 +218,68 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Main Visual Section */}
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col items-center justify-center relative overflow-hidden group">
-            <h3 className="text-lg font-semibold text-slate-900 mb-8 self-start">Operations Efficiency</h3>
-            <div className="relative h-64 w-64 z-10">
-              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#4f46e5" strokeWidth="12" strokeDasharray="180 251" strokeLinecap="round" />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">Growth</span>
-                <span className="text-2xl font-semibold text-slate-900">+72%</span>
-              </div>
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">
+              {role === 'doctor' ? 'Clinical Schedule' : 'Financial Arrears'}
+            </h3>
+            <div className="h-10 w-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400">
+              {role === 'doctor' ? <Calendar className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
             </div>
-            <div className="flex gap-8 mt-10">
-              <div className="flex items-center gap-2">
-                <div className="h-4 w-4 rounded-lg bg-indigo-600" />
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-widest">Current Quarter</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-4 w-4 rounded-lg bg-slate-100" />
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-widest">Previous</span>
-              </div>
-            </div>
-            <div className="absolute -left-20 -top-20 h-64 w-64 bg-primary-50/20 rounded-full blur-3xl" />
           </div>
+          
+          <div className="flex-1 space-y-4">
+            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? (
+              arrears.length > 0 ? arrears.map((apt, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-primary-100 transition-all cursor-pointer">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center shadow-sm">
+                      <span className="text-[10px] font-bold text-slate-400">{(apt.time || '00:00').split(':')[0]}</span>
+                      <span className="text-xs font-bold text-slate-900 leading-none">{(apt.time || '00:00').split(':')[1]}</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">{apt.patient}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{apt.type}</p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-lg text-[8px] font-bold uppercase tracking-widest ${apt.status === 'arrived' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                    {apt.status}
+                  </span>
+                </div>
+              )) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 italic text-sm">
+                  <p>No patients scheduled for this window.</p>
+                </div>
+              )
+            ) : (
+              arrears.length > 0 ? arrears.map((inv, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-red-100 transition-all cursor-pointer">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                      <CreditCard className="h-6 w-6 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">{inv.patientName}</p>
+                      <p className="text-[10px] text-red-500 font-bold uppercase">{currency} {inv.total?.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-900 transition-colors" />
+                </div>
+              )) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 italic text-sm">
+                  <p>Outstanding ledger is clear.</p>
+                </div>
+              )
+            )}
+          </div>
+
+          <button 
+            onClick={() => navigate((role === 'doctor' || role === 'nurse' || role === 'receptionist') ? '/appointments' : '/billing')}
+            className="w-full mt-8 py-4 bg-slate-50 text-slate-900 font-bold text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-slate-100 transition-all border border-slate-100"
+          >
+            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? 'Manage Calendar' : 'View All Invoices'}
+          </button>
+        </div>
 
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
             <div className="flex items-center justify-between mb-8">
@@ -246,6 +320,12 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <AppointmentModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveAppointment}
+      />
     </DashboardLayout>
   );
 }

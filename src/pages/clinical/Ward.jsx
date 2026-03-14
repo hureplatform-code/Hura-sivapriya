@@ -36,8 +36,10 @@ export default function Ward() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchWards();
-  }, []);
+    if (userData) {
+      fetchWards();
+    }
+  }, [userData]);
 
   if (userData?.role === 'superadmin') {
     return (
@@ -62,9 +64,13 @@ export default function Ward() {
   }
 
   const fetchWards = async () => {
+    if (!userData?.facilityId && userData?.role !== 'superadmin') {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const data = await wardService.getAllWards();
+      const data = await wardService.getAllWards(userData?.facilityId);
       setWards(data);
       if (data.length > 0) {
         if (!selectedWard) {
@@ -422,7 +428,7 @@ function AdmissionModal({ preSelect, onClose, onSave }) {
 
     const fetchResources = async () => {
         const [patientsData, users] = await Promise.all([
-            patientService.getAllPatients(),
+            patientService.getAllPatients(userData?.facilityId),
             // Assuming we fetch all doctors
             Promise.resolve([{ name: 'Dr. Dolly Smith' }, { name: 'Dr. John Doe' }])
         ]);

@@ -17,7 +17,13 @@ import {
   ExternalLink,
   ChevronRight,
   ChevronLeft,
-  Trash2
+  Trash2,
+  Thermometer,
+  Heart,
+  Activity,
+  Zap,
+  BarChart3,
+  ArrowUpRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppointmentModal from '../../components/modals/AppointmentModal';
@@ -76,6 +82,7 @@ export default function Appointments() {
   });
 
   const fetchAppointments = async () => {
+    if (!userData?.facilityId && userData?.role !== 'superadmin') return;
     try {
       setLoading(true);
       const data = await appointmentService.getAllAppointments(userData?.facilityId);
@@ -96,8 +103,10 @@ export default function Appointments() {
   };
 
   useEffect(() => {
-    fetchAppointments();
-  }, []);
+    if (userData) {
+      fetchAppointments();
+    }
+  }, [userData]);
 
   const handleSaveAppointment = async (data) => {
     try {
@@ -419,8 +428,8 @@ export default function Appointments() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 rounded-xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100 group-hover:border-primary-200 transition-colors">
-                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{apt.time?.split(':')[0] || '0'}</span>
-                        <span className="text-lg font-semibold text-slate-900 leading-none">{apt.time?.split(':')[1] || '00'}</span>
+                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{(apt.time || '00:00').split(':')[0]}</span>
+                        <span className="text-lg font-semibold text-slate-900 leading-none">{(apt.time || '00:00').split(':')[1]}</span>
                       </div>
                       <div className="text-left">
                         <h3 className="font-medium text-slate-900 flex items-center gap-2">
@@ -689,5 +698,4 @@ function TriageField({ label, value, onChange, icon, placeholder, type = "text" 
   );
 }
 
-// Add the missing imports for icons if they are not already at the top
-import { Thermometer, Heart as HeartIcon, Activity as ActivityIcon, Zap as ZapIcon } from 'lucide-react';
+

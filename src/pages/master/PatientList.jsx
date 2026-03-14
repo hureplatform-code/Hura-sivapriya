@@ -121,9 +121,10 @@ export default function PatientList() {
   };
 
   const filteredPatients = patients.filter(p => {
+    const query = searchQuery.toLowerCase().replace(/[\s\-\(\)]/g, ''); // Normalize search query
     const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          p.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         p.mobile?.toLowerCase().includes(searchQuery.toLowerCase());
+                         p.mobile?.replace(/[\s\-\(\)]/g, '').includes(query);
     const matchesGender = genderFilter === 'All' || p.gender === genderFilter;
     return matchesSearch && matchesGender;
   });
@@ -175,7 +176,7 @@ export default function PatientList() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input 
                 type="text"
-                placeholder="Search by Patient Name, ID, or Contact..."
+                placeholder="Search by Patient Name, OP Number (ID), or Phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm transition-all outline-none"

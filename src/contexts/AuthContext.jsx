@@ -7,7 +7,7 @@ import {
   sendEmailVerification
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import facilityService from '../services/facilityService';
 import userService from '../services/userService';
 
@@ -30,15 +30,32 @@ export function AuthProvider({ children }) {
     // Update lastLogin on success
     if (result.user) {
       const now = new Date().toLocaleString('en-US', { 
-        day: 'numeric', 
         month: 'short', 
+        day: 'numeric', 
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       });
+      
+      // Attempt to update by UID - this is the standard
       await setDoc(doc(db, 'users', result.user.uid), { 
         lastLogin: now 
       }, { merge: true });
+
+      // Resilience: Also update by email just in case the UID/DocID mapping is old/mismatched
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(async (docSnap) => {
+          if (docSnap.id !== result.user.uid) {
+            await setDoc(doc(db, 'users', docSnap.id), { 
+              lastLogin: now,
+              uid: result.user.uid // Fix the UID mapping while we're at it
+            }, { merge: true });
+          }
+        });
+      } catch (e) { console.error("Resilience update failed:", e); }
     }
     return result;
   }
@@ -102,8 +119,8 @@ export function AuthProvider({ children }) {
             // Update lastLogin if not already updated this session
             if (!sessionStorage.getItem('login_updated')) {
                 const now = new Date().toLocaleString('en-US', { 
-                    day: 'numeric', 
                     month: 'short', 
+                    day: 'numeric', 
                     year: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'

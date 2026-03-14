@@ -68,6 +68,10 @@ export default function Notes() {
   }, [location.state, userData]);
 
   const fetchNotes = async (isLoadMore = false) => {
+    if (!userData?.facilityId && userData?.role !== 'superadmin') {
+      setLoading(false);
+      return;
+    }
     try {
       if (isLoadMore) setLoadingMore(true);
       else setLoading(true);
@@ -1026,12 +1030,12 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             {/* ICD-10 Linked */}
             <div className="space-y-4">
               <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
-                <SearchIcon className="h-4 w-4" />
+                <Search className="h-4 w-4" />
                 Diagnosis (ICD-10)
               </label>
               <div className="flex gap-4">
                 <div className="relative flex-1">
-                  <SearchIcon className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <input 
                     type="text" 
                     placeholder="Enter Diagnosis (e.g., Hypertension, Malaria)..." 

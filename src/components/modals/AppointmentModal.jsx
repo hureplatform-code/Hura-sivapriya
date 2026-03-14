@@ -14,6 +14,7 @@ import {
 import QuickPatientModal from './QuickPatientModal';
 import patientService from '../../services/patientService';
 import userService from '../../services/userService';
+import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 
 export default function AppointmentModal({ isOpen, onClose, onSave, initialDate }) {
@@ -81,11 +82,12 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
     }
   };
 
-  const filteredPatients = patients.filter(p => 
-    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.mobile?.includes(searchQuery) ||
-    p.id?.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, 5);
+  const filteredPatients = patients.filter(p => {
+    const query = searchQuery.toLowerCase().replace(/[\s\-\(\)]/g, '');
+    return p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           p.mobile?.replace(/[\s\-\(\)]/g, '').includes(query) ||
+           p.id?.toLowerCase().includes(searchQuery.toLowerCase());
+  }).slice(0, 5);
 
   const handleSelectPatient = (patient) => {
     setSelectedPatient(patient);
@@ -216,7 +218,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                             onFocus={() => setShowResults(true)}
                             required
                             className="block w-full pl-14 pr-6 py-4.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:ring-0 focus:border-primary-500 rounded-[1.5rem] transition-all duration-300 text-slate-900 placeholder-slate-400 text-sm font-medium shadow-inner"
-                            placeholder="Find patient by Name or Phone..."
+                            placeholder="Search by Name, Phone, or OP Number (ID)..."
                           />
                         </div>
 

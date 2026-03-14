@@ -7,13 +7,14 @@ import { AlertCircle, Clock, ShieldAlert } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
   const { isWarning, timeLeft, resetTimer } = useInactivityTimer();
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar />
-      <main className="flex-1 ml-72">
-        <Header />
-        <div className="p-8">
+    <div className="min-h-screen bg-slate-50 flex overflow-x-hidden">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <main className="flex-1 lg:ml-72 min-w-0">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <div className="p-4 md:p-8">
           {children}
         </div>
       </main>

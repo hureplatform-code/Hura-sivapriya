@@ -44,20 +44,19 @@ export default function Investigation() {
   const { confirm } = useConfirm();
 
   useEffect(() => {
-    fetchInvestigations();
+    if (userData) {
+      fetchInvestigations();
+    }
   }, [userData]);
 
   const fetchInvestigations = async (isLoadMore = false) => {
+    if (!userData?.facilityId && userData?.role !== 'superadmin') {
+      setLoading(false);
+      return;
+    }
     try {
       if (isLoadMore) setLoadingMore(true);
       else setLoading(true);
-
-      if (!userData?.facilityId) {
-        console.warn("Facility ID not available, skipping investigation fetch.");
-        setInvestigations([]);
-        setHasMore(false);
-        return;
-      }
 
       const { investigations: newInvs, lastDoc } = await investigationService.getAllInvestigations(
         userData.facilityId,
@@ -217,7 +216,7 @@ export default function Investigation() {
                     >
                       <td className="py-5 px-4">
                         <div>
-                          <p className="font-medium text-slate-900 text-sm">#{inv.id.slice(-6).toUpperCase()}</p>
+                          <p className="font-medium text-slate-900 text-sm">#{(inv.id || '......').slice(-6).toUpperCase()}</p>
                           <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight mt-0.5">{inv.testName}</p>
                         </div>
                       </td>

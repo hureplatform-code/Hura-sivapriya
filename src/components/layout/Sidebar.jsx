@@ -20,7 +20,8 @@ import {
   History,
   Database,
   Shield,
-  MessageSquare
+  MessageSquare,
+  X
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -79,7 +80,7 @@ const menuItems = [
       { label: 'Clinical Forms', path: '/clinical-forms', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Investigation', path: '/investigation', roles: ['doctor', 'clinic_owner', 'nurse', 'lab_tech'] },
       { label: 'Ward / In-Patient', path: '/ward', roles: ['doctor', 'clinic_owner', 'nurse'] },
-      { label: 'Waitlist TV', path: '/waitlist-tv', roles: ['receptionist', 'clinic_owner', 'admin'] },
+      { label: 'Waitlist TV', path: '/waitlist-tv', roles: ['doctor', 'nurse', 'receptionist', 'clinic_owner', 'admin'] },
     ]
   },
   {
@@ -138,7 +139,7 @@ const menuItems = [
   }
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { userData, logout } = useAuth();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState({});
@@ -158,7 +159,7 @@ export default function Sidebar() {
   if (!role && userData === null) {
       // Data is loaded but null -> Profile missing
       return (
-        <aside className="w-72 bg-white h-screen border-r border-slate-100 p-8 flex flex-col items-center justify-center text-center">
+        <aside className="fixed lg:static w-72 bg-white h-screen border-r border-slate-100 p-8 flex flex-col items-center justify-center text-center z-[60]">
             <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4">
                 <ShieldCheck className="h-6 w-6" />
             </div>
@@ -184,7 +185,7 @@ export default function Sidebar() {
     if (userData?.facilityId) {
        import('../../services/facilityService').then(m => {
           m.default.getProfile(userData.facilityId).then(p => {
-            if (p) setFacilityProfile(p);
+             if (p) setFacilityProfile(p);
           });
        });
     }
@@ -203,17 +204,39 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="w-72 bg-white h-screen border-r border-slate-100 flex flex-col fixed left-0 top-0 z-20 overflow-y-auto scrollbar-hide">
-      <div className="p-8 flex items-center gap-3 sticky top-0 bg-white z-10">
-        <div className="h-10 w-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-100 overflow-hidden">
-          {facilityProfile?.logoUrl ? (
-            <img src={facilityProfile.logoUrl} alt="Logo" className="h-full w-full object-cover" />
-          ) : (
-            <img src="/logo.png" alt="Doctor Logo" className="h-full w-full object-contain p-1.5" />
-          )}
+    <>
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[50] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <aside className={`
+        w-72 bg-white h-screen border-r border-slate-100 flex flex-col fixed left-0 top-0 z-[60] overflow-y-auto scrollbar-hide transition-transform duration-300
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="p-8 flex items-center justify-between sticky top-0 bg-white z-10">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
+              {facilityProfile?.logoUrl ? (
+                <img src={facilityProfile.logoUrl} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                <img src="/logo.png" alt="Doctor Logo" className="h-full w-full object-contain p-1" />
+              )}
+            </div>
+            <span className="font-medium text-xl tracking-tight text-slate-900 truncate max-w-[120px]">{facilityProfile?.name || APP_CONFIG.HOSPITAL_NAME}</span>
+          </div>
+          <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-slate-900">
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <span className="font-medium text-xl tracking-tight text-slate-900">{facilityProfile?.name || APP_CONFIG.HOSPITAL_NAME}</span>
-      </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-2">
         {filteredMenuItems.map((item) => {
@@ -320,6 +343,7 @@ export default function Sidebar() {
           </div>
         )}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

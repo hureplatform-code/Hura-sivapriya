@@ -49,3 +49,11 @@ jebin@justrise.bh
 clinic 
 info@justrise.bh
 1234567890
+
+dr
+ram@a.com
+1234567890
+
+receptionist
+nur@a.com
+1234567890

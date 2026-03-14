@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Users, Phone, Mail, Calendar, MapPin, CreditCard, ShieldCheck, UserPlus } from 'lucide-react';
+import { X, User, Users, Phone, Mail, Calendar, MapPin, CreditCard, ShieldCheck, UserPlus, ChevronRight } from 'lucide-react';
 import patientService from '../../services/patientService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -11,6 +11,7 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
   const { error: toastError } = useToast();
   const [formData, setFormData] = useState({
     name: '',
+    countryCode: '+254',
     mobile: '',
     email: '',
     dob: '',
@@ -29,7 +30,29 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newState = { ...prev, [name]: value };
+      
+      // Auto-calculate age if DOB components change
+      if (name === 'dob_day' || name === 'dob_month' || name === 'dob_year') {
+        const day = name === 'dob_day' ? value : prev.dob_day;
+        const month = name === 'dob_month' ? value : prev.dob_month;
+        const year = name === 'dob_year' ? value : prev.dob_year;
+
+        if (day && month && year) {
+          const birthDate = new Date(year, month - 1, day);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          newState.age = age >= 0 ? age : '';
+          newState.dob = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
+      return newState;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -37,10 +60,13 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
     setLoading(true);
     try {
       const sanitizedMobile = formData.mobile.replace(/[\s\-\(\)]/g, '');
+      const fullMobile = `${formData.countryCode}${sanitizedMobile}`;
       const patientId = `PAT-${Date.now().toString().slice(-6)}`;
       const newPatient = {
         ...formData,
-        mobile: sanitizedMobile,
+        mobile: fullMobile,
+        localMobile: sanitizedMobile,
+        countryCode: formData.countryCode,
         id: patientId,
         facilityId: userData?.facilityId, // Associate with clinic
         createdAt: new Date()
@@ -73,7 +99,7 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100"
+            className="relative bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100"
           >
             <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
               <div>
@@ -107,34 +133,84 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <input
-                      name="mobile"
-                      value={formData.mobile}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all"
-                      placeholder="+254..."
-                    />
+                  <div className="flex gap-2">
+                    <div className="w-1/3 relative group">
+                      <select
+                        name="countryCode"
+                        value={formData.countryCode}
+                        onChange={handleChange}
+                        className="w-full pl-4 pr-8 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all appearance-none"
+                      >
+                        <option value="+254">KEN (+254)</option>
+                        <option value="+255">TAN (+255)</option>
+                        <option value="+256">UGA (+256)</option>
+                        <option value="+250">RWA (+250)</option>
+                        <option value="+211">SSD (+211)</option>
+                        <option value="+252">SOM (+252)</option>
+                        <option value="+251">ETH (+251)</option>
+                        <option value="+91">IND (+91)</option>
+                        <option value="+1">USA/CAN (+1)</option>
+                        <option value="+44">UK (+44)</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 scale-75">
+                         <ChevronRight className="rotate-90 h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="flex-1 relative group">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
+                      <input
+                        name="mobile"
+                        value={formData.mobile}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all"
+                        placeholder="712345678"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
+                <div className="md:col-span-2 space-y-2">
                   <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Date of Birth</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <input
-                      name="dob"
-                      type="text"
-                      placeholder="YYYY-MM-DD"
-                      value={formData.dob}
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      name="dob_day"
+                      value={formData.dob_day || ''}
                       onChange={handleChange}
                       required
-                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all"
-                    />
+                      className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all appearance-none"
+                    >
+                      <option value="">Day</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                    <select
+                      name="dob_month"
+                      value={formData.dob_month || ''}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all appearance-none"
+                    >
+                      <option value="">Month</option>
+                      {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, i) => (
+                        <option key={m} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
+                    <select
+                      name="dob_year"
+                      value={formData.dob_year || ''}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all appearance-none"
+                    >
+                      <option value="">Year</option>
+                      {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

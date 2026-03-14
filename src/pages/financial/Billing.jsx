@@ -64,10 +64,16 @@ export default function Billing() {
   const { userData } = useAuth();
 
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    if (userData) {
+      fetchInvoices();
+    }
+  }, [userData]);
 
   const fetchInvoices = async (isLoadMore = false) => {
+    if (!userData?.facilityId && userData?.role !== 'superadmin') {
+      setLoading(false);
+      return;
+    }
     try {
       if (isLoadMore) setLoadingMore(true);
       else setLoading(true);
@@ -432,7 +438,7 @@ function BillGenerator({ onClose, onSave }) {
   }, [patientId]);
 
   const fetchPatients = async () => {
-    const data = await patientService.getAllPatients();
+    const data = await patientService.getAllPatients(userData?.facilityId);
     setPatients(data);
   };
 

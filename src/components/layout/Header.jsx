@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bell, User, X, FileText, Calendar, Users } from 'lucide-react';
+import { Search, Bell, User, X, FileText, Calendar, Users, Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import patientService from '../../services/patientService';
@@ -9,7 +9,7 @@ import facilityService from '../../services/facilityService';
 import inventoryService from '../../services/inventoryService';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const { userData } = useAuth();
   const navigate = useNavigate();
   const role = userData?.role || 'Superadmin';
@@ -34,10 +34,11 @@ export default function Header() {
     setSearching(true);
     setShowResults(true);
     try {
+      const facilityId = userData?.facilityId;
       const [patients, appointments, records] = await Promise.all([
-        patientService.getAllPatients(),
-        appointmentService.getAllAppointments(),
-        medicalRecordService.getAllRecords()
+        patientService.getAllPatients(facilityId),
+        appointmentService.getAllAppointments(facilityId),
+        medicalRecordService.getAllRecords(facilityId)
       ]);
 
       const filteredPatients = patients.filter(p => p.name?.toLowerCase().includes(val.toLowerCase())).slice(0, 3);
@@ -68,10 +69,11 @@ export default function Header() {
   }, [userData]);
 
   const fetchNotifications = async () => {
-    if (!userData) return;
+    if (!userData || !userData.facilityId && userData.role !== 'superadmin') return;
     try {
       let notes = [];
       const role = userData.role?.toLowerCase();
+      const facilityId = userData.facilityId;
 
       if (role === 'superadmin') {
         const [requests, facilities] = await Promise.all([
@@ -92,43 +94,52 @@ export default function Header() {
           };
         });
       } else if (role === 'clinic_owner' || role === 'admin') {
-        if (userData.facilityId) {
-          const profile = await facilityService.getProfile(userData.facilityId);
-          if (profile?.subscription?.expiryDate) {
-            const expiry = new Date(profile.subscription.expiryDate);
-            const now = new Date();
-            const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-            if (diffDays <= 14) {
-              notes.push({
-                id: 'sub-exp',
-                title: diffDays <= 0 ? 'Subscription Expired' : 'Subscription Expiring Soon',
-                message: diffDays <= 0
-                  ? 'Your subscription has expired. Renew immediately to restore access.'
-                  : `Your plan expires in ${diffDays} day${diffDays !== 1 ? 's' : ''}. Renew now to avoid interruption.`,
-                time: now,
-                type: diffDays <= 0 ? 'alert' : 'warning',
-                link: '/master/accounts'
-              });
-            }
+        const profile = await facilityService.getProfile(facilityId);
+        if (profile?.subscription?.expiryDate) {
+          const expiry = new Date(profile.subscription.expiryDate);
+          const now = new Date();
+          const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 14) {
+            notes.push({
+              id: 'sub-exp',
+              title: diffDays <= 0 ? 'Subscription Expired' : 'Subscription Expiring Soon',
+              message: diffDays <= 0
+                ? 'Your subscription has expired. Renew immediately to restore access.'
+                : `Your plan expires in ${diffDays} day${diffDays !== 1 ? 's' : ''}. Renew now to avoid interruption.`,
+              time: now,
+              type: diffDays <= 0 ? 'alert' : 'warning',
+              link: '/master/accounts'
+            });
           }
         }
       } else if (role === 'doctor') {
-        const appointments = await appointmentService.getAllAppointments();
+        const appointments = await appointmentService.getAllAppointments(facilityId);
         const today = new Date().toISOString().split('T')[0];
         const doctorAppointments = appointments.filter(apt =>
           (apt.provider === userData.name || apt.providerId === userData.uid) &&
           apt.date === today && apt.status !== 'completed' && apt.status !== 'cancelled'
         );
-        notes = doctorAppointments.map(apt => ({
-          id: apt.id,
-          title: 'Appointment Today',
-          message: `${apt.patient} at ${apt.time} — ${apt.type || 'Consultation'}`,
-          time: new Date(`${apt.date}T${apt.time}`),
-          type: 'info',
-          link: '/appointments'
-        }));
+        notes = doctorAppointments.map(apt => {
+          let appointmentTime = new Date();
+          try {
+            if (apt.date && apt.time) {
+              appointmentTime = new Date(`${apt.date}T${apt.time.padStart(5, '0')}`);
+            }
+          } catch (e) {
+            console.error("Invalid appointment date/time", apt);
+          }
+          
+          return {
+            id: apt.id,
+            title: 'Appointment Today',
+            message: `${apt.patient} at ${apt.time || 'TBD'} — ${apt.type || 'Consultation'}`,
+            time: appointmentTime,
+            type: 'info',
+            link: '/appointments'
+          };
+        });
       } else if (role === 'nurse') {
-        const appointments = await appointmentService.getAllAppointments();
+        const appointments = await appointmentService.getAllAppointments(facilityId);
         const today = new Date().toISOString().split('T')[0];
         const todayPts = appointments.filter(a => a.date === today && a.status !== 'cancelled');
         if (todayPts.length > 0) {
@@ -142,7 +153,7 @@ export default function Header() {
           });
         }
       } else if (role === 'receptionist') {
-        const appointments = await appointmentService.getAllAppointments();
+        const appointments = await appointmentService.getAllAppointments(facilityId);
         const today = new Date().toISOString().split('T')[0];
         const pending = appointments.filter(a => a.date === today && a.status === 'booked');
         if (pending.length > 0) {
@@ -157,8 +168,10 @@ export default function Header() {
         }
       } else if (role === 'pharmacist') {
         try {
-          const items = await inventoryService.getAllItems();
-          const lowStock = items.filter(i => parseInt(i.quantity || i.stock || 0) < 10);
+          const items = await inventoryService.getInventory(facilityId);
+          // Handle inventory response which might be { items, lastDoc } or flat array
+          const actualItems = items.items || items;
+          const lowStock = actualItems.filter(i => parseInt(i.quantity || i.stock || 0) < 10);
           if (lowStock.length > 0) {
             notes.push({
               id: 'pharma-stock',
@@ -179,7 +192,14 @@ export default function Header() {
   };
 
   return (
-    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50 px-8 flex items-center justify-between">
+    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50 px-4 md:px-8 flex items-center gap-4 justify-between">
+      <button 
+        onClick={onMenuClick}
+        className="lg:hidden p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
+
       <div className="flex-1 max-w-xl relative">
         <div className="relative group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary-500 transition-colors">
@@ -294,7 +314,9 @@ export default function Header() {
                             <p className="text-xs font-medium text-slate-900 leading-snug group-hover:text-primary-600 transition-colors">{note.title}</p>
                             <p className="text-xs text-slate-500 mt-1 line-clamp-2">{note.message}</p>
                             <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-wide">
-                              {note.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {note.time instanceof Date && !isNaN(note.time) 
+                                ? note.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                : 'Recent'}
                             </p>
                           </div>
                         </div>
