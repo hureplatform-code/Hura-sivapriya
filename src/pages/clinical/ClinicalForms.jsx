@@ -17,6 +17,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import patientService from '../../services/patientService';
 import firestoreService from '../../services/firestoreService';
+import { 
+  ConsentFormTemplate, 
+  AdmissionFormTemplate, 
+  DischargeSummaryTemplate, 
+  ReferralLetterTemplate 
+} from './FormTemplates';
 
 const formTemplates = [
   { id: 'intake', label: 'Patient Intake Form', description: 'Secure digital questionnaire & health history.' },
@@ -197,13 +203,13 @@ export default function ClinicalForms() {
 
           {/* Form Generation Workspace */}
           <div className="lg:col-span-2">
-             <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
-                <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+             <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col print:border-none print:shadow-none">
+                <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50 print:hidden">
                     <div className="flex items-center gap-3">
                        <ClipboardCheck className="h-6 w-6 text-emerald-500" />
                        <h3 className="font-medium text-slate-900 uppercase tracking-tight">Form Generation Workspace</h3>
                     </div>
-                    {selectedForm && (
+                    {selectedForm && selectedForm.id !== 'intake' && selectedPatient && (
                        <button 
                         onClick={() => handlePrint(selectedForm.id)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all active:scale-95"
@@ -213,10 +219,10 @@ export default function ClinicalForms() {
                     )}
                 </div>
 
-                <div className="flex-1 p-12">
-                   {selectedForm ? (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12 max-w-2xl mx-auto">
-                         <div className="space-y-4">
+                <div className="flex-1 p-12 print:p-0">
+                    {selectedForm ? (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12 max-w-2xl mx-auto print:max-w-none print:w-full print:p-0 print:m-0">
+                         <div className="space-y-4 print:hidden">
                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">Step 1: Link to Patient Record</label>
                             <div className="relative group">
                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
@@ -239,40 +245,37 @@ export default function ClinicalForms() {
                             </div>
                          </div>
 
-                         <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center space-y-4 border-dashed relative">
-                             <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm text-slate-300">
-                                {selectedPatient ? <CheckCircle2 className="h-8 w-8 text-emerald-500" /> : <User className="h-8 w-8" />}
-                             </div>
-                             <p className="text-sm font-medium text-slate-400">
-                               {selectedPatient ? `Linked to ${selectedPatient.name}` : `Search for a patient to ${selectedForm.id === 'intake' ? 'generate a secure intake link' : 'auto-populate the form'}.`}
-                             </p>
-                             
-                             {selectedForm.id === 'intake' && selectedPatient && (
-                                <button 
-                                  onClick={generateLink}
-                                  className="mt-4 px-6 py-3 bg-primary-600 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
-                                >
-                                  Generate Secure Link for Patient
-                                </button>
-                             )}
-                             
-                             {selectedForm.id === 'referral' && (
-                                <div className="mt-4 flex flex-col md:flex-row gap-4 items-center justify-center">
-                                   <button 
-                                     onClick={() => window.print()}
-                                     className="px-6 py-3 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-slate-200 hover:bg-slate-800 transition"
-                                   >
-                                     Generate Referral Letter (PDF)
-                                   </button>
-                                   <button 
-                                     onClick={() => window.print()}
-                                     className="px-6 py-3 bg-primary-600 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
-                                   >
-                                     Generate Claims Pack (PDF)
-                                   </button>
+                          {selectedPatient && selectedForm.id !== 'intake' ? (
+                             <div className="bg-slate-100/50 p-2 md:p-8 rounded-[3rem] border border-slate-100 overflow-x-auto relative print:p-0 print:border-none print:m-0 print:bg-white print:overflow-visible">
+                                <div className="absolute top-4 right-8 px-4 py-2 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-full print:hidden">
+                                   Print Preview
                                 </div>
-                             )}
-                         </div>
+                                <div className="print:w-full min-w-[800px] scale-[0.85] origin-top md:scale-100 transition-all">
+                                   {selectedForm.id === 'consent' && <ConsentFormTemplate patient={selectedPatient} doctor={userData} />}
+                                   {selectedForm.id === 'admission' && <AdmissionFormTemplate patient={selectedPatient} doctor={userData} />}
+                                   {selectedForm.id === 'discharge' && <DischargeSummaryTemplate patient={selectedPatient} doctor={userData} />}
+                                   {selectedForm.id === 'referral' && <ReferralLetterTemplate patient={selectedPatient} doctor={userData} />}
+                                </div>
+                             </div>
+                          ) : (
+                             <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center space-y-4 border-dashed relative print:hidden">
+                                 <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm text-slate-300">
+                                    {selectedPatient ? <CheckCircle2 className="h-8 w-8 text-emerald-500" /> : <User className="h-8 w-8" />}
+                                 </div>
+                                 <p className="text-sm font-medium text-slate-400">
+                                   {selectedPatient ? `Linked to ${selectedPatient.name}` : `Search for a patient to ${selectedForm.id === 'intake' ? 'generate a secure intake link' : 'auto-populate the form'}.`}
+                                 </p>
+                                 
+                                 {selectedForm.id === 'intake' && selectedPatient && (
+                                    <button 
+                                      onClick={generateLink}
+                                      className="mt-4 px-6 py-3 bg-primary-600 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
+                                    >
+                                      Generate Secure Link for Patient
+                                    </button>
+                                 )}
+                             </div>
+                          )}
 
                          {generatedLink && selectedForm.id === 'intake' && (
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-emerald-50 border border-emerald-100 rounded-3xl space-y-3">

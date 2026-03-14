@@ -10,11 +10,15 @@ export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex overflow-x-hidden">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <main className="flex-1 lg:ml-72 min-w-0">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <div className="p-4 md:p-8">
+    <div className="min-h-screen bg-slate-50 flex overflow-x-hidden print:bg-white">
+      <div className="print:hidden">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
+      <main className="flex-1 lg:ml-72 min-w-0 print:m-0 print:p-0">
+        <div className="print:hidden">
+          <Header onMenuClick={() => setSidebarOpen(true)} />
+        </div>
+        <div className="p-4 md:p-8 print:p-0">
           {children}
         </div>
       </main>

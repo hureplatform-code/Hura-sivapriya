@@ -69,3 +69,8 @@ nurse@a.com
 pharmacist
 ph@a.com
 1234567890
+
+lab_tech
+lab@a.com
+1234567890
+

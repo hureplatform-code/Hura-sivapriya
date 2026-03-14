@@ -95,6 +95,34 @@ const appointmentService = {
     if (facilityId) q.push(where('facilityId', '==', facilityId));
     const results = await firestoreService.getAll(this.collection, q);
     return results.sort((a, b) => new Date(a.date) - new Date(a.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
+  },
+
+  async getPharmacyQueue(facilityId) {
+    const q = [where('status', '==', 'awaiting-pharmacy')];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
+    const results = await firestoreService.getAll(this.collection, q);
+    return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
+  },
+
+  async getLaboratoryQueue(facilityId) {
+    const q = [where('status', '==', 'awaiting-lab')];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
+    const results = await firestoreService.getAll(this.collection, q);
+    return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
+  },
+
+  async getBillingQueue(facilityId) {
+    const q = [where('status', '==', 'awaiting-billing')];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
+    const results = await firestoreService.getAll(this.collection, q);
+    return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
+  },
+
+  async getNursingQueue(facilityId) {
+    const q = [where('status', '==', 'awaiting-nurse')];
+    if (facilityId) q.push(where('facilityId', '==', facilityId));
+    const results = await firestoreService.getAll(this.collection, q);
+    return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
   }
 };
 

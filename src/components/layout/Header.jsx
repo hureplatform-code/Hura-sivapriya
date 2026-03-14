@@ -140,7 +140,15 @@ export default function Header({ onMenuClick }) {
         }
       } else if (role === 'doctor') {
         const appointments = await appointmentService.getAllAppointments(facilityId);
-        const today = new Date().toISOString().split('T')[0];
+        const getLocalDateStr = () => {
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = String(now.getMonth() + 1).padStart(2, '0');
+          const d = String(now.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        };
+
+        const today = getLocalDateStr();
         const doctorAppointments = appointments.filter(apt =>
           (apt.provider === userData.name || apt.providerId === userData.uid) &&
           apt.date === today && apt.status !== 'completed' && apt.status !== 'cancelled'
@@ -166,7 +174,13 @@ export default function Header({ onMenuClick }) {
         });
       } else if (role === 'nurse') {
         const appointments = await appointmentService.getAllAppointments(facilityId);
-        const today = new Date().toISOString().split('T')[0];
+        
+        const getLocalDateStr = () => {
+          const now = new Date();
+          return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        };
+        const today = getLocalDateStr();
+
         const todayPts = appointments.filter(a => a.date === today && a.status !== 'cancelled');
         if (todayPts.length > 0) {
           notes.push({
@@ -180,7 +194,11 @@ export default function Header({ onMenuClick }) {
         }
       } else if (role === 'receptionist') {
         const appointments = await appointmentService.getAllAppointments(facilityId);
-        const today = new Date().toISOString().split('T')[0];
+        const getLocalDateStr = () => {
+          const now = new Date();
+          return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        };
+        const today = getLocalDateStr();
         const pending = appointments.filter(a => a.date === today && a.status === 'booked');
         if (pending.length > 0) {
           notes.push({

@@ -77,8 +77,16 @@ const menuItems = [
     subItems: [
       { label: 'Appointments', path: '/appointments' },
       { label: 'Clinical Notes', path: '/notes', roles: ['doctor', 'clinic_owner', 'nurse'] },
+      { label: 'Nursing Orders', path: '/nursing/queue', roles: ['nurse', 'clinic_owner', 'doctor'] },
       { label: 'Clinical Forms', path: '/clinical-forms', roles: ['doctor', 'clinic_owner', 'nurse'] },
-      { label: 'Investigation', path: '/investigation', roles: ['doctor', 'clinic_owner', 'nurse', 'lab_tech'] },
+      {
+        label: 'Diagnostics & Labs',
+        roles: ['doctor', 'clinic_owner', 'nurse', 'lab_tech'],
+        subItems: [
+          { label: 'Laboratory Queue', path: '/lab/queue' },
+          { label: 'Investigation Requests', path: '/investigation' }
+        ]
+      },
       { label: 'Ward / In-Patient', path: '/ward', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Waitlist TV', path: '/waitlist-tv', roles: ['doctor', 'nurse', 'receptionist', 'clinic_owner', 'admin'] },
     ]
@@ -87,8 +95,11 @@ const menuItems = [
     id: 'pharmacy',
     icon: Store,
     label: 'Pharmacy & Store',
-    path: '/pharmacy',
-    roles: ['clinic_owner', 'pharmacist']
+    roles: ['clinic_owner', 'pharmacist'],
+    subItems: [
+      { label: 'Pharmacy Queue', path: '/pharmacy/queue', roles: ['clinic_owner', 'pharmacist'] },
+      { label: 'Inventory', path: '/pharmacy/inventory', roles: ['clinic_owner', 'pharmacist'] }
+    ]
   },
   {
     id: 'financial',
@@ -96,6 +107,7 @@ const menuItems = [
     label: 'Financials',
     roles: ['superadmin', 'clinic_owner', 'admin', 'receptionist'],
     subItems: [
+      { label: 'Billing Queue', path: '/billing/queue', roles: ['clinic_owner', 'admin', 'receptionist'] },
       { label: 'Billing / Invoices', path: '/billing', roles: ['clinic_owner', 'admin', 'receptionist'] },
       { label: 'General Ledger', path: '/accounting', roles: ['clinic_owner', 'admin'] },
       { label: 'Platform Revenue', path: '/accounting', roles: ['superadmin'] },

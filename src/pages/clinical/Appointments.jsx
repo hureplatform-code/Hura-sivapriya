@@ -123,10 +123,15 @@ export default function Appointments() {
     setIsModalOpen(false);
   };
 
+  const dailyAppointments = appointments.filter(a => {
+    const aptDate = a.date || a.app_date;
+    return aptDate === selectedDate;
+  });
+
   const stats = {
-    total: appointments.length,
-    completed: appointments.filter(a => a.status === 'completed').length,
-    noShows: appointments.filter(a => a.status === 'cancelled' || a.status === 'no-show').length
+    total: dailyAppointments.length,
+    completed: dailyAppointments.filter(a => a.status === 'completed').length,
+    noShows: dailyAppointments.filter(a => a.status === 'cancelled' || a.status === 'no-show').length
   };
 
   const handleCallIn = async (appointmentId) => {
@@ -290,7 +295,7 @@ export default function Appointments() {
     })
     .sort((a, b) => {
       // Prioritize Arrived/Triage/In-Session status first
-      const priority = { 'in-session': 1, 'triage': 2, 'arrived': 3, 'awaiting-lab': 4, 'awaiting-pharmacy': 5, 'awaiting-billing': 6, 'scheduled': 7, 'completed': 8, 'cancelled': 9 };
+      const priority = { 'in-session': 1, 'triage': 2, 'arrived': 3, 'awaiting-nurse': 4, 'awaiting-lab': 5, 'awaiting-pharmacy': 6, 'awaiting-billing': 7, 'scheduled': 8, 'completed': 9, 'cancelled': 10 };
       return (priority[a.status?.toLowerCase()] || 99) - (priority[b.status?.toLowerCase()] || 99);
     });
 
@@ -396,6 +401,7 @@ export default function Appointments() {
                   <option value="Arrived">Arrived (Checked In)</option>
                   <option value="Triage">Triage</option>
                   <option value="In-Session">In Session</option>
+                  <option value="Awaiting-Nurse">Awaiting Nurse</option>
                   <option value="Awaiting-Lab">Awaiting Lab</option>
                   <option value="Awaiting-Pharmacy">Awaiting Pharmacy</option>
                   <option value="Awaiting-Billing">Awaiting Billing</option>
@@ -542,6 +548,12 @@ export default function Appointments() {
 
                              {routingMenu === apt.id && (
                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
+                                 <button 
+                                   onClick={() => { handleStatusUpdate(apt.id, 'awaiting-nurse', 'Patient routed to Nurse.'); setRoutingMenu(null); }}
+                                   className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                 >
+                                   <ActivityIcon className="h-4 w-4" /> Route to Nurse
+                                 </button>
                                  <button 
                                    onClick={() => { handleStatusUpdate(apt.id, 'awaiting-lab', 'Patient routed to Laboratory.'); setRoutingMenu(null); }}
                                    className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"

@@ -36,14 +36,10 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 via-slate-900/40 to-transparent" />
         
         <div className="relative z-10 w-full h-full p-24 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/20 overflow-hidden p-1.5">
-                 <img src="/logo.png" alt="Hure Care Logo" className="h-full w-full object-contain" />
-              </div>
-              <span className="text-2xl font-semibold text-white tracking-widest uppercase italic">HURE CARE</span>
+            <div className="flex items-center gap-4">
+              <img src="/logo.png" alt="Hure Care Logo" className="h-14 w-auto object-contain brightness-0 invert drop-shadow-md" />
+              <span className="text-3xl font-bold text-white tracking-widest uppercase italic shadow-black drop-shadow-md">HURE CARE</span>
             </div>
-          </div>
 
           <div className="max-w-xl">
             <motion.h1 

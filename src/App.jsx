@@ -27,11 +27,15 @@ import Specialty from './pages/config/Specialty';
 import Appointments from './pages/clinical/Appointments';
 import Notes from './pages/clinical/Notes';
 import ClinicalForms from './pages/clinical/ClinicalForms';
+import NursingQueue from './pages/clinical/NursingQueue';
 import Investigation from './pages/clinical/Investigation';
 import Billing from './pages/financial/Billing';
+import BillingQueue from './pages/financial/BillingQueue';
 import Accounting from './pages/financial/Accounting';
 import Expenses from './pages/financial/Expenses';
 import Inventory from './pages/operational/Inventory';
+import PharmacyQueue from './pages/operational/PharmacyQueue';
+import LaboratoryQueue from './pages/operational/LaboratoryQueue';
 import Ward from './pages/clinical/Ward';
 import InpatientChart from './pages/clinical/InpatientChart';
 import ChangePlan from './pages/subscription/ChangePlan';
@@ -98,8 +102,10 @@ function App() {
           {/* Clinical Ops */}
           <Route path="/appointments" element={<PrivateRoute><Appointments /></PrivateRoute>} />
           <Route path="/notes" element={<PrivateRoute><Notes /></PrivateRoute>} />
+          <Route path="/nursing/queue" element={<PrivateRoute><NursingQueue /></PrivateRoute>} />
           <Route path="/clinical-forms" element={<PrivateRoute><ClinicalForms /></PrivateRoute>} />
           <Route path="/investigation" element={<PrivateRoute><Investigation /></PrivateRoute>} />
+          <Route path="/lab/queue" element={<PrivateRoute><LaboratoryQueue /></PrivateRoute>} />
           <Route path="/ward" element={<PrivateRoute><Ward /></PrivateRoute>} />
           <Route path="/ward/chart/:wardId/:bedId" element={<PrivateRoute><InpatientChart /></PrivateRoute>} />
           <Route path="/waitlist-tv" element={<WaitlistTV />} />
@@ -124,9 +130,11 @@ function App() {
           
           {/* Billing & Pharmacy */}
           <Route path="/billing" element={<PrivateRoute><Billing /></PrivateRoute>} />
+          <Route path="/billing/queue" element={<PrivateRoute><BillingQueue /></PrivateRoute>} />
           <Route path="/accounting" element={<PrivateRoute><Accounting /></PrivateRoute>} />
           <Route path="/expenses" element={<PrivateRoute><Expenses /></PrivateRoute>} />
-          <Route path="/pharmacy" element={<PrivateRoute><Inventory /></PrivateRoute>} />
+          <Route path="/pharmacy/inventory" element={<PrivateRoute><Inventory /></PrivateRoute>} />
+          <Route path="/pharmacy/queue" element={<PrivateRoute><PharmacyQueue /></PrivateRoute>} />
           
           {/* Reports */}
           <Route path="/reports/daily" element={<PrivateRoute><DailyVisits /></PrivateRoute>} />

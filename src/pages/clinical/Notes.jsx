@@ -327,6 +327,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     objective: '',
     assessment: '',
     plan: '',
+    nursingOrders: '',
     diagnosis: '',
     specialtyData: {}
   });
@@ -382,11 +383,12 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
              - OBJECTIVE: Vital signs, physical examination findings, observed data.
              - ASSESSMENT: Diagnosis, clinical impression, "medical condition".
              - PLAN: Medications, prescriptions, laboratory orders, follow-up instructions.
+             - NURSING_ORDERS: Specific tasks for duty nurses (e.g., set up IV, administer shot, wound dressing).
           3. Extract a suggested ICD-10 code.
           
           TRANSCRIPT: "${textToProcess}"
           
-          Respond ONLY with raw JSON: {"subjective":"", "objective":"", "assessment":"", "plan":"", "icd_suggestion":""}`;
+          Respond ONLY with raw JSON: {"subjective":"", "objective":"", "assessment":"", "plan":"", "nursing_orders":"", "icd_suggestion":""}`;
 
           const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
             method: 'POST',
@@ -417,7 +419,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                 subjective: parsed.subjective || prev.subjective,
                 objective: parsed.objective || prev.objective,
                 assessment: parsed.assessment || prev.assessment,
-                plan: parsed.plan || prev.plan
+                plan: parsed.plan || prev.plan,
+                nursingOrders: parsed.nursing_orders || prev.nursingOrders
               }));
 
               if (parsed.icd_suggestion) {
@@ -476,6 +479,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           objective: draft.objective || '',
           assessment: draft.assessment || '',
           plan: draft.plan || '',
+          nursingOrders: draft.nursingOrders || '',
           diagnosis: draft.diagnosis || '',
           specialtyData: draft.specialtyData || {}
         });
@@ -1227,6 +1231,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                 <SOAPBox label="Assessment" icon="A" value={formData.assessment} onChange={(val) => setFormData({...formData, assessment: val})} />
                 <SOAPBox label="Plan" icon="P" value={formData.plan} onChange={(val) => setFormData({...formData, plan: val})} />
               </div>
+              <div className="pt-2">
+                 <div className="p-8 bg-blue-50/50 rounded-3xl border border-blue-50">
+                    <SOAPBox label="Nursing Orders" icon="N" value={formData.nursingOrders} onChange={(val) => setFormData({...formData, nursingOrders: val})} />
+                 </div>
+              </div>
             </div>
 
             {/* ICD-10 Linked */}
@@ -1427,6 +1436,11 @@ function NoteViewer({ note, onClose }) {
             <ViewerBox label="Objective" icon="O" content={note.objective} />
             <ViewerBox label="Assessment" icon="A" content={note.assessment} />
             <ViewerBox label="Plan" icon="P" content={note.plan} />
+            {note.nursingOrders && (
+               <div className="col-span-1 md:col-span-2">
+                 <ViewerBox label="Nursing Orders" icon="N" content={note.nursingOrders} />
+               </div>
+            )}
           </div>
 
           {note.specialtyData && Object.keys(note.specialtyData).length > 0 && (
