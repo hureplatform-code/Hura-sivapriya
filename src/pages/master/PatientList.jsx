@@ -121,16 +121,22 @@ export default function PatientList() {
   };
 
   const filteredPatients = patients.filter(p => {
+    if (!searchQuery) return genderFilter === 'All' || p.gender === genderFilter;
+
     const queryLower = searchQuery.toLowerCase();
+    const cleanQuery = queryLower.replace(/[^a-z0-9]/g, '');
     const queryDigits = searchQuery.replace(/[^0-9]/g, '');
     const queryNoZero = queryDigits.startsWith('0') ? queryDigits.substring(1) : queryDigits;
 
     const mobileDigits = (p.mobile || '').replace(/[^0-9]/g, '');
     const contactDigits = (p.contact || '').replace(/[^0-9]/g, '');
-    const idLower = (p.id || '').toLowerCase();
+    
+    // Check document ID and user-facing patientId
+    const cleanId1 = (p.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanId2 = (p.patientId || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
     const nameMatch = p.name?.toLowerCase().includes(queryLower);
-    const idMatch = idLower.includes(queryLower.replace(/[^a-z0-9]/g, ''));
+    const idMatch = cleanQuery && (cleanId1.includes(cleanQuery) || cleanId2.includes(cleanQuery));
     const phoneMatch = (queryDigits && (mobileDigits.includes(queryDigits) || contactDigits.includes(queryDigits))) ||
                       (queryNoZero && (mobileDigits.includes(queryNoZero) || contactDigits.includes(queryNoZero)));
 

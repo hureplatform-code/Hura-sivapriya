@@ -339,6 +339,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   const [isRecording, setIsRecording] = useState(false);
   const [micVolume, setMicVolume] = useState(0);
   const [fakeTranscript, setFakeTranscript] = useState('');
+  const [showRouting, setShowRouting] = useState(false);
   const userStopRef = React.useRef(false);
   const transcriptRef = React.useRef('');
 
@@ -594,7 +595,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 
       // Appointment remains 'in-session'. Discharge must be done explicitly from the Appointments page.
 
-      onSave();
+      if (status === 'signed') {
+         setShowRouting(true);
+      } else {
+         onSave();
+      }
     } catch (error) {
       console.error('Error saving note:', error);
       showNotification('error', 'Failed to save clinical note.');
@@ -622,6 +627,17 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
       ? surfacesArray.filter(s => s !== surface)
       : [...surfacesArray, surface];
     updateSpecialtyField('surfaces', newSurfaces.join(','));
+  };
+
+  const handleRoute = async (routeTo) => {
+    try {
+      if (appointmentId) {
+        await appointmentService.updateAppointmentStatus(appointmentId, routeTo);
+      }
+    } catch (e) {
+      console.error('Routing failed', e);
+    }
+    onSave();
   };
 
   return (
@@ -1337,6 +1353,44 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             </div>
           </div>
         </div>
+
+        {showRouting && (
+           <div className="absolute inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 rounded-[2rem]">
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[3rem] p-12 max-w-2xl w-full flex flex-col items-center text-center shadow-2xl relative overflow-hidden">
+                 <div className="absolute top-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500 left-0" />
+                 
+                 <div className="h-24 w-24 bg-emerald-50 text-emerald-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner">
+                   <CheckCircle2 className="h-12 w-12" />
+                 </div>
+                 
+                 <h3 className="text-3xl font-bold text-slate-900 tracking-tight mb-3">Consultation Finalized</h3>
+                 <p className="text-slate-500 font-medium mb-10 max-w-sm">The clinical note has been securely signed and saved. Where should the patient proceed next?</p>
+                 
+                 <div className="grid grid-cols-2 w-full gap-4">
+                   <button onClick={() => handleRoute('awaiting-pharmacy')} className="py-6 px-4 bg-purple-50 hover:bg-purple-100 border border-purple-100 text-purple-700 rounded-3xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
+                      Pharmacy Queue
+                      <span className="text-[10px] font-medium text-purple-400 normal-case tracking-normal">Dispense Prescriptions</span>
+                   </button>
+                   <button onClick={() => handleRoute('awaiting-billing')} className="py-6 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-100 text-amber-700 rounded-3xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
+                      Billing Desk (Labs/Tests)
+                      <span className="text-[10px] font-medium text-amber-500 normal-case tracking-normal">Collect test payments</span>
+                   </button>
+                   <button onClick={() => handleRoute('awaiting-nurse')} className="py-6 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 rounded-3xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
+                      Nursing Duty Queue
+                      <span className="text-[10px] font-medium text-blue-400 normal-case tracking-normal">Execute nursing orders</span>
+                   </button>
+                   <button onClick={() => handleRoute('completed')} className="py-6 px-4 bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-200 rounded-3xl font-semibold uppercase tracking-widest text-xs transition-all flex flex-col items-center gap-2">
+                      Discharge Patient
+                      <span className="text-[10px] font-medium text-slate-400 normal-case tracking-normal">Session Complete</span>
+                   </button>
+                 </div>
+
+                 <button onClick={() => onSave()} className="mt-8 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">
+                   Skip Routing (Leave Active)
+                 </button>
+              </motion.div>
+           </div>
+        )}
       </motion.div>
     </motion.div>
   );

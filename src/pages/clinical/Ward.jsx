@@ -389,7 +389,7 @@ export default function Ward() {
             <NewWardModal 
               onClose={() => setIsAddingWard(false)}
               onSave={async (name) => {
-                await wardService.createWard(name);
+                await wardService.createWard(name, userData?.facilityId);
                 fetchWards();
                 setIsAddingWard(false);
               }}

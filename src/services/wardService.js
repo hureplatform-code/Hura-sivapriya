@@ -1,46 +1,49 @@
 import firestoreService from './firestoreService';
+import { where } from 'firebase/firestore';
 
 const wardService = {
   collection: firestoreService.collections.wards,
 
-  async getAllWards() {
-    return firestoreService.getAll(this.collection);
+  async getAllWards(facilityId) {
+    if (!facilityId) return [];
+    return firestoreService.getAll(this.collection, [where('facilityId', '==', facilityId)]);
   },
 
   async updateBedStatus(wardId, bedId, status, patientData = null) {
-    const wards = await this.getAllWards();
-    const wardIndex = wards.findIndex(w => w.id === wardId);
-    if (wardIndex === -1) return;
+    // Note: We bypass facility filter here since we are looking up by specific ward ID
+    const ward = await firestoreService.getById(this.collection, wardId);
+    if (!ward) return;
 
-    const bedIndex = wards[wardIndex].beds.findIndex(b => b.id === bedId);
+    const bedIndex = ward.beds.findIndex(b => b.id === bedId);
     if (bedIndex === -1) return;
     
     // Create admission ID if admitting
     const admissionId = status === 'occupied' ? `ADM_${Date.now()}` : null;
 
-    wards[wardIndex].beds[bedIndex] = {
-      ...wards[wardIndex].beds[bedIndex],
+    ward.beds[bedIndex] = {
+      ...ward.beds[bedIndex],
       status,
       patient: patientData?.name || null,
       patientId: patientData?.patientId || null,
-      admissionId: admissionId || wards[wardIndex].beds[bedIndex].admissionId || null,
+      admissionId: admissionId || ward.beds[bedIndex].admissionId || null,
       admittedAt: patientData?.admittedAt || new Date().toLocaleDateString(),
       doctor: patientData?.doctor || null
     };
 
-    return firestoreService.set(this.collection, wardId, wards[wardIndex]);
+    return firestoreService.set(this.collection, wardId, ward);
   },
 
   async getBedDetails(wardId, bedId) {
-    const wards = await this.getAllWards();
-    const ward = wards.find(w => w.id === wardId);
+    const ward = await firestoreService.getById(this.collection, wardId);
     if (!ward) return null;
     return ward.beds.find(b => b.id === bedId);
   },
 
-  async createWard(name) {
+  async createWard(name, facilityId) {
+    if (!facilityId) throw new Error("Missing facility ID for ward creation.");
     const newWard = {
       name,
+      facilityId,
       beds: [],
       createdAt: new Date().toISOString()
     };
@@ -48,9 +51,8 @@ const wardService = {
   },
 
   async addBedToWard(wardId, bedName) {
-    const wards = await this.getAllWards();
-    const wardIndex = wards.findIndex(w => w.id === wardId);
-    if (wardIndex === -1) return;
+    const ward = await firestoreService.getById(this.collection, wardId);
+    if (!ward) return;
 
     const newBed = {
       id: `bed_${Date.now()}`,
@@ -59,24 +61,23 @@ const wardService = {
     };
 
     const updatedWard = {
-      ...wards[wardIndex],
-      beds: [...(wards[wardIndex].beds || []), newBed]
+      ...ward,
+      beds: [...(ward.beds || []), newBed]
     };
 
     return firestoreService.set(this.collection, wardId, updatedWard);
   },
 
   async dischargePatient(wardId, bedId) {
-    const wards = await this.getAllWards();
-    const wardIndex = wards.findIndex(w => w.id === wardId);
-    if (wardIndex === -1) return;
+    const ward = await firestoreService.getById(this.collection, wardId);
+    if (!ward) return;
 
-    const bedIndex = wards[wardIndex].beds.findIndex(b => b.id === bedId);
+    const bedIndex = ward.beds.findIndex(b => b.id === bedId);
     if (bedIndex === -1) return;
 
-    // Reset bed to cleaning status
-    wards[wardIndex].beds[bedIndex] = {
-      ...wards[wardIndex].beds[bedIndex],
+    // Reset bed to empty/cleaning status
+    ward.beds[bedIndex] = {
+      ...ward.beds[bedIndex],
       status: 'empty',
       patient: null,
       patientId: null,
@@ -85,7 +86,7 @@ const wardService = {
       doctor: null,
     };
 
-    return firestoreService.set(this.collection, wardId, wards[wardIndex]);
+    return firestoreService.set(this.collection, wardId, ward);
   },
 
   // ─────────────────────────────────────────────

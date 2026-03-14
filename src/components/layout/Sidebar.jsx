@@ -79,14 +79,8 @@ const menuItems = [
       { label: 'Clinical Notes', path: '/notes', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Nursing Orders', path: '/nursing/queue', roles: ['nurse', 'clinic_owner', 'doctor'] },
       { label: 'Clinical Forms', path: '/clinical-forms', roles: ['doctor', 'clinic_owner', 'nurse'] },
-      {
-        label: 'Diagnostics & Labs',
-        roles: ['doctor', 'clinic_owner', 'nurse', 'lab_tech'],
-        subItems: [
-          { label: 'Laboratory Queue', path: '/lab/queue' },
-          { label: 'Investigation Requests', path: '/investigation' }
-        ]
-      },
+      { label: 'Laboratory Queue', path: '/lab/queue', roles: ['lab_tech', 'clinic_owner'] },
+      { label: 'Diagnostics & Labs', path: '/investigation', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Ward / In-Patient', path: '/ward', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Waitlist TV', path: '/waitlist-tv', roles: ['doctor', 'nurse', 'receptionist', 'clinic_owner', 'admin'] },
     ]

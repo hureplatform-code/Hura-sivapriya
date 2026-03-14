@@ -285,7 +285,12 @@ export default function Appointments() {
 
   const filteredAppointments = appointments
     .filter(apt => {
-      const matchesSearch = apt.patient?.toLowerCase().includes(searchQuery.toLowerCase());
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q || 
+        apt.patient?.toLowerCase().includes(q) || 
+        apt.patientId?.toLowerCase().includes(q) || 
+        apt.mobile?.toLowerCase().includes(q) ||
+        apt.contact?.toLowerCase().includes(q);
       const matchesStatus = statusFilter === 'All' || apt.status?.toLowerCase() === statusFilter.toLowerCase();
       const matchesSpecialty = specialtyFilter === 'All' || apt.type?.toLowerCase() === specialtyFilter.toLowerCase();
       // Support both new "date" and legacy "app_date"

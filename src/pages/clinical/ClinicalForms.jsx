@@ -75,7 +75,22 @@ export default function ClinicalForms() {
        setFilteredPatients([]);
        return;
     }
-    const filtered = patients.filter(p => p.name.toLowerCase().includes(term.toLowerCase()) || p.id.includes(term));
+    const queryLower = term.toLowerCase();
+    const cleanQuery = queryLower.replace(/[^a-z0-9]/g, '');
+    const queryDigits = term.replace(/[^0-9]/g, '');
+
+    const filtered = patients.filter(p => {
+       const cleanId1 = (p.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+       const cleanId2 = (p.patientId || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+       const mobileDigits = (p.mobile || '').replace(/[^0-9]/g, '');
+       const contactDigits = (p.contact || '').replace(/[^0-9]/g, '');
+
+       const nameMatch = p.name?.toLowerCase().includes(queryLower);
+       const idMatch = cleanQuery && (cleanId1.includes(cleanQuery) || cleanId2.includes(cleanQuery));
+       const phoneMatch = queryDigits && (mobileDigits.includes(queryDigits) || contactDigits.includes(queryDigits));
+
+       return nameMatch || idMatch || phoneMatch;
+    });
     setFilteredPatients(filtered);
   };
 

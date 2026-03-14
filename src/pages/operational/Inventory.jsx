@@ -98,6 +98,12 @@ export default function Inventory() {
     }
   };
 
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchInventory(false);
+  };
+
   const filteredItems = items.filter(item => 
     (item.name.toLowerCase().includes(searchTerm.toLowerCase()) || item.batch?.toLowerCase().includes(searchTerm.toLowerCase())) &&
     (category === 'All' || item.category === category)
