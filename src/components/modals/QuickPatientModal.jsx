@@ -59,7 +59,10 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const sanitizedMobile = formData.mobile.replace(/[\s\-\(\)]/g, '');
+      let sanitizedMobile = formData.mobile.replace(/[\s\-\(\)]/g, '');
+      // Strip leading 0 if present (standardize to international part)
+      if (sanitizedMobile.startsWith('0')) sanitizedMobile = sanitizedMobile.substring(1);
+      
       const fullMobile = `${formData.countryCode}${sanitizedMobile}`;
       const patientId = `PAT-${Date.now().toString().slice(-6)}`;
       const newPatient = {

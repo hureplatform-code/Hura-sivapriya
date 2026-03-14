@@ -17,7 +17,10 @@ import {
   CheckCircle2,
   Activity,
   ChevronRight,
-  Plus
+  Plus,
+  Volume2,
+  Play,
+  ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -121,7 +124,11 @@ export default function Dashboard() {
           { label: 'Workload Status', value: 'Steady', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' },
           { label: 'Discharged Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         ]);
-        setArrears(appointments.filter(a => new Date(a.date).toLocaleDateString() === today).slice(0, 4));
+        const todayApts = appointments
+          .filter(a => new Date(a.date).toLocaleDateString() === today)
+          .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
+
+        setArrears(todayApts.slice(0, 4));
       } else {
         const arrearsRate = billingStats.revenue > 0 
           ? ((billingStats.outstanding / (billingStats.revenue + billingStats.outstanding)) * 100).toFixed(1) + '%' 
@@ -141,6 +148,43 @@ export default function Dashboard() {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCallIn = async (appointmentId) => {
+    try {
+      await appointmentService.updateAppointmentStatus(appointmentId, 'calling');
+      success('Patient called in. Showing on TV.');
+      fetchDashboardStats();
+    } catch (error) {
+       console.error("Error calling patient:", error);
+    }
+  };
+
+  const handleStartSession = async (apt) => {
+    try {
+      await appointmentService.updateAppointmentStatus(apt.id, 'in-session');
+      success('Consultation session started.');
+      navigate('/notes', { 
+        state: { 
+          autoCreate: true,
+          patientId: apt.patientId || '',
+          patientName: apt.patient,
+          appointmentId: apt.id
+        } 
+      });
+    } catch (error) {
+       console.error("Error starting session:", error);
+    }
+  };
+
+  const handleCheckIn = async (appointmentId) => {
+    try {
+      await appointmentService.updateAppointmentStatus(appointmentId, 'arrived');
+      success('Patient checked in successfully!');
+      fetchDashboardStats();
+    } catch (error) {
+      console.error("Error checking in patient:", error);
     }
   };
 
@@ -233,6 +277,9 @@ export default function Dashboard() {
               arrears.length > 0 ? arrears.map((apt, i) => (
                 <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-primary-100 transition-all cursor-pointer">
                   <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 bg-primary-50 rounded-lg flex items-center justify-center border border-primary-100">
+                       <span className="text-[10px] font-bold text-primary-600">T-{apt.tokenNumber || '0'}</span>
+                    </div>
                     <div className="h-12 w-12 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center shadow-sm">
                       <span className="text-[10px] font-bold text-slate-400">{(apt.time || '00:00').split(':')[0]}</span>
                       <span className="text-xs font-bold text-slate-900 leading-none">{(apt.time || '00:00').split(':')[1]}</span>
@@ -242,9 +289,71 @@ export default function Dashboard() {
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{apt.type}</p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-lg text-[8px] font-bold uppercase tracking-widest ${apt.status === 'arrived' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
-                    {apt.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {/* Receptionist: Check In */}
+                    {role === 'receptionist' && apt.status === 'scheduled' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckIn(apt.id);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
+                      >
+                        <ShieldCheck className="h-3 w-3" />
+                        Check In
+                      </button>
+                    )}
+
+                    {/* Doctor: Call In for Arrived/Triage */}
+                    {role === 'doctor' && (apt.status === 'arrived' || apt.status === 'triage') && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCallIn(apt.id);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-100 active:scale-95"
+                      >
+                        <Volume2 className="h-3 w-3" />
+                        Call In
+                      </button>
+                    )}
+
+                    {/* Doctor: Start Session for Calling */}
+                    {role === 'doctor' && apt.status === 'calling' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartSession(apt);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
+                      >
+                        <Play className="h-3 w-3" />
+                        Start Session
+                      </button>
+                    )}
+
+                    {/* Doctor: Resume Session if already in-session */}
+                    {role === 'doctor' && apt.status === 'in-session' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartSession(apt);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-95"
+                      >
+                        <ArrowRight className="h-3 w-3" />
+                        Resume Session
+                      </button>
+                    )}
+
+                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest 
+                      ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-600' : 
+                        apt.status === 'calling' ? 'bg-amber-50 text-amber-600 animate-pulse' :
+                        apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
+                        'bg-slate-50 text-slate-500'}`}>
+                      {apt.status}
+                    </span>
+                  </div>
                 </div>
               )) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-400 italic text-sm">

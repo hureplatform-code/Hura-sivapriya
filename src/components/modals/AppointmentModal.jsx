@@ -16,6 +16,7 @@ import patientService from '../../services/patientService';
 import userService from '../../services/userService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import appointmentService from '../../services/appointmentService';
 
 export default function AppointmentModal({ isOpen, onClose, onSave, initialDate }) {
   const [loading, setLoading] = useState(false);
@@ -29,6 +30,24 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [doctors, setDoctors] = useState([]);
+  const [lastVisitMap, setLastVisitMap] = useState({});
+
+  const formatLastVisitRelative = (lastDate) => {
+    if (!lastDate) return null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const visitDate = new Date(lastDate);
+    visitDate.setHours(0,0,0,0);
+    
+    const diffTime = today - visitDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Visited today";
+    if (diffDays === 1) return "Visited yesterday";
+    if (diffDays < 30) return `${diffDays} days ago`;
+    if (diffDays < 60) return "Last month";
+    return `Last visit: ${lastDate}`;
+  };
 
   const [formData, setFormData] = useState({
     patientId: '',
@@ -48,20 +67,50 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
   });
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && userData?.facilityId) {
+      // Reset form on open
+      setSearchQuery('');
+      setSelectedPatient(null);
+      setShowResults(false);
+      setFormData({
+        patientId: '',
+        patientName: '',
+        provider: doctors[0]?.name || '', 
+        type: 'Consultation',
+        date: initialDate || (() => {
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = String(now.getMonth() + 1).padStart(2, '0');
+          const d = String(now.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        })(),
+        time: (() => {
+          const now = new Date();
+          const h = String(now.getHours()).padStart(2, '0');
+          const m = String(now.getMinutes()).padStart(2, '0');
+          return `${h}:${m}`;
+        })(),
+        notes: '',
+        priority: 'Normal'
+      });
+
       fetchPatients();
       fetchDoctors();
-      if (initialDate) {
-        setFormData(prev => ({ ...prev, date: initialDate }));
-      }
     }
-  }, [isOpen, initialDate]);
+  }, [isOpen, initialDate, userData?.facilityId]);
+
+  // Handle doctor selection once list is loaded
+  useEffect(() => {
+    if (doctors.length > 0 && !formData.provider) {
+       setFormData(prev => ({ ...prev, provider: doctors[0].name }));
+    }
+  }, [doctors]);
 
   const fetchDoctors = async () => {
     try {
       const data = await userService.getAllUsers(userData?.facilityId);
-      // Include both formal Doctors and Clinic Owners (who often practice in smaller clinics)
-      const docs = data.filter(u => ['doctor', 'clinic_owner'].includes(u.role));
+      // Include only formal Doctors
+      const docs = data.filter(u => u.role === 'doctor');
       setDoctors(docs);
       
       // Auto-select first matching provider if form is empty
@@ -74,19 +123,48 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
   };
 
   const fetchPatients = async () => {
+    if (!userData?.facilityId) return;
     try {
-      const data = await patientService.getAllPatients(userData?.facilityId);
-      setPatients(data || []);
+      // Fetch both simultaneously but handle failure individually
+      const [patientData, recentAppts] = await Promise.allSettled([
+        patientService.getAllPatients(userData.facilityId),
+        appointmentService.getAppointmentsByFacility(userData.facilityId, 500)
+      ]);
+      
+      const pData = patientData.status === 'fulfilled' ? (patientData.value || []) : [];
+      const aData = recentAppts.status === 'fulfilled' ? (recentAppts.value || []) : [];
+      
+      setPatients(pData);
+      
+      const vMap = {};
+      if (aData.length > 0) {
+        aData.forEach(a => {
+          if (!vMap[a.patientId]) {
+            vMap[a.patientId] = a.date;
+          }
+        });
+      }
+      setLastVisitMap(vMap);
     } catch (error) {
-      console.error("Error fetching patients:", error);
+      console.error("Error fetching patient context:", error);
     }
   };
 
   const filteredPatients = patients.filter(p => {
-    const query = searchQuery.toLowerCase().replace(/[\s\-\(\)]/g, '');
-    return p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           p.mobile?.replace(/[\s\-\(\)]/g, '').includes(query) ||
-           p.id?.toLowerCase().includes(searchQuery.toLowerCase());
+    const queryLower = searchQuery.toLowerCase();
+    const queryDigits = searchQuery.replace(/[^0-9]/g, '');
+    const queryNoZero = queryDigits.startsWith('0') ? queryDigits.substring(1) : queryDigits;
+
+    const mobileDigits = (p.mobile || '').replace(/[^0-9]/g, '');
+    const contactDigits = (p.contact || '').replace(/[^0-9]/g, '');
+    const idLower = (p.id || '').toLowerCase();
+
+    const nameMatch = p.name?.toLowerCase().includes(queryLower);
+    const idMatch = idLower.includes(queryLower.replace(/[^a-z0-9]/g, ''));
+    const phoneMatch = (queryDigits && (mobileDigits.includes(queryDigits) || contactDigits.includes(queryDigits))) ||
+                      (queryNoZero && (mobileDigits.includes(queryNoZero) || contactDigits.includes(queryNoZero)));
+
+    return nameMatch || idMatch || phoneMatch;
   }).slice(0, 5);
 
   const handleSelectPatient = (patient) => {
@@ -127,7 +205,6 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
         patientPhone: sanitizedPhone,
         status: 'scheduled',
         bookingType: isSameDay ? 'SD' : 'ADV',
-        confirmationStatus: 'NC', // Default Not Confirmed
         createdAt: new Date().toISOString()
       };
       
@@ -237,9 +314,26 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                                     onClick={() => handleSelectPatient(p)}
                                     className="w-full text-left px-6 py-4 hover:bg-slate-50 flex items-center justify-between border-b border-slate-50 last:border-0 transition-colors"
                                   >
-                                    <div>
-                                      <p className="font-medium text-slate-900 text-sm">{p.name}</p>
-                                      <p className="text-xs text-slate-400 font-medium">{p.mobile || p.id}</p>
+                                    <div className="flex-1">
+                                      <p className="font-medium text-slate-900 text-sm flex items-center gap-2">
+                                        {p.name}
+                                        {lastVisitMap[p.id] && (
+                                          <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-bold uppercase rounded-md border border-indigo-100">
+                                            Returning
+                                          </span>
+                                        )}
+                                      </p>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <p className="text-xs text-slate-400 font-medium">{p.mobile || p.id}</p>
+                                        {lastVisitMap[p.id] && (
+                                          <>
+                                            <span className="h-1 w-1 bg-slate-300 rounded-full" />
+                                            <p className="text-[10px] text-primary-600 font-semibold uppercase tracking-wider">
+                                              {formatLastVisitRelative(lastVisitMap[p.id])}
+                                            </p>
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
                                     <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center">
                                       <CalendarIcon className="h-4 w-4 text-slate-400" />

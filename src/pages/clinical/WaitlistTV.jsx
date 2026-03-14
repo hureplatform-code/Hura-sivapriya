@@ -88,27 +88,28 @@ export default function WaitlistTV() {
                     `}
                   >
                     <div className="flex items-center gap-4 md:gap-8">
-                       <div className={`h-12 w-12 md:h-16 md:w-16 rounded-xl md:rounded-2xl flex items-center justify-center font-medium text-lg md:text-2xl
-                         ${apt.status === 'in-session' ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-400'}
+                       <div className={`h-12 w-12 md:h-20 md:w-20 rounded-xl md:rounded-3xl flex items-center justify-center font-bold text-lg md:text-3xl shadow-xl
+                         ${apt.status === 'in-session' ? 'bg-white/20 text-white' : 
+                           apt.status === 'calling' ? 'bg-amber-500 text-white animate-bounce' : 'bg-white/10 text-slate-400'}
                        `}>
-                          {i + 1}
+                          T-{apt.tokenNumber || '0'}
                        </div>
                        <div>
-                          <p className={`text-xl md:text-3xl font-semibold tracking-tight ${apt.status === 'in-session' ? 'text-white' : 'text-slate-100'}`}>
-                            {apt.patient?.split(' ')[0]} {apt.patient?.split(' ')[1]?.[0] || ''}.
+                          <p className={`text-xl md:text-4xl font-semibold tracking-tight ${apt.status === 'in-session' ? 'text-white' : 'text-slate-100'}`}>
+                             {apt.patient?.split(' ')[0]} {apt.patient?.split(' ')[1]?.[0] || ''}.
                           </p>
                           <p className={`text-[10px] md:text-sm font-semibold uppercase tracking-widest mt-1 ${apt.status === 'in-session' ? 'text-blue-100' : 'text-slate-500'}`}>
-                             Ref: {(apt.id || '......').slice(-6).toUpperCase()} • {apt.type}
+                             Room: {apt.provider} • {apt.type}
                           </p>
                        </div>
                     </div>
                     <div className="flex items-center gap-4 md:gap-6">
                        <div className="text-right hidden sm:block">
-                          <p className={`text-[10px] md:text-sm font-semibold uppercase tracking-widest ${apt.status === 'in-session' ? 'text-emerald-300' : 'text-slate-400'}`}>
+                          <p className={`text-[10px] md:text-sm font-semibold uppercase tracking-widest ${apt.status === 'in-session' ? 'text-emerald-300' : apt.status === 'calling' ? 'text-amber-300 animate-pulse' : 'text-slate-400'}`}>
                              Status
                           </p>
-                          <p className={`text-sm md:text-xl font-semibold uppercase ${apt.status === 'in-session' ? 'text-white' : 'text-blue-400'}`}>
-                             {apt.status === 'in-session' ? 'Consulting' : apt.status === 'triage' ? 'In Triage' : 'Waiting'}
+                          <p className={`text-sm md:text-2xl font-bold uppercase ${apt.status === 'in-session' ? 'text-white' : apt.status === 'calling' ? 'text-amber-400 animate-pulse' : 'text-blue-400'}`}>
+                             {apt.status === 'in-session' ? 'Consulting' : apt.status === 'calling' ? 'Please Enter' : apt.status === 'triage' ? 'In Triage' : 'Waiting'}
                           </p>
                        </div>
                        <ChevronRight className={`h-6 w-6 md:h-8 md:w-8 ${apt.status === 'in-session' ? 'text-white' : 'text-white/10'}`} />

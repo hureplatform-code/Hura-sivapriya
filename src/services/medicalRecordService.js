@@ -33,6 +33,32 @@ const medicalRecordService = {
       return { records, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching medical records:', error);
+      
+      // Fallback for missing index: fetch without order and sort in-memory
+      if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+        try {
+          console.warn('Falling back to in-memory sorting for medical records (Index missing)');
+          const constraints = [];
+          if (facilityId) constraints.push(where('facilityId', '==', facilityId));
+          const q = query(collection(db, this.collection), ...constraints);
+          const snap = await getDocs(q);
+          const allRecords = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Sort by createdAt desc
+          const sorted = allRecords.sort((a, b) => {
+            const dateA = a.createdAt?.seconds ? a.createdAt.seconds : 0;
+            const dateB = b.createdAt?.seconds ? b.createdAt.seconds : 0;
+            return dateB - dateA;
+          });
+
+          if (limitNum === null) return sorted;
+          const paginated = sorted.slice(0, limitNum);
+          return { records: paginated, lastDoc: snap.docs[paginated.length - 1] };
+        } catch (innerError) {
+          console.error('In-memory fallback failed:', innerError);
+        }
+      }
+      
       return limitNum === null ? [] : { records: [], lastDoc: null };
     }
   },
@@ -70,6 +96,29 @@ const medicalRecordService = {
 
   async getRecordById(id) {
     return firestoreService.getById(this.collection, id);
+  },
+
+  async getRecordByAppointment(appointmentId) {
+    if (!appointmentId) return null;
+    try {
+      const q = [
+        where('appointmentId', '==', appointmentId),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      ];
+      const records = await firestoreService.getAll(this.collection, q);
+      return records.length > 0 ? records[0] : null;
+    } catch (error) {
+      console.warn("getRecordByAppointment failed, falling back to basic query:", error);
+      // Basic query without orderBy to avoid index requirement
+      const q = [
+        where('appointmentId', '==', appointmentId)
+      ];
+      const records = await firestoreService.getAll(this.collection, q);
+      if (records.length === 0) return null;
+      // Sort in-memory
+      return records.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
+    }
   }
 };
 

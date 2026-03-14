@@ -9,17 +9,14 @@ import {
   ChevronRight, History, Smile, Baby, Scissors, Wind, Zap, Brain, Clock, 
   MoreVertical, X, Droplets, ShieldCheck
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
-import { APP_CONFIG } from '../../config';
-import medicalRecordService from '../../services/medicalRecordService';
-import patientService from '../../services/patientService';
-import appointmentService from '../../services/appointmentService';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { db } from '../../firebase';
 import { getDoc, doc } from 'firebase/firestore';
+import medicalRecordService from '../../services/medicalRecordService';
+import appointmentService from '../../services/appointmentService';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SPECIALTIES = [
   { id: 'general', name: 'General', icon: Stethoscope },
@@ -39,16 +36,13 @@ const SPECIALTIES = [
 
 export default function Notes() {
   const location = useLocation();
-  const [isCreating, setIsCreating] = useState(false);
-  const [signatureData, setSignatureData] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastVisible, setLastVisible] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
   const [viewingNote, setViewingNote] = useState(null);
 
   const { success, error: toastError } = useToast();
@@ -65,6 +59,7 @@ export default function Notes() {
     if (location.state?.autoCreate) {
       setIsCreating(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state, userData]);
 
   const fetchNotes = async (isLoadMore = false) => {
@@ -276,7 +271,7 @@ export default function Notes() {
                 Recent Activity
               </h4>
               <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-50">
-                {notes.slice(0, 3).map((note, i) => (
+                {notes.slice(0, 3).map((note) => (
                   <div key={note.id} className="relative pl-8">
                     <div className="absolute left-0 top-1 h-6 w-6 bg-slate-50 rounded-lg border-2 border-white flex items-center justify-center z-10 shadow-sm">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary-500" />
@@ -297,6 +292,7 @@ export default function Notes() {
         {isCreating && (
           <NoteEditor 
             initialPatientId={location.state?.patientId}
+            initialPatientName={location.state?.patientName}
             initialAppointmentId={location.state?.appointmentId}
             onClose={() => setIsCreating(false)} 
             onSave={() => {
@@ -318,11 +314,12 @@ export default function Notes() {
   );
 }
 
-function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', initialAppointmentId = '' }) {
+function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', initialPatientName = '', initialAppointmentId = '' }) {
   const { userData } = useAuth();
   const [activeSpecialties, setActiveSpecialties] = useState(['general']);
   const [patientId, setPatientId] = useState(initialPatientId);
-  const [appointmentId, setAppointmentId] = useState(initialAppointmentId);
+  const [appointmentId] = useState(initialAppointmentId);
+  const [existingRecordId, setExistingRecordId] = useState(null);
   const [patients, setPatients] = useState([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [formData, setFormData] = useState({
@@ -335,14 +332,162 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   });
 
   const [entryMode, setEntryMode] = useState('text'); // 'text' or 'audio'
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [icdSuggestions, setIcdSuggestions] = useState([]);
   const [transcriptReviewed, setTranscriptReviewed] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [micVolume, setMicVolume] = useState(0);
   const [fakeTranscript, setFakeTranscript] = useState('');
-  const [icdSuggestions, setIcdSuggestions] = useState([]);
+  const userStopRef = React.useRef(false);
+  const transcriptRef = React.useRef('');
+
+  const runAIPolish = async (textToProcess) => {
+    if (!textToProcess || textToProcess.length < 5) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const docRef = doc(db, 'platform_settings', 'main');
+      const docSnap = await getDoc(docRef);
+      const apiKey = docSnap.exists() ? (docSnap.data().geminiApiKey || '').trim() : '';
+      
+      if (!apiKey) {
+        showNotification('success', "Transcript captured. Configure Gemini API Key in Settings for auto-formatting.");
+        setFormData(prev => ({ ...prev, subjective: textToProcess }));
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Model fallback strategy to handle regional/account restrictions
+      const modelsToTry = [
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-flash-latest',
+        'gemini-2.5-flash',
+        'gemini-pro',
+        'gemini-1.0-pro'
+      ];
+
+      let lastError = null;
+      let success = false;
+
+      for (const modelId of modelsToTry) {
+        try {
+          const prompt = `You are an expert clinical scribe. You are receiving a clinical dictation transcript. 
+          The transcript may have phonetic mistakes (e.g. "5" instead of "500", or "a mock soul in" instead of "amoxicillin").
+          
+          TASKS:
+          1. Correct all numeric and medical spelling errors based on clinical context.
+          2. MAPPING RULES:
+             - SUBJECTIVE: Patient complaints, symptoms, history of present illness.
+             - OBJECTIVE: Vital signs, physical examination findings, observed data.
+             - ASSESSMENT: Diagnosis, clinical impression, "medical condition".
+             - PLAN: Medications, prescriptions, laboratory orders, follow-up instructions.
+          3. Extract a suggested ICD-10 code.
+          
+          TRANSCRIPT: "${textToProcess}"
+          
+          Respond ONLY with raw JSON: {"subjective":"", "objective":"", "assessment":"", "plan":"", "icd_suggestion":""}`;
+
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            // If it's a 404 (model not found), try the next model
+            if (response.status === 404) {
+              console.warn(`Model ${modelId} not found, trying next...`);
+              continue;
+            }
+            throw new Error(data.error?.message || `API Error: ${response.status}`);
+          }
+
+          if (data.candidates && data.candidates[0]) {
+            let resultText = data.candidates[0].content.parts[0].text;
+            resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+            
+            try {
+              const parsed = JSON.parse(resultText);
+              
+              setFormData(prev => ({
+                ...prev,
+                subjective: parsed.subjective || prev.subjective,
+                objective: parsed.objective || prev.objective,
+                assessment: parsed.assessment || prev.assessment,
+                plan: parsed.plan || prev.plan
+              }));
+
+              if (parsed.icd_suggestion) {
+                // Return as simple string for UI compatibility
+                setIcdSuggestions([parsed.icd_suggestion]);
+              }
+            } catch (pErr) {
+               console.error("AI Parse Error:", pErr);
+               // If JSON fails, at least show the notification that AI tried
+            }
+            showNotification('success', "AI Note Polished & Organized!");
+            success = true;
+            break; // Exit model loop
+          }
+        } catch (err) {
+          lastError = err;
+          // If it's not a 404, we stop and show the error (e.g. 401 Unauthorized)
+          if (err.message.includes('404')) continue;
+          throw err;
+        }
+      }
+
+      if (!success) {
+        throw lastError || new Error("No compatible AI model was found for your API key.");
+      }
+
+    } catch (err) {
+      console.error("AI polishing failed", err);
+      showNotification('error', err.message || "AI failed to categorize the note.");
+      
+      // Fallback: at least keep the transcript in Subjective if it was empty
+      setFormData(prev => ({ 
+        ...prev, 
+        subjective: prev.subjective || textToProcess 
+      }));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     fetchPatients();
+    if (appointmentId) {
+      loadExistingDraft();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadExistingDraft = async () => {
+    try {
+      const draft = await medicalRecordService.getRecordByAppointment(appointmentId);
+      if (draft) {
+        setExistingRecordId(draft.id);
+        setFormData({
+          subjective: draft.subjective || '',
+          objective: draft.objective || '',
+          assessment: draft.assessment || '',
+          plan: draft.plan || '',
+          diagnosis: draft.diagnosis || '',
+          specialtyData: draft.specialtyData || {}
+        });
+        if (draft.specialties && draft.specialties.length > 0) {
+          setActiveSpecialties(draft.specialties);
+        }
+        if (draft.patientId) setPatientId(draft.patientId);
+      }
+    } catch (error) {
+      console.error("Error loading existing draft:", error);
+    }
+  };
 
   const fetchPatients = async () => {
     try {
@@ -408,7 +553,6 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
         specialties: activeSpecialties,
         status, // 'draft' or 'signed'
         entryMode,
-        createdAt: new Date(),
         doctorName: userData?.name || 'Dr. Dolly Smith', 
         facilityId: userData?.facilityId, // Include facilityId
         title: activeSpecialties.length > 1 
@@ -416,7 +560,13 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           : `${SPECIALTIES.find(s => s.id === activeSpecialties[0]).name} Clinical Note`
       };
 
-      const result = await medicalRecordService.createRecord(recordData);
+      if (!existingRecordId) {
+        recordData.createdAt = new Date();
+      }
+
+      const result = existingRecordId 
+        ? await medicalRecordService.updateRecord(existingRecordId, recordData, { id: userData?.uid, name: userData?.name })
+        : await medicalRecordService.createRecord(recordData, { id: userData?.uid, name: userData?.name });
 
       // Log the activity to Audit Trail
       await auditService.logActivity({
@@ -529,16 +679,33 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                    <User className="h-4 w-4" />
                    Patient Information
                  </label>
-                 <select 
-                   value={patientId}
-                   onChange={(e) => setPatientId(e.target.value)}
-                   className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-3xl text-sm font-medium transition-all outline-none"
-                 >
-                   <option value="">Select Patient...</option>
-                   {patients.map(p => (
-                     <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
-                   ))}
-                 </select>
+                 {initialPatientId ? (
+                   <div className="w-full p-5 bg-primary-50 border-2 border-primary-100 rounded-3xl flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                       <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shadow-sm">
+                         <User className="h-5 w-5" />
+                       </div>
+                       <div>
+                         <p className="text-sm font-bold text-slate-900">{initialPatientName || 'Active Patient'}</p>
+                         <p className="text-[10px] text-primary-600 font-bold uppercase tracking-widest">ID: {initialPatientId}</p>
+                       </div>
+                     </div>
+                     <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-bold uppercase tracking-widest">
+                       Active Session
+                     </div>
+                   </div>
+                 ) : (
+                   <select 
+                     value={patientId}
+                     onChange={(e) => setPatientId(e.target.value)}
+                     className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-3xl text-sm font-medium transition-all outline-none"
+                   >
+                     <option value="">{loadingPatients ? 'Loading arrived patients...' : 'Select Patient...'}</option>
+                     {patients.map(p => (
+                       <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
+                     ))}
+                   </select>
+                 )}
               </div>
               <div className="space-y-4">
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
@@ -577,122 +744,112 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                       </div>
                       <button 
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
+                           const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                           
                            if (!isRecording) {
-                              const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                               if (!SpeechRecognition) {
-                                 showNotification('error', 'Speech recognition is not supported in this browser.');
+                                 showNotification('error', 'Speech recognition is not supported in this browser. Please use Chrome.');
                                  return;
                               }
+
+                              try {
+                                 // Force Mic Permission Handshake
+                                 await navigator.mediaDevices.getUserMedia({ audio: true });
+                              } catch (permissionErr) {
+                                 console.error("Microphone permission error:", permissionErr);
+                                 showNotification('error', 'Microphone blocked. Please check your browser address bar to allow mic access.');
+                                 return;
+                              }
+                              
+                              userStopRef.current = false;
+                              
+                              transcriptRef.current = '';
+                              setFakeTranscript('');
                               
                               const recognition = new SpeechRecognition();
                               recognition.continuous = true;
                               recognition.interimResults = true;
                               recognition.lang = 'en-US';
 
-                              recognition.onstart = () => setIsRecording(true);
+                              recognition.onstart = async () => {
+                                 setIsRecording(true);
+                                 try {
+                                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                                    const analyser = audioCtx.createAnalyser();
+                                    const source = audioCtx.createMediaStreamSource(stream);
+                                    source.connect(analyser);
+                                    analyser.fftSize = 256;
+                                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                                    const updateVol = () => {
+                                       if (!window._currentRecognition) {
+                                          if (audioCtx.state !== 'closed') audioCtx.close();
+                                          return;
+                                       }
+                                       analyser.getByteFrequencyData(dataArray);
+                                       const average = dataArray.reduce((p, c) => p + c, 0) / dataArray.length;
+                                       setMicVolume(Math.min(100, (average / 128) * 100));
+                                       requestAnimationFrame(updateVol);
+                                    };
+                                    updateVol();
+                                 } catch (e) {
+                                    console.warn("Analyzer failed", e);
+                                 }
+                              };
                               recognition.onresult = (event) => {
-                                 const transcript = Array.from(event.results)
-                                    .map(result => result[0])
-                                    .map(result => result.transcript)
-                                    .join('');
-                                 setFakeTranscript(transcript);
+                                 let interimTranscript = '';
+                                 for (let i = event.resultIndex; i < event.results.length; ++i) {
+                                    if (event.results[i].isFinal) {
+                                       transcriptRef.current += event.results[i][0].transcript + ' ';
+                                    } else {
+                                       interimTranscript += event.results[i][0].transcript;
+                                    }
+                                 }
+                                 setFakeTranscript((transcriptRef.current + interimTranscript).trim());
                               };
 
                               recognition.onerror = (event) => {
                                  console.error('Speech recognition error:', event.error);
+                                 if (event.error === 'no-speech' && !userStopRef.current) {
+                                    // Silent timeout: don't stop recording, let onend handle the relay
+                                    console.warn("Voice timeout - relayer will restart...");
+                                    return;
+                                 }
+                                 if (event.error === 'not-allowed' || event.error === 'aborted') {
+                                     userStopRef.current = true;
+                                 }
                                  setIsRecording(false);
-                                 showNotification('error', `Speech Recognition Error: ${event.error}`);
-                              };
-
-                              recognition.onend = async () => {
-                                 setIsRecording(false);
-                                 const transcript = fakeTranscript;
-                                 if (transcript && transcript.length > 20) {
-                                    setIsAnalyzing(true);
-                                    try {
-                                      // Call Google Gemini API
-                                      // Note: In real production, this should be proxied via backend. For now, we will construct prompt.
-                                      // We don't have an API key inside .env, so we need to add a placeholder or ask the user to provide one.
-                                      // BUT wait, I will implement a powerful placeholder API block using a known free or simulated approach
-                                      // Or if we must, we'll ask user to input their GEMINI_API_KEY in the config.
-                                      
-                                      const prompt = `You are an expert medical AI. Read the following messy clinical dictation transcript and extract it into a structured JSON format containing specific medical fields:
-                                      1. subjective (patient complaints, history)
-                                      2. objective (physical exam findings, vitals)
-                                      3. assessment (your diagnosis or clinical impression)
-                                      4. plan (treatment, prescriptions, follow-up)
-                                      5. icd_suggestion (A short, accurate ICD-10 string like 'J01.9 - Acute Sinusitis')
-                                      
-                                      Transcript: "${transcript}"
-                                      
-                                      Respond ONLY with raw JSON. Format: {"subjective":"", "objective":"", "assessment":"", "plan":"", "icd_suggestion":""}`;
-
-                                      // Look up API key from Platform Settings in Firestore
-                                      let apiKey = '';
-                                      try {
-                                         const docRef = doc(db, 'platform_settings', 'main');
-                                         const docSnap = await getDoc(docRef);
-                                         if (docSnap.exists()) {
-                                            apiKey = docSnap.data().geminiApiKey || '';
-                                         }
-                                      } catch (e) {
-                                         console.error("Error fetching platform key", e);
-                                      }
-                                      
-                                      if (!apiKey) {
-                                          success("Transcript captured. To auto-format with AI, please configure the Gemini API Key in Settings.");
-                                          // basic fallback
-                                          const subjectiveMatch = transcript.match(/Subjective:(.*?)Objective:/i) || transcript.match(/Subjective:(.*)/i);
-                                          const objectiveMatch = transcript.match(/Objective:(.*?)Assessment:/i) || transcript.match(/Objective:(.*)/i);
-                                          setFormData(prev => ({
-                                              ...prev,
-                                              subjective: subjectiveMatch ? subjectiveMatch[1].trim() : transcript,
-                                              objective: objectiveMatch ? objectiveMatch[1].trim() : prev.objective,
-                                              assessment: prev.assessment,
-                                              plan: prev.plan
-                                          }));
-                                      } else {
-                                          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                                              method: 'POST',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({
-                                                  contents: [{ parts: [{ text: prompt }] }]
-                                              })
-                                          });
-                                          
-                                          const data = await response.json();
-                                          let resultText = data.candidates[0].content.parts[0].text;
-                                          
-                                          // clean json
-                                          resultText = resultText.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
-                                          const parsed = JSON.parse(resultText);
-                                          
-                                          setFormData(prev => ({
-                                             ...prev,
-                                             subjective: parsed.subjective || prev.subjective,
-                                             objective: parsed.objective || prev.objective,
-                                             assessment: parsed.assessment || prev.assessment,
-                                             plan: parsed.plan || prev.plan
-                                          }));
-                                                                                    if (parsed.icd_suggestion) {
-                                               setIcdSuggestions([{ code: parsed.icd_suggestion.split('-')[0].trim(), description: parsed.icd_suggestion.split('-')[1]?.trim() }]);
-                                           }
-                                          success("AI Note Generated Successfully!");
-                                      }
-
-                                    } catch (e) {
-                                        console.error("AI Gen Failed:", e);
-                                        toastError("Failed to generate AI note. Please fill manually.");
-                                    } finally {
-                                        setIsAnalyzing(false);
-                                    }
+                                 if(event.error !== 'aborted') {
+                                     showNotification('error', `Speech Recognition Error: ${event.error}`);
                                  }
                               };
 
+                              recognition.onend = async () => {
+                                 // Rely ONLY on the ref inside this closure to prevent infinite loops from stale state
+                                 if (!userStopRef.current) {
+                                    try { 
+                                       window._currentRecognition.start(); 
+                                    } catch(e) { 
+                                       console.warn("Relay restart failed:", e); 
+                                    }
+                                    return;
+                                 }
+
+                                 // User explicitly stopped
+                                 setIsRecording(false);
+                                 if (transcriptRef.current.trim().length > 0) {
+                                    runAIPolish(transcriptRef.current);
+                                 }
+                                 
+                                 // Clean up
+                                 window._currentRecognition = null;
+                              };
                               recognition.start();
                               window._currentRecognition = recognition;
                            } else {
+                              userStopRef.current = true;
+                              setIsRecording(false);
                               if (window._currentRecognition) {
                                  window._currentRecognition.stop();
                               }
@@ -716,25 +873,68 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                         )}
                       </button>
                    </div>
-                   {fakeTranscript && (
-                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100">
-                         <div className="flex items-center justify-between mb-4">
-                            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Real-time Transcript</p>
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                         </div>
-                         <p className="text-sm font-medium text-slate-700 leading-relaxed mb-6 bg-slate-50 p-6 rounded-xl italic border border-slate-100 shadow-inner">"{fakeTranscript}"</p>
-                         <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className={`h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all ${transcriptReviewed ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 group-hover:border-emerald-300'}`}>
-                               <CheckCircle2 className={`h-4 w-4 text-white transition-opacity ${transcriptReviewed ? 'opacity-100' : 'opacity-0'}`} />
+                   {(isRecording || fakeTranscript || isAnalyzing) && (
+                      <div className={`bg-white p-8 rounded-[2.5rem] shadow-xl border transition-all duration-500 ${isRecording ? 'border-primary-200 ring-4 ring-primary-50/50' : 'border-indigo-100'}`}>
+                         <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                 <Mic className="h-3.5 w-3.5" />
+                                 Live Voice Feed
+                               </p>
+                               {isRecording && (
+                                  <div className="flex items-end gap-1 h-4">
+                                     <motion.span animate={{ height: [4, 8 + (micVolume * 0.5), 4] }} transition={{ repeat: Infinity, duration: 0.2 }} className="w-1.5 bg-primary-400 rounded-full" />
+                                     <motion.span animate={{ height: [12, 4 + (micVolume * 1.5), 12] }} transition={{ repeat: Infinity, duration: 0.2, delay: 0.05 }} className="w-1.5 bg-primary-500 rounded-full" />
+                                     <motion.span animate={{ height: [4, 8 + (micVolume * 0.5), 4] }} transition={{ repeat: Infinity, duration: 0.2, delay: 0.1 }} className="w-1.5 bg-primary-600 rounded-full" />
+                                  </div>
+                               )}
                             </div>
-                            <span className="text-xs font-medium text-slate-600 uppercase tracking-widest group-hover:text-slate-900">Mark transcript reviewed</span>
-                            <input 
-                              type="checkbox"
-                              className="hidden" 
-                              checked={transcriptReviewed}
-                              onChange={(e) => setTranscriptReviewed(e.target.checked)}
-                            />
-                         </label>
+                            {isRecording && (
+                               <span className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 uppercase tracking-[0.1em]">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  Streaming Data
+                               </span>
+                            )}
+                         </div>
+
+                          <textarea 
+                             value={fakeTranscript}
+                             onChange={(e) => {
+                                setFakeTranscript(e.target.value);
+                                transcriptRef.current = e.target.value;
+                             }}
+                             disabled={isRecording || isAnalyzing}
+                             placeholder={isRecording ? "Listening... speak clearly" : "Captured clinical script. You can edit this before AI processing..."}
+                             className={`w-full text-base font-medium leading-relaxed p-8 rounded-3xl min-h-[160px] transition-all outline-none resize-none
+                                ${fakeTranscript ? 'text-slate-800 bg-slate-50' : 'text-slate-400 bg-slate-50/50 italic'} 
+                                border border-slate-100 shadow-inner mb-6 focus:ring-4 focus:ring-primary-50 focus:bg-white`}
+                          />
+                       <div className="flex items-center justify-between">
+                          <label className="flex items-center gap-3 cursor-pointer group">
+                             <div className={`h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all ${transcriptReviewed ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 group-hover:border-emerald-300'}`}>
+                                <CheckCircle2 className={`h-4 w-4 text-white transition-opacity ${transcriptReviewed ? 'opacity-100' : 'opacity-0'}`} />
+                             </div>
+                             <span className="text-xs font-medium text-slate-600 uppercase tracking-widest group-hover:text-slate-900">Mark transcript reviewed</span>
+                             <input 
+                               type="checkbox"
+                               className="hidden" 
+                               checked={transcriptReviewed}
+                               onChange={(e) => setTranscriptReviewed(e.target.checked)}
+                             />
+                          </label>
+
+                          {!isRecording && fakeTranscript && (
+                             <button 
+                               type="button"
+                               onClick={() => runAIPolish(fakeTranscript)}
+                               disabled={isAnalyzing}
+                               className="flex items-center gap-2 px-6 py-3 bg-primary-100 text-primary-700 rounded-xl hover:bg-primary-200 transition-all text-[10px] font-bold uppercase tracking-[0.1em]"
+                             >
+                                <BrainCircuit className={`h-3.5 w-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                                {isAnalyzing ? "Analyzing..." : "Process with AI"}
+                             </button>
+                          )}
+                       </div>
                       </div>
                    )}
                 </div>
@@ -873,6 +1073,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                                 </div>
                                 <span className="text-xs font-medium text-slate-600">{label}</span>
                               </label>
+
+
                             ))}
                           </div>
                           <div className="space-y-2">
@@ -1071,14 +1273,14 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                  <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 mt-4">
                     <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-3">Assistive AI Suggestions (Select one)</p>
                     <div className="flex flex-wrap gap-2">
-                       {icdSuggestions.map(code => (
+                       {icdSuggestions.map((suggestion, idx) => (
                           <button 
-                             key={code}
+                             key={idx}
                              type="button"
-                             onClick={() => setFormData({...formData, diagnosis: code})}
+                             onClick={() => setFormData({...formData, diagnosis: typeof suggestion === 'string' ? suggestion : (suggestion.code || '')})}
                              className="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-xl text-xs font-semibold hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
                           >
-                             {code}
+                             {typeof suggestion === 'string' ? suggestion : (suggestion.code || 'Suggestion')}
                           </button>
                        ))}
                     </div>
@@ -1141,7 +1343,7 @@ function Field({ label, field, value, onChange, isTextArea = false, type = "text
           onChange={(e) => onChange(field, e.target.value)}
           placeholder={placeholder}
           rows="1"
-          className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium focus:border-primary-200 transition-all resize-none"
+          className="w-full p-4 bg-white border border-slate-300 rounded-2xl outline-none text-sm font-medium focus:border-primary-500 transition-all resize-none shadow-sm"
         />
       ) : (
         <input 
@@ -1149,7 +1351,7 @@ function Field({ label, field, value, onChange, isTextArea = false, type = "text
           value={value || ''}
           onChange={(e) => onChange(field, e.target.value)}
           placeholder={placeholder}
-          className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium focus:border-primary-200 transition-all"
+          className="w-full p-4 bg-white border border-slate-300 rounded-2xl outline-none text-sm font-medium focus:border-primary-500 transition-all shadow-sm"
         />
       )}
     </div>
@@ -1168,7 +1370,7 @@ function SOAPBox({ label, icon, value, onChange }) {
       <textarea 
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-2xl text-sm font-medium transition-all outline-none min-h-[160px] shadow-inner"
+        className="w-full p-6 bg-white border border-slate-300 focus:ring-2 focus:ring-primary-100 focus:border-primary-500 rounded-2xl text-sm font-medium transition-all outline-none min-h-[160px] shadow-sm"
         placeholder={`Document ${label.toLowerCase()} details...`}
       />
     </div>

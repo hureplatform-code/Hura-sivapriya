@@ -50,10 +50,22 @@ clinic
 info@justrise.bh
 1234567890
 
-dr
+dr 1
 ram@a.com
+1234567890
+
+dr 2
+ju@a.com
 1234567890
 
 receptionist
 nur@a.com
+1234567890
+
+nurse
+nurse@a.com
+1234567890
+
+pharmacist
+ph@a.com
 1234567890

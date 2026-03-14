@@ -244,6 +244,61 @@ const smsSettingsService = {
   },
 
   /**
+   * Send Appointment Confirmation SMS
+   */
+  async sendAppointmentConfirmation(facilityId, appointment) {
+    if (!facilityId || !appointment.patientPhone) return { success: false, error: "Missing data" };
+
+    try {
+      // 1. Check wallet balance first
+      const wallet = await this.getWallet(facilityId);
+      if (!wallet || wallet.balance <= 0) {
+        console.warn(`Insufficient SMS balance for facility: ${facilityId}`);
+        return { success: false, error: "Insufficient balance" };
+      }
+
+      // 2. Fetch Facility Name
+      const facSnap = await getDoc(doc(db, 'facility_profile', facilityId));
+      const clinicName = facSnap.exists() ? facSnap.data().name : 'Hura Clinic';
+
+      // 3. Construct Message
+      const dateStr = new Date(appointment.date).toLocaleDateString('en-GB', { 
+        weekday: 'short', day: 'numeric', month: 'short' 
+      });
+      const message = `Dear ${appointment.patient}, your appointment at ${clinicName} is confirmed for ${dateStr} at ${appointment.time}. Thank you for choosing us.`;
+
+      // 4. Send via Cloud Function
+      const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'huraplatform';
+      let functionUrl = `https://us-central1-${projectId}.cloudfunctions.net/sendManualSms`;
+
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          facilityId, 
+          to: appointment.patientPhone, 
+          message,
+          metadata: {
+            patientId: appointment.patientId,
+            appointmentId: appointment.id,
+            type: 'APPOINTMENT_CONFIRMATION'
+          }
+        })
+      });
+
+      if (res.ok) {
+        return { success: true };
+      } else {
+        const errData = await res.json();
+        return { success: false, error: errData.error };
+      }
+    } catch (error) {
+      console.error('SMS Send Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
    * Get the global Africa's Talking provider balance (Superadmin only)
    */
   async getAtBalance() {
@@ -254,7 +309,6 @@ const smsSettingsService = {
       const res = await fetch(functionUrl);
       if (!res.ok) return null;
       const data = await res.json();
-      // Africa's Talking returns keys in different casing depending on SDK version
       const userData = data.UserData || data.userData;
       return userData?.balance || 'Unknown';
     } catch (error) {

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
-// ... rest of imports ...
 import { 
   Calendar as CalendarIcon, 
   Search, 
@@ -23,7 +22,9 @@ import {
   Activity,
   Zap,
   BarChart3,
-  ArrowUpRight
+  ArrowUpRight,
+  Volume2,
+  Play
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppointmentModal from '../../components/modals/AppointmentModal';
@@ -45,6 +46,7 @@ export default function Appointments() {
   const [triageApt, setTriageApt] = useState(null);
   const { userData } = useAuth();
   const [activeMenu, setActiveMenu] = useState(null);
+  const [routingMenu, setRoutingMenu] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [specialtyFilter, setSpecialtyFilter] = useState('All');
   const { success, warning, error: toastError } = useToast();
@@ -127,6 +129,16 @@ export default function Appointments() {
     noShows: appointments.filter(a => a.status === 'cancelled' || a.status === 'no-show').length
   };
 
+  const handleCallIn = async (appointmentId) => {
+    try {
+      await appointmentService.updateAppointmentStatus(appointmentId, 'calling');
+      success('Patient called in. Showing on TV.');
+      fetchAppointments();
+    } catch (error) {
+       console.error("Error calling patient:", error);
+    }
+  };
+
   const handleStatusUpdate = async (id, status, message) => {
     try {
       await appointmentService.updateAppointmentStatus(id, status);
@@ -137,19 +149,7 @@ export default function Appointments() {
     }
   };
 
-  const handleConfirmationUpdate = async (id, currentStatus) => {
-    // Cycle through: NC (Not Confirmed) -> LM (Left Message) -> C (Confirmed) -> NC
-    const nextStatusMap = { 'NC': 'LM', 'LM': 'C', 'C': 'NC' };
-    const nextStatus = nextStatusMap[currentStatus || 'NC'] || 'NC';
-    try {
-      // In a real app we would log the staff id/time for audit here.
-      await appointmentService.updateAppointment(id, { confirmationStatus: nextStatus });
-      fetchAppointments();
-      success(`Confirmation status updated to ${nextStatus}.`);
-    } catch (error) {
-      console.error('Error updating confirmation:', error);
-    }
-  };
+
 
   const handleCancelAppointment = async (id) => {
     const isConfirmed = await confirm({
@@ -290,7 +290,7 @@ export default function Appointments() {
     })
     .sort((a, b) => {
       // Prioritize Arrived/Triage/In-Session status first
-      const priority = { 'in-session': 1, 'triage': 2, 'arrived': 3, 'scheduled': 4, 'completed': 5, 'cancelled': 6 };
+      const priority = { 'in-session': 1, 'triage': 2, 'arrived': 3, 'awaiting-lab': 4, 'awaiting-pharmacy': 5, 'awaiting-billing': 6, 'scheduled': 7, 'completed': 8, 'cancelled': 9 };
       return (priority[a.status?.toLowerCase()] || 99) - (priority[b.status?.toLowerCase()] || 99);
     });
 
@@ -396,6 +396,9 @@ export default function Appointments() {
                   <option value="Arrived">Arrived (Checked In)</option>
                   <option value="Triage">Triage</option>
                   <option value="In-Session">In Session</option>
+                  <option value="Awaiting-Lab">Awaiting Lab</option>
+                  <option value="Awaiting-Pharmacy">Awaiting Pharmacy</option>
+                  <option value="Awaiting-Billing">Awaiting Billing</option>
                   <option value="Completed">Completed</option>
                 </select>
                 <button className="p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
@@ -428,8 +431,11 @@ export default function Appointments() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 rounded-xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100 group-hover:border-primary-200 transition-colors">
-                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{(apt.time || '00:00').split(':')[0]}</span>
-                        <span className="text-lg font-semibold text-slate-900 leading-none">{(apt.time || '00:00').split(':')[1]}</span>
+                        <span className="text-[10px] font-bold text-primary-600 mb-0.5">T-{apt.tokenNumber || '0'}</span>
+                        <div className="flex flex-col items-center leading-none">
+                          <span className="text-[8px] font-medium text-slate-400 uppercase tracking-widest">{(apt.time || '00:00').split(':')[0]}</span>
+                          <span className="text-sm font-semibold text-slate-900">{(apt.time || '00:00').split(':')[1]}</span>
+                        </div>
                       </div>
                       <div className="text-left">
                         <h3 className="font-medium text-slate-900 flex items-center gap-2">
@@ -450,31 +456,27 @@ export default function Appointments() {
 
                     <div className="flex flex-wrap items-center gap-4">
                       <div className="flex flex-col items-end">
-                        <button
-                          onClick={() => handleConfirmationUpdate(apt.id, apt.confirmationStatus)}
-                          title="Click to toggle confirmation status (NC -> LM -> C)"
-                          className={`px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1 transition-all cursor-pointer border ${apt.confirmationStatus === 'C' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' : apt.confirmationStatus === 'LM' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
-                        >
-                           {apt.confirmationStatus === 'C' ? 'C' : apt.confirmationStatus === 'LM' ? 'LM' : 'NC'}
-                        </button>
-
                         <span className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2
                           ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-600' : 
                             apt.status === 'triage' ? 'bg-blue-50 text-blue-600' :
                             apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
+                            apt.status === 'calling' ? 'bg-amber-50 text-amber-600 animate-pulse border border-amber-200 font-bold' :
+                            apt.status?.startsWith('awaiting-') ? 'bg-orange-50 text-orange-600' :
                             apt.status === 'completed' ? 'bg-purple-50 text-purple-600' : 
                             apt.status === 'cancelled' ? 'bg-red-50 text-red-600' : 
                             'bg-amber-50 text-amber-600'}
                         `}>
                           {apt.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : 
                            apt.status === 'cancelled' ? <XCircle className="h-3 w-3" /> : 
+                           apt.status === 'calling' ? <Volume2 className="h-3 w-3" /> :
+                           apt.status?.startsWith('awaiting-') ? <ArrowUpRight className="h-3 w-3" /> :
                            <Clock className="h-3 w-3" />}
-                          {apt.status}
+                          {apt.status?.replace('-', ' ')}
                         </span>
                       </div>
 
                       <div className="flex gap-2">
-                        {apt.status === 'scheduled' && (
+                        {apt.status === 'scheduled' && userData?.role === 'receptionist' && (
                           <button 
                             onClick={() => handleStatusUpdate(apt.id, 'arrived', 'Patient Checked In.')}
                             className="px-5 py-2.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-all active:scale-95"
@@ -482,8 +484,18 @@ export default function Appointments() {
                             CHECK IN
                           </button>
                         )}
+
+                        {(apt.status === 'arrived' || apt.status === 'triage') && userData?.role === 'doctor' && (
+                          <button 
+                            onClick={() => handleCallIn(apt.id)}
+                            className="px-5 py-2.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 active:scale-95 flex items-center gap-2"
+                          >
+                            <Volume2 className="h-4 w-4" />
+                            CALL IN
+                          </button>
+                        )}
                         
-                        {apt.status === 'arrived' && ['nurse', 'doctor', 'clinic_owner'].includes(userData?.role) && (
+                        {apt.status === 'arrived' && ['nurse'].includes(userData?.role) && (
                           <button 
                             onClick={() => handlePerformTriage(apt)}
                             className="px-5 py-2.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 active:scale-95"
@@ -492,7 +504,16 @@ export default function Appointments() {
                           </button>
                         )}
 
-                        {(apt.status === 'triage' || apt.status === 'arrived') && ['doctor', 'clinic_owner'].includes(userData?.role) && (
+                        {apt.status === 'calling' && userData?.role === 'doctor' && (
+                           <button 
+                             onClick={() => handleStartConsultation(apt)}
+                             className="px-5 py-2.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50 active:scale-95"
+                           >
+                             START SESSION
+                           </button>
+                        )}
+
+                        {apt.status === 'triage' && userData?.role === 'doctor' && (
                           <button 
                             onClick={() => handleStartConsultation(apt)}
                             className="px-5 py-2.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50 active:scale-95"
@@ -501,13 +522,54 @@ export default function Appointments() {
                           </button>
                         )}
 
-                        {apt.status === 'in-session' && ['doctor', 'clinic_owner'].includes(userData?.role) && (
-                           <button 
-                             onClick={() => handleStatusUpdate(apt.id, 'completed', 'Patient Discharged.')}
-                             className="px-5 py-2.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-50 active:scale-95"
-                           >
-                             DISCHARGE
-                           </button>
+                        {apt.status === 'in-session' && userData?.role === 'doctor' && (
+                          <button 
+                            onClick={() => handleStartConsultation(apt)}
+                            className="px-5 py-2.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-50 active:scale-95"
+                          >
+                            RESUME SESSION
+                          </button>
+                        )}
+
+                        {apt.status === 'in-session' && ['doctor'].includes(userData?.role) && (
+                           <div className="relative">
+                             <button 
+                               onClick={() => setRoutingMenu(routingMenu === apt.id ? null : apt.id)}
+                               className="px-5 py-2.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-50 active:scale-95 flex items-center gap-2"
+                             >
+                               ROUTE PATIENT <ChevronRight className={`h-3 w-3 transition-transform ${routingMenu === apt.id ? 'rotate-90' : ''}`} />
+                             </button>
+
+                             {routingMenu === apt.id && (
+                               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
+                                 <button 
+                                   onClick={() => { handleStatusUpdate(apt.id, 'awaiting-lab', 'Patient routed to Laboratory.'); setRoutingMenu(null); }}
+                                   className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                 >
+                                   <Thermometer className="h-4 w-4" /> Route to Lab
+                                 </button>
+                                 <button 
+                                   onClick={() => { handleStatusUpdate(apt.id, 'awaiting-pharmacy', 'Patient routed to Pharmacy.'); setRoutingMenu(null); }}
+                                   className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                 >
+                                   <Activity className="h-4 w-4" /> Route to Pharmacy
+                                 </button>
+                                 <button 
+                                   onClick={() => { handleStatusUpdate(apt.id, 'awaiting-billing', 'Patient routed to Billing.'); setRoutingMenu(null); }}
+                                   className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                 >
+                                   <Zap className="h-4 w-4" /> Route to Billing
+                                 </button>
+                                 <div className="h-px bg-slate-100 my-1" />
+                                 <button 
+                                   onClick={() => { handleStatusUpdate(apt.id, 'completed', 'Patient Discharged.'); setRoutingMenu(null); }}
+                                   className="w-full text-left px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 font-medium flex items-center gap-2"
+                                 >
+                                   <CheckCircle2 className="h-4 w-4" /> Discharge
+                                 </button>
+                               </div>
+                             )}
+                           </div>
                         )}
 
                         {['completed', 'cancelled'].includes(apt.status) && (
@@ -518,38 +580,40 @@ export default function Appointments() {
                             VIEW SUMMARY
                           </button>
                         )}
-                        <div className="relative">
-                          <button 
-                            onClick={() => setActiveMenu(activeMenu === apt.id ? null : apt.id)}
-                            className="p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100"
-                          >
-                            <MoreVertical className="h-5 w-5" />
-                          </button>
-                          
-                          {activeMenu === apt.id && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
+                          {!['in-session', 'completed', 'cancelled'].includes(apt.status) && (
+                            <div className="relative">
                               <button 
-                                onClick={() => { handleEditAppointment(apt); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                onClick={() => setActiveMenu(activeMenu === apt.id ? null : apt.id)}
+                                className="p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100"
                               >
-                                <ExternalLink className="h-4 w-4" /> Edit Appointment
+                                <MoreVertical className="h-5 w-5" />
                               </button>
-                              <button 
-                                onClick={() => { handleCancelAppointment(apt.id); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-sm text-amber-600 hover:bg-slate-50 font-medium flex items-center gap-2"
-                              >
-                                <Clock className="h-4 w-4" /> Cancel Appointment
-                              </button>
-                              <div className="h-px bg-slate-100 my-1" />
-                              <button 
-                                onClick={() => { handleDeleteAppointment(apt.id); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 font-medium flex items-center gap-2"
-                              >
-                                <Trash2 className="h-4 w-4" /> Delete Appointment
-                              </button>
+                              
+                              {activeMenu === apt.id && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
+                                  <button 
+                                    onClick={() => { handleEditAppointment(apt); setActiveMenu(null); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                  >
+                                    <ExternalLink className="h-4 w-4" /> Edit Appointment
+                                  </button>
+                                  <button 
+                                    onClick={() => { handleCancelAppointment(apt.id); setActiveMenu(null); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-amber-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                  >
+                                    <Clock className="h-4 w-4" /> Cancel Appointment
+                                  </button>
+                                  <div className="h-px bg-slate-100 my-1" />
+                                  <button 
+                                    onClick={() => { handleDeleteAppointment(apt.id); setActiveMenu(null); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                  >
+                                    <Trash2 className="h-4 w-4" /> Delete Appointment
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
-                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -633,8 +697,8 @@ function TriageModal({ appointment, onClose, onSave }) {
                 <Thermometer className="h-7 w-7" />
              </div>
              <div>
-               <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Clinical Triage</h3>
-               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">Vitals Collection: {appointment?.patient}</p>
+              <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Client Record</h3>
+               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-[0.2em] mt-0.5">Vitals Collection: {appointment?.patient} • Token: T-{appointment?.tokenNumber}</p>
              </div>
           </div>
           <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-sm">

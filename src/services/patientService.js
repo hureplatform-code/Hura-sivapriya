@@ -7,9 +7,14 @@ const patientService = {
 
   async getAllPatients(facilityId, limitNum = null, lastDoc = null) {
     try {
-      const constraints = [
-        orderBy('createdAt', 'desc')
-      ];
+      const constraints = [];
+
+      if (facilityId) {
+        constraints.push(where('facilityId', '==', facilityId));
+      }
+
+      // Add ordering if needed, but simple query first to ensure it works
+      constraints.push(orderBy('createdAt', 'desc'));
 
       if (limitNum !== null) {
         constraints.push(limit(limitNum));
@@ -17,10 +22,6 @@ const patientService = {
 
       if (lastDoc) {
         constraints.push(startAfter(lastDoc));
-      }
-
-      if (facilityId) {
-        constraints.unshift(where('facilityId', '==', facilityId));
       }
 
       const q = query(collection(db, this.collection), ...constraints);
@@ -32,6 +33,16 @@ const patientService = {
       return { patients, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching patients:', error);
+      // Fallback: If orderBy fails (missing index), try without index
+      if (error.code === 'failed-precondition') {
+        try {
+          const q = query(collection(db, this.collection), where('facilityId', '==', facilityId));
+          const snap = await getDocs(q);
+          return limitNum === null ? snap.docs.map(d => ({id: d.id, ...d.data()})) : { patients: snap.docs.map(d => ({id: d.id, ...d.data()})), lastDoc: null };
+        } catch (inner) {
+          return limitNum === null ? [] : { patients: [], lastDoc: null };
+        }
+      }
       return limitNum === null ? [] : { patients: [], lastDoc: null };
     }
   },

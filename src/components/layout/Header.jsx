@@ -41,9 +41,35 @@ export default function Header({ onMenuClick }) {
         medicalRecordService.getAllRecords(facilityId)
       ]);
 
-      const filteredPatients = patients.filter(p => p.name?.toLowerCase().includes(val.toLowerCase())).slice(0, 3);
-      const filteredApts = appointments.filter(a => a.patient?.toLowerCase().includes(val.toLowerCase())).slice(0, 3);
-      const filteredRecords = records.filter(r => r.patientName?.toLowerCase().includes(val.toLowerCase()) || r.title?.toLowerCase().includes(val.toLowerCase())).slice(0, 3);
+      const queryLower = val.toLowerCase();
+      const queryDigits = val.replace(/[^0-9]/g, '');
+      const queryNoZero = queryDigits.startsWith('0') ? queryDigits.substring(1) : queryDigits;
+
+      const filteredPatients = patients.filter(p => {
+        const nameMatch = p.name?.toLowerCase().includes(queryLower);
+        const idMatch = (p.id || '').toLowerCase().includes(queryLower);
+        const mobileDigits = (p.mobile || '').replace(/[^0-9]/g, '');
+        const contactDigits = (p.contact || '').replace(/[^0-9]/g, '');
+        
+        const phoneMatch = (queryDigits && (mobileDigits.includes(queryDigits) || contactDigits.includes(queryDigits))) ||
+                          (queryNoZero && (mobileDigits.includes(queryNoZero) || contactDigits.includes(queryNoZero)));
+        
+        return nameMatch || idMatch || phoneMatch;
+      }).slice(0, 3);
+
+      const filteredApts = appointments.filter(a => {
+        const nameMatch = a.patient?.toLowerCase().includes(queryLower);
+        const mobileDigits = (a.patientPhone || '').replace(/[^0-9]/g, '');
+        const phoneMatch = (queryDigits && mobileDigits.includes(queryDigits)) || (queryNoZero && mobileDigits.includes(queryNoZero));
+        return nameMatch || phoneMatch;
+      }).slice(0, 3);
+
+      const filteredRecords = records.filter(r => 
+        r.patientName?.toLowerCase().includes(queryLower) || 
+        r.title?.toLowerCase().includes(queryLower) ||
+        r.patientId?.toLowerCase().includes(queryLower) ||
+        (r.id || '').toLowerCase().includes(queryLower)
+      ).slice(0, 3);
 
       setResults([
         ...filteredPatients.map(p => ({ ...p, type: 'patient', icon: Users, path: `/master/patients/${p.id}` })),

@@ -274,7 +274,7 @@ export default function ClinicalForms() {
                              )}
                          </div>
 
-                         {showLink && selectedForm.id === 'intake' && (
+                         {generatedLink && selectedForm.id === 'intake' && (
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-emerald-50 border border-emerald-100 rounded-3xl space-y-3">
                                <div className="flex items-center gap-2 text-emerald-700 font-medium mb-2">
                                   <CheckCircle2 className="h-5 w-5" /> 
@@ -282,8 +282,8 @@ export default function ClinicalForms() {
                                </div>
                                <p className="text-sm text-slate-600 font-medium">The patient has received an SMS with the secure Intake Form link and OTP instruction.</p>
                                <div className="p-4 bg-white rounded-xl border border-emerald-100 font-mono text-xs text-slate-500 flex items-center justify-between mt-2">
-                                  https://patient.hure.care/intake?token=X8A9B2M
-                                  <button className="text-primary-600 font-medium hover:underline">Copy Link</button>
+                                  {generatedLink}
+                                  <button onClick={() => navigator.clipboard.writeText(generatedLink)} className="text-primary-600 font-medium hover:underline">Copy Link</button>
                                </div>
                             </motion.div>
                          )}

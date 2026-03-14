@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shield, Mail, User, Lock, AlertCircle } from 'lucide-react';
+import { X, Shield, Mail, User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { APP_CONFIG } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -12,6 +12,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
     role: 'doctor',
     status: 'active'
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Sync form data when user changes or modal opens
@@ -110,14 +111,21 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
                         <Lock className="h-5 w-5 text-slate-400" />
                         </div>
                         <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         required
                         minLength={6}
                         value={formData.password || ''}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent rounded-2xl transition-all duration-200 text-slate-900 placeholder-slate-400 text-sm font-medium"
+                        className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent rounded-2xl transition-all duration-200 text-slate-900 placeholder-slate-400 text-sm font-medium"
                         placeholder="Min. 6 characters"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-primary-500 transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
                     </div>
                     </div>
                 )}

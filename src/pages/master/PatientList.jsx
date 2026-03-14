@@ -121,10 +121,20 @@ export default function PatientList() {
   };
 
   const filteredPatients = patients.filter(p => {
-    const query = searchQuery.toLowerCase().replace(/[\s\-\(\)]/g, ''); // Normalize search query
-    const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         p.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         p.mobile?.replace(/[\s\-\(\)]/g, '').includes(query);
+    const queryLower = searchQuery.toLowerCase();
+    const queryDigits = searchQuery.replace(/[^0-9]/g, '');
+    const queryNoZero = queryDigits.startsWith('0') ? queryDigits.substring(1) : queryDigits;
+
+    const mobileDigits = (p.mobile || '').replace(/[^0-9]/g, '');
+    const contactDigits = (p.contact || '').replace(/[^0-9]/g, '');
+    const idLower = (p.id || '').toLowerCase();
+
+    const nameMatch = p.name?.toLowerCase().includes(queryLower);
+    const idMatch = idLower.includes(queryLower.replace(/[^a-z0-9]/g, ''));
+    const phoneMatch = (queryDigits && (mobileDigits.includes(queryDigits) || contactDigits.includes(queryDigits))) ||
+                      (queryNoZero && (mobileDigits.includes(queryNoZero) || contactDigits.includes(queryNoZero)));
+
+    const matchesSearch = nameMatch || idMatch || phoneMatch;
     const matchesGender = genderFilter === 'All' || p.gender === genderFilter;
     return matchesSearch && matchesGender;
   });
