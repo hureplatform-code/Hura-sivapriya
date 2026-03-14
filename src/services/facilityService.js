@@ -105,8 +105,13 @@ const facilityService = {
     }
   },
 
-  async getAllFacilities(limitNum = 20, lastDoc = null) {
+  async getAllFacilities(limitNum = null, lastDoc = null) {
     try {
+      if (limitNum === null) {
+        // Backward compatibility for summary counts (like Ledger/Accounting)
+        return firestoreService.getAll(this.collection, [orderBy('name')]);
+      }
+
       const constraints = [
         orderBy('name'),
         limit(limitNum)
@@ -125,7 +130,7 @@ const facilityService = {
       return { facilities, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching facilities:', error);
-      return { facilities: [], lastDoc: null };
+      return limitNum === null ? [] : { facilities: [], lastDoc: null };
     }
   },
 

@@ -48,19 +48,38 @@ export default function SystemCodes() {
       if (isLoadMore) setLoadingMore(true);
       else setLoading(true);
 
-      const typeKey = activeType === 'CDT' ? 'pharma' : 'icd';
-      const { items: newItems, lastDoc } = await medicalMasterService.getAll(typeKey, 50, isLoadMore ? lastVisible : null);
-      
-      const tagged = newItems.map(c => ({ ...c, type: activeType === 'CDT' ? 'CDT' : 'ICD-10' }));
+      let combinedItems = [];
+      let combinedLastDoc = null;
+
+      if (activeType === 'All') {
+        const [icdRes, pharmaRes] = await Promise.all([
+          medicalMasterService.getAll('icd', 50, isLoadMore ? lastVisible : null),
+          medicalMasterService.getAll('pharma', 50, isLoadMore ? lastVisible : null)
+        ]);
+        
+        const icdItems = (icdRes.items || icdRes).map(c => ({ ...c, type: 'ICD-10' }));
+        const pharmaItems = (pharmaRes.items || pharmaRes).map(c => ({ ...c, type: 'CDT' }));
+        
+        combinedItems = [...icdItems, ...pharmaItems];
+        // For combined 'All', pagination lastVisible is less reliable, but we'll use the last doc from ICD as a proxy
+        combinedLastDoc = icdRes.lastDoc || pharmaRes.lastDoc;
+      } else {
+        const typeKey = activeType === 'CDT' ? 'pharma' : 'icd';
+        const result = await medicalMasterService.getAll(typeKey, 50, isLoadMore ? lastVisible : null);
+        const { items: newItems, lastDoc } = result.items ? result : { items: result, lastDoc: null };
+        
+        combinedItems = newItems.map(c => ({ ...c, type: activeType }));
+        combinedLastDoc = lastDoc;
+      }
       
       if (isLoadMore) {
-        setCodes(prev => [...prev, ...tagged]);
+        setCodes(prev => [...prev, ...combinedItems]);
       } else {
-        setCodes(tagged);
+        setCodes(combinedItems);
       }
 
-      setLastVisible(lastDoc);
-      setHasMore(newItems.length === 50);
+      setLastVisible(combinedLastDoc);
+      setHasMore(combinedItems.length >= 50);
     } catch (error) {
       console.error('Error fetching codes:', error);
     } finally {

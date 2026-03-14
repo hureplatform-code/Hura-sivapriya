@@ -44,8 +44,10 @@ export default function Accounting() {
   });
 
   useEffect(() => {
-    fetchAccountingData();
-  }, []);
+    if (userData) {
+      fetchAccountingData();
+    }
+  }, [userData]);
 
   const fetchAccountingData = async () => {
     try {
@@ -99,7 +101,7 @@ export default function Accounting() {
          setLedgers(platformEntries);
       } else {
          const [billingStats, ledgerEntries] = await Promise.all([
-           billingService.getFinancialStats(),
+           billingService.getFinancialStats(userData?.facilityId),
            accountingService.getAllEntries(userData?.facilityId)
          ]);
 

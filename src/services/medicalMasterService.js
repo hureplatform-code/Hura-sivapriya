@@ -20,14 +20,16 @@ const medicalMasterService = {
   },
 
   // Generic Master CRUD helpers
-  async getAll(type, limitNum = null, lastDoc = null) {
+  async getAll(type, limitNum = null, lastDoc = null, sortField = null) {
     const col = this.collections[type];
     if (!col) throw new Error(`Invalid master type: ${type}`);
     
     try {
-      const constraints = [
-        orderBy('name')
-      ];
+      const constraints = [];
+
+      if (sortField) {
+        constraints.push(orderBy(sortField));
+      }
 
       if (limitNum !== null) {
         constraints.push(limit(limitNum));
