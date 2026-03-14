@@ -67,6 +67,40 @@ export default function Notes() {
     }
   }, [location.state, userData]);
 
+  const fetchNotes = async (isLoadMore = false) => {
+    try {
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const { records: newNotes, lastDoc } = await medicalRecordService.getAllRecords(
+        userData?.facilityId,
+        20,
+        isLoadMore ? lastVisible : null
+      );
+
+      if (isLoadMore) {
+        setNotes(prev => [...prev, ...newNotes]);
+      } else {
+        setNotes(newNotes);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newNotes.length === 20);
+    } catch (error) {
+      console.error('Error fetching clinical notes:', error);
+      toastError('Failed to load clinical records.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchNotes(false);
+  };
+
   if (userData?.role === 'superadmin') {
     return (
       <DashboardLayout>

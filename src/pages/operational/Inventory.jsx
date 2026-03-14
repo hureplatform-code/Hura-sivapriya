@@ -68,16 +68,33 @@ export default function Inventory() {
     );
   }
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (isLoadMore = false) => {
     try {
-      setLoading(true);
-      const data = await inventoryService.getInventory();
-      setItems(data);
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const result = await inventoryService.getInventory(
+        userData?.facilityId,
+        20,
+        isLoadMore ? lastVisible : null
+      );
+
+      const { items: newItems, lastDoc } = result;
+
+      if (isLoadMore) {
+        setItems(prev => [...prev, ...newItems]);
+      } else {
+        setItems(newItems);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newItems.length === 20);
     } catch (e) {
       console.error('Error fetching inventory:', e);
       setItems([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 

@@ -6,12 +6,15 @@ import { db } from '../firebase';
 const billingService = {
   collection: firestoreService.collections.billing,
 
-  async getAllInvoices(facilityId, limitNum = 20, lastDoc = null) {
+  async getAllInvoices(facilityId, limitNum = null, lastDoc = null) {
     try {
       const constraints = [
-        orderBy('createdAt', 'desc'),
-        limit(limitNum)
+        orderBy('createdAt', 'desc')
       ];
+
+      if (limitNum !== null) {
+        constraints.push(limit(limitNum));
+      }
 
       if (lastDoc) {
         constraints.push(startAfter(lastDoc));
@@ -26,10 +29,11 @@ const billingService = {
       const lastVisible = snap.docs[snap.docs.length - 1];
       const invoices = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      if (limitNum === null) return invoices;
       return { invoices, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching invoices:', error);
-      return { invoices: [], lastDoc: null };
+      return limitNum === null ? [] : { invoices: [], lastDoc: null };
     }
   },
 

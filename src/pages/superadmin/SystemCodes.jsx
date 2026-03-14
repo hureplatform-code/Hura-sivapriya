@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import firestoreService from '../../services/firestoreService';
+import medicalMasterService from '../../services/medicalMasterService';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -26,31 +27,52 @@ export default function SystemCodes() {
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeType, setActiveType] = useState('All');
+  const [activeType, setActiveType] = useState('ICD-10');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [newCode, setNewCode] = useState({ code: '', description: '', type: 'ICD-10', category: 'General' });
 
   useEffect(() => {
-    fetchCodes();
-  }, []);
+    setCodes([]);
+    setLastVisible(null);
+    setHasMore(true);
+    fetchCodes(false);
+  }, [activeType]);
 
-  const fetchCodes = async () => {
+  const fetchCodes = async (isLoadMore = false) => {
     try {
-      setLoading(true);
-      const [icd, pharma] = await Promise.all([
-        firestoreService.getAll(firestoreService.collections.icd_masters),
-        firestoreService.getAll(firestoreService.collections.pharma_masters)
-      ]);
-      const icdList = icd.map(c => ({ ...c, type: 'ICD-10' }));
-      const pharmaList = pharma.map(c => ({ ...c, type: 'CDT' }));
-      setCodes([...icdList, ...pharmaList]);
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const typeKey = activeType === 'CDT' ? 'pharma' : 'icd';
+      const { items: newItems, lastDoc } = await medicalMasterService.getAll(typeKey, 50, isLoadMore ? lastVisible : null);
+      
+      const tagged = newItems.map(c => ({ ...c, type: activeType === 'CDT' ? 'CDT' : 'ICD-10' }));
+      
+      if (isLoadMore) {
+        setCodes(prev => [...prev, ...tagged]);
+      } else {
+        setCodes(tagged);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newItems.length === 50);
     } catch (error) {
       console.error('Error fetching codes:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchCodes(false);
   };
 
   const openAdd = () => {

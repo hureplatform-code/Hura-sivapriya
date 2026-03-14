@@ -26,21 +26,26 @@ const auditService = {
    * @param {string|null} facilityId - If provided, filter by facility (Governance Rule)
    * @param {any} lastDoc - For pagination
    */
-  async getRecentLogs(limitNum = 20, facilityId = null, lastDoc = null) {
+  async getRecentLogs(limitNum = null, facilityId = null, lastDoc = null, module = 'All') {
     try {
       const constraints = [
-        orderBy('timestamp', 'desc'),
-        limit(limitNum)
+        orderBy('timestamp', 'desc')
       ];
+
+      if (limitNum !== null) {
+        constraints.push(limit(limitNum));
+      }
       
       if (lastDoc) {
         constraints.push(startAfter(lastDoc));
       }
 
-      // If facilityId is provided, scoped to that clinic. 
-      // If null, it's a Superadmin viewing GLOBAL audit trail.
       if (facilityId) {
-        constraints.unshift(where('facilityId', '==', facilityId));
+        constraints.push(where('facilityId', '==', facilityId));
+      }
+
+      if (module && module !== 'All') {
+        constraints.push(where('module', '==', module));
       }
       
       const q = query(collection(db, this.collection), ...constraints);
@@ -49,10 +54,11 @@ const auditService = {
       const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
       const logs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      if (limitNum === null) return logs;
       return { logs, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching audit logs:', error);
-      return { logs: [], lastDoc: null };
+      return limitNum === null ? [] : { logs: [], lastDoc: null };
     }
   }
 };

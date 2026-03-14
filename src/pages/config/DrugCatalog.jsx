@@ -15,7 +15,8 @@ import {
   Loader2,
   DollarSign,
   Layers,
-  Save
+  Save,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import medicalMasterService from '../../services/medicalMasterService';
@@ -39,25 +40,48 @@ export default function DrugCatalog() {
   const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ name: '', strength: '', form: '', price: '', taxable: false });
 
-  useEffect(() => { fetchCatalog(); }, []);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchCatalog = async () => {
+  useEffect(() => { 
+    setItems([]);
+    setLastVisible(null);
+    setHasMore(true);
+    fetchCatalog(false); 
+  }, [activeTab]);
+
+  const fetchCatalog = async (isLoadMore = false) => {
     try {
-      setLoading(true);
-      const [pharma, nonPharma] = await Promise.all([
-        medicalMasterService.getAll('pharma'),
-        medicalMasterService.getAll('nonPharma'),
-      ]);
-      const tagged = [
-        ...pharma.map(i => ({ ...i, type: 'pharma' })),
-        ...nonPharma.map(i => ({ ...i, type: 'non-pharma' })),
-      ];
-      setItems(tagged);
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const typeKey = activeTab === 'pharma' ? 'pharma' : 'nonPharma';
+      const { items: newItems, lastDoc } = await medicalMasterService.getAll(typeKey, 50, isLoadMore ? lastVisible : null);
+      
+      const tagged = newItems.map(i => ({ ...i, type: activeTab }));
+      
+      if (isLoadMore) {
+        setItems(prev => [...prev, ...tagged]);
+      } else {
+        setItems(tagged);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newItems.length === 50);
     } catch (err) {
       console.error('Error fetching drug catalog:', err);
+      toastError("Failed to fetch catalog data.");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchCatalog(false);
   };
 
   const filtered = items.filter(i =>
@@ -167,6 +191,12 @@ export default function DrugCatalog() {
           </div>
 
           <div className="flex gap-3">
+            <button 
+              onClick={handleRefresh}
+              className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-primary-600 hover:bg-slate-50 transition-all shadow-sm"
+            >
+              <RefreshCw className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
+            </button>
             <div className="flex bg-slate-100 p-1.5 rounded-2xl">
               <button onClick={() => setActiveTab('pharma')}
                 className={`px-6 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === 'pharma' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>

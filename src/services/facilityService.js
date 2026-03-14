@@ -1,7 +1,7 @@
 import firestoreService from './firestoreService';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { where } from 'firebase/firestore';
-import { storage } from '../firebase';
+import { where, query, collection, getDocs, orderBy, limit, startAfter } from 'firebase/firestore';
+import { storage, db } from '../firebase';
 
 const facilityService = {
   collection: firestoreService.collections.facilities || 'facility_profile',
@@ -105,12 +105,27 @@ const facilityService = {
     }
   },
 
-  async getAllFacilities() {
+  async getAllFacilities(limitNum = 20, lastDoc = null) {
     try {
-      return firestoreService.getAll(this.collection);
+      const constraints = [
+        orderBy('name'),
+        limit(limitNum)
+      ];
+
+      if (lastDoc) {
+        constraints.push(startAfter(lastDoc));
+      }
+
+      const q = query(collection(db, this.collection), ...constraints);
+      const snap = await getDocs(q);
+      
+      const lastVisible = snap.docs[snap.docs.length - 1];
+      const facilities = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      return { facilities, lastDoc: lastVisible };
     } catch (error) {
-      console.error('Error fetching all facilities:', error);
-      return [];
+      console.error('Error fetching facilities:', error);
+      return { facilities: [], lastDoc: null };
     }
   },
 

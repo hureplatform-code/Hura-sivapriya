@@ -67,15 +67,31 @@ export default function PatientList() {
     );
   }
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (isLoadMore = false) => {
     try {
-      setLoading(true);
-      const data = await patientService.getAllPatients(userData?.facilityId);
-      setPatients(data || []);
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const { patients: newPatients, lastDoc } = await patientService.getAllPatients(
+        userData?.facilityId, 
+        20, 
+        isLoadMore ? lastVisible : null
+      );
+
+      if (isLoadMore) {
+        setPatients(prev => [...prev, ...newPatients]);
+      } else {
+        setPatients(newPatients);
+      }
+
+      setLastVisible(lastDoc);
+      setHasMore(newPatients.length === 20);
     } catch (error) {
       console.error('Error fetching patients:', error);
+      toastError('Failed to load patient registry.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 

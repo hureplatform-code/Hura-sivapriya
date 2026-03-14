@@ -87,24 +87,39 @@ export default function Subscriptions() {
     isDeleting: false
   });
 
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+
   useEffect(() => {
     fetchFacilities();
   }, []);
 
-  const fetchFacilities = async () => {
+  const fetchFacilities = async (isLoadMore = false) => {
     try {
-      setLoading(true);
-      const [facData, reqData, allUsers] = await Promise.all([
-        facilityService.getAllFacilities(),
+      if (isLoadMore) setLoadingMore(true);
+      else setLoading(true);
+
+      const [ { facilities: facData, lastDoc }, reqData, allUsers ] = await Promise.all([
+        facilityService.getAllFacilities(20, isLoadMore ? lastVisible : null),
         facilityService.getAllSubscriptionRequests(),
         userService.getAllUsers()
       ]);
-      setFacilities(facData);
+      
+      let nextFacilities = [];
+      if (isLoadMore) {
+        nextFacilities = [...facilities, ...facData];
+      } else {
+        nextFacilities = facData;
+      }
+      setFacilities(nextFacilities);
       setRequests(reqData || []);
+      setLastVisible(lastDoc);
+      setHasMore(facData.length === 20);
 
       // Calculate Staff Counts & Find Owners
-      const counts = {};
-      const owners = {};
+      const counts = { ...staffCounts };
+      const owners = { ...facilityOwners };
 
       facData.forEach(fac => {
         const facUsers = allUsers.filter(u => u.facilityId === fac.id);
@@ -136,7 +151,14 @@ export default function Subscriptions() {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setLastVisible(null);
+    setHasMore(true);
+    fetchFacilities(false);
   };
 
   const handleDismiss = async (requestId) => {
@@ -414,8 +436,17 @@ export default function Subscriptions() {
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
-                  {facilities.map((fac) => (
-                    <tr key={fac.id} className="hover:bg-slate-50/50 transition-colors group">
+                  {loading && !loadingMore ?
+                    <tr>
+                      <td colSpan="6" className="p-12 text-center text-slate-400 font-medium italic">Loading organizations...</td>
+                    </tr>
+                  : facilities.length === 0 ?
+                    <tr>
+                      <td colSpan="6" className="p-12 text-center text-slate-400 font-medium">No organizations found.</td>
+                    </tr>
+                  :
+                    facilities.map((fac) => (
+                      <tr key={fac.id} className="hover:bg-slate-50/50 transition-colors group">
                        <td className="p-4 pl-6">
                           <div className="font-medium text-slate-900">{fac.name || 'Unnamed Facility'}</div>
                           <div className="flex flex-col gap-0.5">
@@ -450,7 +481,7 @@ export default function Subscriptions() {
                        </td>
                        <td className="p-4">
                           <div className="flex items-center gap-2">
-                             <div className={`h-2 w-2 rounded-full ${(fac.smsWalletBalance || 0) > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                             <div className={`h-2 w-2 rounded-full ${fac.smsWalletBalance > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
                              <span className="text-sm font-bold text-slate-700">{(fac.smsWalletBalance || 0).toLocaleString()} <span className="text-[10px] font-medium text-slate-400">Credits</span></span>
                           </div>
                        </td>
@@ -492,6 +523,28 @@ export default function Subscriptions() {
              </table>
            </div>
         </div>
+
+        {hasMore && !loading && (
+          <div className="pt-8 flex justify-center">
+            <button
+               onClick={() => fetchFacilities(true)}
+               disabled={loadingMore}
+               className="px-12 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+            >
+               {loadingMore ? (
+                  <>
+                     <RefreshCw className="h-3 w-3 animate-spin" />
+                     Retrieving More Partners...
+                  </>
+               ) : (
+                  <>
+                     <Building2 className="h-3 w-3" />
+                     Load More Organizations
+                  </>
+               )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

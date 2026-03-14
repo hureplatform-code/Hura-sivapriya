@@ -8,12 +8,15 @@ import { db } from '../firebase';
 const investigationService = {
   collection: firestoreService.collections.investigations,
 
-  async getAllInvestigations(facilityId, limitNum = 20, lastDoc = null) {
+  async getAllInvestigations(facilityId, limitNum = null, lastDoc = null) {
     try {
       const constraints = [
-        orderBy('createdAt', 'desc'),
-        limit(limitNum)
+        orderBy('createdAt', 'desc')
       ];
+
+      if (limitNum !== null) {
+        constraints.push(limit(limitNum));
+      }
 
       if (lastDoc) {
         constraints.push(startAfter(lastDoc));
@@ -28,10 +31,11 @@ const investigationService = {
       const lastVisible = snap.docs[snap.docs.length - 1];
       const investigations = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      if (limitNum === null) return investigations;
       return { investigations, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching investigations:', error);
-      return { investigations: [], lastDoc: null };
+      return limitNum === null ? [] : { investigations: [], lastDoc: null };
     }
   },
 

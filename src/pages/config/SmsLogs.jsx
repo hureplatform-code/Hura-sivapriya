@@ -50,7 +50,8 @@ export default function SmsLogs() {
       if (isLoadMore) setLoadingMore(true);
       else setLoading(true);
 
-      const { logs: newLogs, lastDoc } = await smsSettingsService.getLogs(selectedFacilityId, 50, isLoadMore ? lastVisible : null);
+      const PAGE_SIZE = 20;
+      const { logs: newLogs, lastDoc } = await smsSettingsService.getLogs(selectedFacilityId, PAGE_SIZE, isLoadMore ? lastVisible : null);
       
       if (isLoadMore) {
         setLogs(prev => [...prev, ...newLogs]);
@@ -59,7 +60,7 @@ export default function SmsLogs() {
       }
 
       setLastVisible(lastDoc);
-      setHasMore(newLogs.length === 50);
+      setHasMore(newLogs.length === PAGE_SIZE);
     } catch (err) {
       console.error("Failed to load SMS logs", err);
     } finally {

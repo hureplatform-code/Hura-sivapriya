@@ -13,7 +13,8 @@ import {
   Clock,
   ChevronRight,
   FileText,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -27,15 +28,21 @@ export default function GlobalAudit() {
   const [filterModule, setFilterModule] = useState('All');
 
   useEffect(() => {
-    fetchLogs();
-  }, []);
+    handleRefresh();
+  }, [filterModule]);
 
   const fetchLogs = async (isLoadMore = false) => {
     try {
       if (isLoadMore) setLoadingMore(true);
       else setLoading(true);
 
-      const { logs: newLogs, lastDoc } = await auditService.getRecentLogs(20, null, isLoadMore ? lastVisible : null);
+      const PAGE_SIZE = 10;
+      const { logs: newLogs, lastDoc } = await auditService.getRecentLogs(
+        PAGE_SIZE, 
+        null, 
+        isLoadMore ? lastVisible : null,
+        filterModule
+      );
       
       if (isLoadMore) {
         setLogs(prev => [...prev, ...newLogs]);
@@ -44,7 +51,7 @@ export default function GlobalAudit() {
       }
 
       setLastVisible(lastDoc);
-      setHasMore(newLogs.length === 20);
+      setHasMore(newLogs.length === PAGE_SIZE);
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
@@ -65,9 +72,7 @@ export default function GlobalAudit() {
         log.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.description?.toLowerCase().includes(searchQuery.toLowerCase());
      
-     const matchesModule = filterModule === 'All' || log.module === filterModule;
-     
-     return matchesSearch && matchesModule;
+     return matchesSearch;
   });
 
   const getModuleColor = (mod) => {
@@ -95,11 +100,11 @@ export default function GlobalAudit() {
              <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest border border-emerald-100 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4" /> System Guard Active
              </div>
-             <button 
-               onClick={fetchLogs}
+             <button
+               onClick={() => fetchLogs(false)}
                className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-primary-600 hover:bg-slate-50 transition-all shadow-sm"
              >
-               <Activity className="h-5 w-5" />
+               <RefreshCw className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
              </button>
           </div>
         </div>

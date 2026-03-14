@@ -6,12 +6,15 @@ import { db } from '../firebase';
 const medicalRecordService = {
   collection: firestoreService.collections.medical_records || 'medical_records',
 
-  async getAllRecords(facilityId, limitNum = 20, lastDoc = null) {
+  async getAllRecords(facilityId, limitNum = null, lastDoc = null) {
     try {
       const constraints = [
-        orderBy('createdAt', 'desc'),
-        limit(limitNum)
+        orderBy('createdAt', 'desc')
       ];
+
+      if (limitNum !== null) {
+        constraints.push(limit(limitNum));
+      }
 
       if (lastDoc) {
         constraints.push(startAfter(lastDoc));
@@ -26,10 +29,11 @@ const medicalRecordService = {
       const lastVisible = snap.docs[snap.docs.length - 1];
       const records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      if (limitNum === null) return records;
       return { records, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching medical records:', error);
-      return { records: [], lastDoc: null };
+      return limitNum === null ? [] : { records: [], lastDoc: null };
     }
   },
 

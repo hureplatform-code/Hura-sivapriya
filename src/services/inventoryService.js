@@ -5,12 +5,15 @@ import { db } from '../firebase';
 const inventoryService = {
   collection: firestoreService.collections.inventory,
 
-  async getInventory(facilityId, limitNum = 20, lastDoc = null) {
+  async getInventory(facilityId, limitNum = null, lastDoc = null) {
     try {
       const constraints = [
-        orderBy('updatedAt', 'desc'),
-        limit(limitNum)
+        orderBy('updatedAt', 'desc')
       ];
+
+      if (limitNum !== null) {
+        constraints.push(limit(limitNum));
+      }
 
       if (lastDoc) {
         constraints.push(startAfter(lastDoc));
@@ -25,10 +28,11 @@ const inventoryService = {
       const lastVisible = snap.docs[snap.docs.length - 1];
       const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      if (limitNum === null) return items;
       return { items, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching inventory:', error);
-      return { items: [], lastDoc: null };
+      return limitNum === null ? [] : { items: [], lastDoc: null };
     }
   },
 

@@ -159,18 +159,21 @@ const smsSettingsService = {
   /**
    * Fetch recent SMS Logs (Clinic specific or all if null)
    */
-  async getLogs(facilityId, num = 50, lastDoc = null) {
+  async getLogs(facilityId, num = null, lastDoc = null) {
     try {
       let q;
       const logsRef = collection(db, 'sms_logs');
       
       // SECURITY: If no ID is provided, return empty array to prevent leaks
-      if (!facilityId) return { logs: [], lastDoc: null };
+      if (!facilityId) return num === null ? [] : { logs: [], lastDoc: null };
 
       const constraints = [
-        orderBy('sentAt', 'desc'),
-        limit(num)
+        orderBy('sentAt', 'desc')
       ];
+
+      if (num !== null) {
+        constraints.push(limit(num));
+      }
 
       if (lastDoc) {
         constraints.push(startAfter(lastDoc));
@@ -185,6 +188,7 @@ const smsSettingsService = {
       const lastVisible = snap.docs[snap.docs.length - 1];
       const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+      if (num === null) return logs;
       return { logs, lastDoc: lastVisible };
     } catch (error) {
         // If sorting index is missing, fallback cleanly
@@ -192,7 +196,8 @@ const smsSettingsService = {
             console.warn("Index missing for sms_logs, falling back to un-ordered fetch");
             let q;
             const logsRef = collection(db, 'sms_logs');
-            const constraints = [limit(num)];
+            const constraints = [];
+            if (num !== null) constraints.push(limit(num));
             if (lastDoc) constraints.push(startAfter(lastDoc));
             
             if (facilityId !== 'all') {
@@ -203,10 +208,12 @@ const smsSettingsService = {
             const snap = await getDocs(q);
             const lastVisible = snap.docs[snap.docs.length - 1];
             const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            if (num === null) return logs;
             return { logs, lastDoc: lastVisible };
         }
       console.error('Error fetching SMS logs:', error);
-      return { logs: [], lastDoc: null };
+      return num === null ? [] : { logs: [], lastDoc: null };
     }
   },
 
