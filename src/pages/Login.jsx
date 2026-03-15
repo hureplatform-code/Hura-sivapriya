@@ -37,7 +37,7 @@ export default function Login() {
         
         <div className="relative z-10 w-full h-full p-24 flex flex-col justify-between">
             <div className="flex items-center gap-4">
-              <img src="/logo.png" alt="Hure Care Logo" className="h-14 w-auto object-contain brightness-0 invert drop-shadow-md" />
+              <img src="/logo.png" alt="Hure Care Logo" className="h-14 w-auto object-contain drop-shadow-md" />
               <span className="text-3xl font-bold text-white tracking-widest uppercase italic shadow-black drop-shadow-md">HURE CARE</span>
             </div>
 
@@ -74,7 +74,7 @@ export default function Login() {
         <div className="w-full max-w-md space-y-12">
           <div className="lg:hidden flex justify-center mb-8">
             <div className="h-14 w-14 bg-primary-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-primary-200 overflow-hidden p-2">
-               <img src="/logo.png" alt="Hure Care Logo" className="h-full w-full object-contain brightness-0 invert" />
+               <img src="/logo.png" alt="Hure Care Logo" className="h-full w-full object-contain" />
             </div>
           </div>
 

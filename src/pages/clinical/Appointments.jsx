@@ -24,7 +24,8 @@ import {
   BarChart3,
   ArrowUpRight,
   Volume2,
-  Play
+  Play,
+  Beaker
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppointmentModal from '../../components/modals/AppointmentModal';
@@ -452,6 +453,11 @@ export default function Appointments() {
                         <h3 className="font-medium text-slate-900 flex items-center gap-2">
                           {apt.patient}
                           <span className={`h-2 w-2 rounded-full ${apt.priority === 'High' ? 'bg-red-500 animate-pulse' : apt.priority === 'Normal' ? 'bg-blue-500' : 'bg-slate-300'}`} />
+                          {apt.labResults && (
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-blue-100 animate-pulse">
+                               <Beaker className="h-3 w-3" /> Results Ready
+                            </span>
+                          )}
                           
                           {/* Booking Type Badge */}
                           <span className={`px-2 py-0.5 rounded text-[8px] font-semibold uppercase tracking-widest ${apt.bookingType === 'SD' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -557,7 +563,7 @@ export default function Appointments() {
                                    onClick={() => { handleStatusUpdate(apt.id, 'awaiting-nurse', 'Patient routed to Nurse.'); setRoutingMenu(null); }}
                                    className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
                                  >
-                                   <ActivityIcon className="h-4 w-4" /> Route to Nurse
+                                   <Activity className="h-4 w-4" /> Route to Nurse
                                  </button>
                                  <button 
                                    onClick={() => { handleStatusUpdate(apt.id, 'awaiting-lab', 'Patient routed to Laboratory.'); setRoutingMenu(null); }}

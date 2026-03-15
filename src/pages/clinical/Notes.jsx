@@ -32,6 +32,7 @@ const SPECIALTIES = [
   { id: 'orthopedics', name: 'Orthopedics', icon: Thermometer },
   { id: 'psychiatry', name: 'Psychiatry', icon: Brain },
   { id: 'physiotherapy', name: 'Physiotherapy', icon: Zap },
+  { id: 'pharmacy_lab', name: 'Pharmacy & Lab', icon: ClipboardList },
 ];
 
 export default function Notes() {
@@ -329,6 +330,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     plan: '',
     nursingOrders: '',
     diagnosis: '',
+    prescriptions: [],
+    labRequests: [],
     specialtyData: {}
   });
 
@@ -1232,6 +1235,173 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                           <Field label="Session Log" field="phy_session" value={formData.specialtyData.phy_session} onChange={updateSpecialtyField} isTextArea />
                           <Field label="Progress / Plan" field="phy_progress" value={formData.specialtyData.phy_progress} onChange={updateSpecialtyField} isTextArea />
                         </>
+                      )}
+
+                      {specId === 'pharmacy_lab' && (
+                        <div className="col-span-full space-y-12">
+                           {/* Laboratory Requests */}
+                           <div className="space-y-6">
+                              <div className="flex items-center justify-between">
+                                 <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                    <Droplets className="h-5 w-5 text-indigo-500" />
+                                    Laboratory Investigations
+                                 </h4>
+                                 <button 
+                                   onClick={() => setFormData({
+                                      ...formData, 
+                                      labRequests: [...formData.labRequests, { test: '', instructions: '', status: 'ordered' }]
+                                   })}
+                                   className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-100 transition-all"
+                                 >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Add Test
+                                 </button>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 {formData.labRequests.map((req, idx) => (
+                                    <div key={idx} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3 group relative">
+                                       <button 
+                                         onClick={() => {
+                                           const newLabs = [...formData.labRequests];
+                                           newLabs.splice(idx, 1);
+                                           setFormData({...formData, labRequests: newLabs});
+                                         }}
+                                         className="absolute -top-2 -right-2 h-8 w-8 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-red-100 shadow-sm hover:bg-red-500 hover:text-white"
+                                       >
+                                          <X className="h-4 w-4" />
+                                       </button>
+                                       <input 
+                                         placeholder="Search Lab Test (e.g. FBC, Lipid Profile)..."
+                                         value={req.test}
+                                         onChange={(e) => {
+                                            const newLabs = [...formData.labRequests];
+                                            newLabs[idx].test = e.target.value;
+                                            setFormData({...formData, labRequests: newLabs});
+                                         }}
+                                         className="w-full text-sm font-bold bg-transparent outline-none placeholder:text-slate-300"
+                                       />
+                                       <textarea 
+                                         placeholder="Clinical Instructions..."
+                                         value={req.instructions}
+                                         onChange={(e) => {
+                                            const newLabs = [...formData.labRequests];
+                                            newLabs[idx].instructions = e.target.value;
+                                            setFormData({...formData, labRequests: newLabs});
+                                         }}
+                                         className="w-full text-xs font-medium text-slate-500 bg-transparent resize-none h-12 outline-none"
+                                       />
+                                    </div>
+                                 ))}
+                                 {formData.labRequests.length === 0 && (
+                                    <div className="col-span-full py-12 border-2 border-dashed border-slate-50 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 gap-2">
+                                       <Droplets className="h-10 w-10 opacity-20" />
+                                       <p className="text-xs font-bold uppercase tracking-widest">No lab tests requested</p>
+                                    </div>
+                                 )}
+                              </div>
+                           </div>
+
+                           {/* Prescriptions */}
+                           <div className="space-y-6">
+                              <div className="flex items-center justify-between">
+                                 <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                    <ClipboardList className="h-5 w-5 text-emerald-500" />
+                                    Prescription & Medications
+                                 </h4>
+                                 <button 
+                                   onClick={() => setFormData({
+                                      ...formData, 
+                                      prescriptions: [...formData.prescriptions, { drug: '', dosage: '', frequency: '', duration: '', instructions: '' }]
+                                   })}
+                                   className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all"
+                                 >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Add Medicine
+                                 </button>
+                              </div>
+                              <div className="space-y-3">
+                                 {formData.prescriptions.map((px, idx) => (
+                                    <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-6 group relative">
+                                       <button 
+                                         onClick={() => {
+                                           const newMeds = [...formData.prescriptions];
+                                           newMeds.splice(idx, 1);
+                                           setFormData({...formData, prescriptions: newMeds});
+                                         }}
+                                         className="absolute -top-2 -right-2 h-10 w-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-red-100 shadow-sm hover:bg-red-500 hover:text-white"
+                                       >
+                                          <Trash2 className="h-5 w-5" />
+                                       </button>
+                                       <div className="md:col-span-2 space-y-1">
+                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Medication</label>
+                                          <input 
+                                            placeholder="Drug Name (e.g. Amoxicillin 500mg)"
+                                            value={px.drug}
+                                            onChange={(e) => {
+                                               const newMeds = [...formData.prescriptions];
+                                               newMeds[idx].drug = e.target.value;
+                                               setFormData({...formData, prescriptions: newMeds});
+                                            }}
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                          />
+                                       </div>
+                                       <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Dosage</label>
+                                          <input 
+                                            placeholder="e.g. 1 Tab"
+                                            value={px.dosage}
+                                            onChange={(e) => {
+                                               const newMeds = [...formData.prescriptions];
+                                               newMeds[idx].dosage = e.target.value;
+                                               setFormData({...formData, prescriptions: newMeds});
+                                            }}
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                          />
+                                       </div>
+                                       <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Frequency</label>
+                                          <select 
+                                            value={px.frequency}
+                                            onChange={(e) => {
+                                               const newMeds = [...formData.prescriptions];
+                                               newMeds[idx].frequency = e.target.value;
+                                               setFormData({...formData, prescriptions: newMeds});
+                                            }}
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none"
+                                          >
+                                             <option value="">Select</option>
+                                             <option>1x1 (Once Daily)</option>
+                                             <option>2x1 (Twice Daily)</option>
+                                             <option>3x1 (Thrice Daily)</option>
+                                             <option>4x1 (QDS)</option>
+                                             <option>PRN (As Needed)</option>
+                                             <option>STAT (Immediately)</option>
+                                          </select>
+                                       </div>
+                                       <div className="md:col-span-4 space-y-1">
+                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Specical Instructions</label>
+                                          <input 
+                                            placeholder="e.g. Before food, Avoid alcohol..."
+                                            value={px.instructions}
+                                            onChange={(e) => {
+                                               const newMeds = [...formData.prescriptions];
+                                               newMeds[idx].instructions = e.target.value;
+                                               setFormData({...formData, prescriptions: newMeds});
+                                            }}
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                          />
+                                       </div>
+                                    </div>
+                                 ))}
+                                 {formData.prescriptions.length === 0 && (
+                                    <div className="py-12 border-2 border-dashed border-slate-50 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 gap-2">
+                                       <ClipboardList className="h-10 w-10 opacity-20" />
+                                       <p className="text-xs font-bold uppercase tracking-widest">No medications prescribed</p>
+                                    </div>
+                                 )}
+                              </div>
+                           </div>
+                        </div>
                       )}
                     </div>
                   </div>

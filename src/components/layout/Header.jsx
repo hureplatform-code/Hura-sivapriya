@@ -227,6 +227,19 @@ export default function Header({ onMenuClick }) {
             });
           }
         } catch (_) { /* inventory may not be set up */ }
+      } else if (role === 'lab_tech') {
+        const appointments = await appointmentService.getAllAppointments(facilityId);
+        const awaiting = appointments.filter(a => a.status === 'awaiting-lab');
+        if (awaiting.length > 0) {
+          notes.push({
+            id: 'lab-pending',
+            title: `${awaiting.length} Patient${awaiting.length > 1 ? 's' : ''} Awaiting Lab`,
+            message: 'New diagnostic investigations are pending in the workspace.',
+            time: new Date(),
+            type: 'info',
+            link: '/lab/queue'
+          });
+        }
       }
 
       setNotifications(notes.sort((a, b) => b.time - a.time));

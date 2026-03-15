@@ -20,7 +20,8 @@ import {
   Plus,
   Volume2,
   Play,
-  ArrowRight
+  ArrowRight,
+  Thermometer
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -129,6 +130,16 @@ export default function Dashboard() {
           .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
 
         setArrears(todayApts.slice(0, 4));
+      } else if (role === 'lab_tech') {
+        const awaitingLab = appointments.filter(a => a.status === 'awaiting-lab').length;
+        setStats([
+          { label: 'Awaiting Lab', value: awaitingLab.toString() + ' Patients', icon: Thermometer, color: 'text-orange-600', bg: 'bg-orange-50' },
+          { label: 'Workload', value: awaitingLab > 5 ? 'High' : 'Normal', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Tests Today', value: appointments.filter(a => a.labCompletedAt && new Date(a.labCompletedAt).toLocaleDateString() === today).length.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'System Health', value: 'Online', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
+        ]);
+        const labQueue = appointments.filter(a => a.status === 'awaiting-lab').slice(0, 4);
+        setArrears(labQueue);
       } else {
         const arrearsRate = billingStats.revenue > 0 
           ? ((billingStats.outstanding / (billingStats.revenue + billingStats.outstanding)) * 100).toFixed(1) + '%' 
@@ -217,7 +228,7 @@ export default function Dashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
            <div>
              <h1 className="text-2xl font-semibold text-slate-900 tracking-tight capitalize">
-               {role === 'doctor' ? 'Clinical Overview' : 'Administrative Dashboard'}
+               {role === 'doctor' ? 'Clinical Overview' : role === 'lab_tech' ? 'Laboratory Command' : 'Administrative Dashboard'}
              </h1>
              <p className="text-slate-500 mt-1">
                Welcome back, <span className="font-medium text-slate-900">{userData?.name || 'Jon Day'}</span>. Here's your {role} focus for today.
@@ -265,15 +276,15 @@ export default function Dashboard() {
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">
-              {role === 'doctor' ? 'Clinical Schedule' : 'Financial Arrears'}
+              {role === 'doctor' ? 'Clinical Schedule' : role === 'lab_tech' ? 'Lab Queue' : 'Financial Arrears'}
             </h3>
             <div className="h-10 w-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400">
-              {role === 'doctor' ? <Calendar className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
+              {role === 'doctor' ? <Calendar className="h-5 w-5" /> : role === 'lab_tech' ? <Thermometer className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
             </div>
           </div>
           
           <div className="flex-1 space-y-4">
-            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? (
+            {(role === 'doctor' || role === 'nurse' || role === 'receptionist' || role === 'lab_tech') ? (
               arrears.length > 0 ? arrears.map((apt, i) => (
                 <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-primary-100 transition-all cursor-pointer">
                   <div className="flex items-center gap-4">
@@ -301,6 +312,20 @@ export default function Dashboard() {
                       >
                         <ShieldCheck className="h-3 w-3" />
                         Check In
+                      </button>
+                    )}
+
+                    {/* Lab Tech: Manage */}
+                    {role === 'lab_tech' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/lab/queue');
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-orange-700 transition-all shadow-md shadow-orange-100 active:scale-95"
+                      >
+                        <Thermometer className="h-3 w-3" />
+                        Open Queue
                       </button>
                     )}
 
@@ -350,6 +375,7 @@ export default function Dashboard() {
                       ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-600' : 
                         apt.status === 'calling' ? 'bg-amber-50 text-amber-600 animate-pulse' :
                         apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
+                        apt.status === 'awaiting-lab' ? 'bg-orange-50 text-orange-600' :
                         'bg-slate-50 text-slate-500'}`}>
                       {apt.status}
                     </span>
@@ -383,10 +409,10 @@ export default function Dashboard() {
           </div>
 
           <button 
-            onClick={() => navigate((role === 'doctor' || role === 'nurse' || role === 'receptionist') ? '/appointments' : '/billing')}
+            onClick={() => navigate((role === 'doctor' || role === 'nurse' || role === 'receptionist') ? '/appointments' : role === 'lab_tech' ? '/lab/queue' : '/billing')}
             className="w-full mt-8 py-4 bg-slate-50 text-slate-900 font-bold text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-slate-100 transition-all border border-slate-100"
           >
-            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? 'Manage Calendar' : 'View All Invoices'}
+            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? 'Manage Calendar' : role === 'lab_tech' ? 'View Lab Queue' : 'View All Invoices'}
           </button>
         </div>
 

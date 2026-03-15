@@ -104,10 +104,12 @@ export default function Inventory() {
     fetchInventory(false);
   };
 
-  const filteredItems = items.filter(item => 
-    (item.name.toLowerCase().includes(searchTerm.toLowerCase()) || item.batch?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (category === 'All' || item.category === category)
-  );
+  const filteredItems = items.filter(item => {
+    const nameMatch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const batchMatch = (item.batch || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const categoryMatch = category === 'All' || item.category === category;
+    return (nameMatch || batchMatch) && categoryMatch;
+  });
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -327,6 +329,7 @@ export default function Inventory() {
               fetchInventory(); 
             }}
             editData={editingItem}
+            facilityId={userData?.facilityId}
           />
         )}
 
@@ -366,7 +369,7 @@ export default function Inventory() {
   );
 }
 
-function InboundModal({ onClose, onSave, editData }) {
+function InboundModal({ onClose, onSave, editData, facilityId }) {
   const [formData, setFormData] = useState({
     name: editData?.name || '',
     category: editData?.category || 'Pharmacological',
@@ -381,7 +384,7 @@ function InboundModal({ onClose, onSave, editData }) {
     if (editData) {
       await inventoryService.updateItem(editData.id, formData);
     } else {
-      await inventoryService.addStock(formData);
+      await inventoryService.addStock({ ...formData, facilityId });
     }
     onSave();
   };

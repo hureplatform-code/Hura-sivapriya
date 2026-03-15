@@ -26,6 +26,7 @@ export default function LaboratoryQueue() {
   const [searchTerm, setSearchTerm] = useState('');
   
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [labResults, setLabResults] = useState('');
 
   useEffect(() => {
     fetchQueue();
@@ -47,13 +48,19 @@ export default function LaboratoryQueue() {
 
   const handleSelectPatient = (appointment) => {
     setSelectedPatient(appointment);
+    setLabResults(appointment.labResults || '');
   };
 
   const handleReturnToDoctor = async () => {
     if (!selectedPatient) return;
     try {
       // Returning patient to Arrived status pushes them back to the doctor's active queue
-      await appointmentService.updateAppointmentStatus(selectedPatient.id, 'arrived');
+      // We also save the results to the appointment so the doctor can see them immediately
+      await appointmentService.updateAppointment(selectedPatient.id, { 
+        status: 'arrived',
+        labResults: labResults,
+        labCompletedAt: new Date().toISOString()
+      });
       
       // Log audit
       await auditService.logActivity({
@@ -61,16 +68,18 @@ export default function LaboratoryQueue() {
         userName: userData?.name || 'Lab Tech',
         action: 'LAB_RESULTS_SENT',
         module: 'LABORATORY',
-        description: `Lab tests concluded. Returned ${selectedPatient.patient} back to the Doctor.`,
+        description: `Lab tests concluded with results. Returned ${selectedPatient.patient} back to the Doctor.`,
         metadata: {
           appointmentId: selectedPatient.id,
           patientId: selectedPatient.patientId,
-          facilityId: userData?.facilityId
+          facilityId: userData?.facilityId,
+          resultsPreview: labResults.substring(0, 100)
         }
       });
       
       success(`Results complete. Sent back to Doctor.`);
       setSelectedPatient(null);
+      setLabResults('');
       fetchQueue();
     } catch (err) {
       console.error(err);
@@ -243,21 +252,32 @@ export default function LaboratoryQueue() {
                                   </div>
                                </div>
 
+                               <div className="bg-slate-50 rounded-[2rem] p-8 border border-white flex flex-col gap-6">
+                                  <div className="flex items-center justify-between">
+                                     <div className="flex items-center gap-3">
+                                        <Microscope className="h-5 w-5 text-blue-500" />
+                                        <h4 className="text-xs font-bold uppercase tracking-widest text-slate-800">Laboratory Results & Findings</h4>
+                                     </div>
+                                  </div>
+                                  <textarea 
+                                    className="w-full h-48 p-8 bg-white border border-slate-100 rounded-[2.5rem] text-sm font-medium outline-none focus:ring-4 focus:ring-blue-50 placeholder:text-slate-300 resize-none shadow-inner"
+                                    placeholder="Annotate test results here (e.g. Hb: 13.5g/dL, WBC: 7.2x10^9/L)..."
+                                    value={labResults}
+                                    onChange={(e) => setLabResults(e.target.value)}
+                                  />
+                               </div>
+
                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                  <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">
+                                  <div className="bg-slate-50/50 rounded-[2rem] p-8 border border-slate-100">
                                      <div className="flex items-center gap-3 mb-4 text-slate-400">
                                         <Stethoscope className="h-5 w-5" />
-                                        <h4 className="text-xs font-bold uppercase tracking-widest">Triage Info</h4>
+                                        <h4 className="text-xs font-bold uppercase tracking-widest">Patient Vitals</h4>
                                      </div>
-                                     <p className="text-slate-700 font-medium leading-relaxed">
+                                     <p className="text-xs text-slate-600 font-medium leading-loose">
                                         BP: {selectedPatient.vitals?.bloodPressure || 'N/A'}<br/>
                                         Temp: {selectedPatient.vitals?.temperature || 'N/A'} °C<br/>
                                         Weight: {selectedPatient.vitals?.weight || 'N/A'} kg
                                      </p>
-                                  </div>
-                                  <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100 items-center justify-center flex flex-col text-center">
-                                     <Microscope className="h-8 w-8 text-slate-300 mb-3" />
-                                     <p className="text-sm font-medium text-slate-500">Run requested testing protocols.</p>
                                   </div>
                                </div>
                            </motion.div>

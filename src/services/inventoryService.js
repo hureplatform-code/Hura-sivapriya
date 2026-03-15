@@ -8,7 +8,7 @@ const inventoryService = {
   async getInventory(facilityId, limitNum = null, lastDoc = null) {
     try {
       const constraints = [
-        orderBy('updatedAt', 'desc')
+        orderBy('name', 'asc')
       ];
 
       if (limitNum !== null) {

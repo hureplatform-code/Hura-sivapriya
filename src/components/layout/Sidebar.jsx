@@ -34,7 +34,7 @@ const menuItems = [
     icon: LayoutDashboard, 
     label: 'Dashboard', 
     path: '/',
-    roles: ['superadmin', 'doctor', 'clinic_owner', 'nurse', 'receptionist', 'pharmacist']
+    roles: ['superadmin', 'doctor', 'clinic_owner', 'nurse', 'receptionist', 'pharmacist', 'lab_tech']
   },
 
   {
@@ -73,7 +73,7 @@ const menuItems = [
     id: 'clinical',
     icon: Stethoscope,
     label: 'Clinical Ops',
-    roles: ['doctor', 'clinic_owner', 'nurse', 'receptionist'],
+    roles: ['doctor', 'clinic_owner', 'nurse', 'receptionist', 'lab_tech'],
     subItems: [
       { label: 'Appointments', path: '/appointments' },
       { label: 'Clinical Notes', path: '/notes', roles: ['doctor', 'clinic_owner', 'nurse'] },
@@ -134,7 +134,7 @@ const menuItems = [
     icon: FileBarChart,
     label: 'Reports',
     path: '/master/reports',
-    roles: ['superadmin', 'clinic_owner', 'doctor', 'nurse', 'receptionist', 'pharmacist']
+    roles: ['superadmin', 'clinic_owner', 'doctor', 'nurse', 'receptionist', 'pharmacist', 'lab_tech']
   },
   {
     id: 'subscription',
