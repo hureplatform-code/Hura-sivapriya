@@ -54,9 +54,6 @@ dr 1
 ram@a.com
 1234567890
 
-dr 2
-ju@a.com
-1234567890
 
 receptionist
 nur@a.com

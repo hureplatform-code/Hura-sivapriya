@@ -111,19 +111,19 @@ export default function Dashboard() {
         } catch (e) { console.error("Error loading sms service", e); }
 
         setStats([
-          { label: 'Total Clinics', value: totalOrganizations.toString(), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Active Orgs', value: activeSubscribers.toString(), icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Platform Revenue', value: `${currency} ${totalRevenueEstimate.toLocaleString()}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'AT Master Balance', value: providerBal, icon: History, color: providerBal.includes('-') ? 'text-red-600' : 'text-slate-600', bg: providerBal.includes('-') ? 'bg-red-50' : 'bg-slate-50' },
+          { label: 'Total Clinics', value: totalOrganizations.toString(), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50', path: '/superadmin/subscriptions' },
+          { label: 'Active Orgs', value: activeSubscribers.toString(), icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/superadmin/subscriptions' },
+          { label: 'Platform Revenue', value: `${currency} ${totalRevenueEstimate.toLocaleString()}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50', path: '/accounting' },
+          { label: 'AT Master Balance', value: providerBal, icon: History, color: providerBal.includes('-') ? 'text-red-600' : 'text-slate-600', bg: providerBal.includes('-') ? 'bg-red-50' : 'bg-slate-50', path: '/config/sms' },
         ]);
         setArrears([]); // Hide clinic arrears
       } else if (role === 'doctor' || role === 'nurse' || role === 'receptionist') {
         const focusLabel = role === 'doctor' ? "Today's Focus" : "Today's Schedule";
         setStats([
-          { label: focusLabel, value: appointments.filter(a => new Date(a.date).toLocaleDateString() === today).length.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Clinical Documentation', value: pendingNotes.toString() + ' Pending', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Workload Status', value: 'Steady', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'Discharged Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: focusLabel, value: appointments.filter(a => new Date(a.date).toLocaleDateString() === today).length.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/appointments' },
+          { label: 'Clinical Documentation', value: pendingNotes.toString() + ' Pending', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', path: '/notes' },
+          { label: 'Workload Status', value: 'Steady', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50', path: '/appointments' },
+          { label: 'Discharged Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/appointments' },
         ]);
         const todayApts = appointments
           .filter(a => new Date(a.date).toLocaleDateString() === today)
@@ -133,10 +133,10 @@ export default function Dashboard() {
       } else if (role === 'lab_tech') {
         const awaitingLab = appointments.filter(a => a.status === 'awaiting-lab').length;
         setStats([
-          { label: 'Awaiting Lab', value: awaitingLab.toString() + ' Patients', icon: Thermometer, color: 'text-orange-600', bg: 'bg-orange-50' },
-          { label: 'Workload', value: awaitingLab > 5 ? 'High' : 'Normal', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'Tests Today', value: appointments.filter(a => a.labCompletedAt && new Date(a.labCompletedAt).toLocaleDateString() === today).length.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'System Health', value: 'Online', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Awaiting Lab', value: awaitingLab.toString() + ' Patients', icon: Thermometer, color: 'text-orange-600', bg: 'bg-orange-50', path: '/lab/queue' },
+          { label: 'Workload', value: awaitingLab > 5 ? 'High' : 'Normal', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50', path: '/lab/queue' },
+          { label: 'Tests Today', value: appointments.filter(a => a.labCompletedAt && new Date(a.labCompletedAt).toLocaleDateString() === today).length.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/lab/queue' },
+          { label: 'System Health', value: 'Online', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50', path: '/' },
         ]);
         const labQueue = appointments.filter(a => a.status === 'awaiting-lab').slice(0, 4);
         setArrears(labQueue);
@@ -146,10 +146,10 @@ export default function Dashboard() {
           : '0%';
 
         setStats([
-          { label: 'Overdue Notes (>24h)', value: overdueNotes.toString(), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
-          { label: 'Active Doctors', value: users.filter(u => u.role === 'doctor').length.toString(), icon: Stethoscope, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Monthly Revenue', value: `${currency} ${billingStats.revenue.toLocaleString()}`, icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'Arrears Rate', value: arrearsRate, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
+          { label: 'Overdue Notes (>24h)', value: overdueNotes.toString(), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/notes' },
+          { label: 'Active Doctors', value: users.filter(u => u.role === 'doctor').length.toString(), icon: Stethoscope, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/master/users' },
+          { label: 'Monthly Revenue', value: `${currency} ${billingStats.revenue.toLocaleString()}`, icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50', path: '/billing' },
+          { label: 'Arrears Rate', value: arrearsRate, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/billing' },
         ]);
         setArrears(invoices.filter(i => i.paymentStatus !== 'paid').slice(0, 4));
       }
@@ -258,7 +258,8 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.1 }}
-              className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group"
+              onClick={() => stat.path && navigate(stat.path)}
+              className={`bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group ${stat.path ? 'cursor-pointer active:scale-95' : ''}`}
             >
               <div className={`h-12 w-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                 <stat.icon className="h-6 w-6" />
@@ -388,7 +389,11 @@ export default function Dashboard() {
               )
             ) : (
               arrears.length > 0 ? arrears.map((inv, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-red-100 transition-all cursor-pointer">
+                <div 
+                  key={i} 
+                  onClick={() => navigate('/billing')}
+                  className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-red-100 transition-all cursor-pointer active:scale-[0.98]"
+                >
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
                       <CreditCard className="h-6 w-6 text-red-500" />
@@ -426,7 +431,11 @@ export default function Dashboard() {
 
             <div className="flex-1 space-y-6">
               {auditLogs.length > 0 ? auditLogs.map((log, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-emerald-100 transition-all cursor-pointer">
+                <div 
+                  key={i} 
+                  onClick={() => navigate('/superadmin/audit')}
+                  className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-emerald-100 transition-all cursor-pointer active:scale-[0.98]"
+                >
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
                       <ShieldCheck className={`h-6 w-6 ${log.module === 'CLINICAL' ? 'text-primary-500' : 'text-emerald-500'}`} />
@@ -449,7 +458,10 @@ export default function Dashboard() {
               )}
             </div>
 
-            <button className="w-full mt-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+            <button 
+              onClick={() => navigate('/superadmin/audit')}
+              className="w-full mt-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
+            >
                Audit Full Ledger
             </button>
           </div>
