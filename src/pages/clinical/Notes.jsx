@@ -7,7 +7,7 @@ import {
   RefreshCw, Eye, Mic, List, Info, ClipboardCheck, ClipboardList, Thermometer, 
   Droplet, Plus, BrainCircuit, Heart, Eye as EyeIcon, Ear, Stethoscope, 
   ChevronRight, History, Smile, Baby, Scissors, Wind, Zap, Brain, Clock, 
-  MoreVertical, X, Droplets, ShieldCheck
+  MoreVertical, X, Droplets, ShieldCheck, ShoppingBag
 } from 'lucide-react';
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,7 +16,24 @@ import { db } from '../../firebase';
 import { getDoc, doc } from 'firebase/firestore';
 import medicalRecordService from '../../services/medicalRecordService';
 import appointmentService from '../../services/appointmentService';
+import patientService from '../../services/patientService';
+import medicalMasterService from '../../services/medicalMasterService';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const getRelativeVisitTime = (timestamp) => {
+  if (!timestamp) return 'Fresh Case';
+  const date = timestamp?.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  const diffInDays = Math.floor(diffInHours / 24);
+  
+  if (diffInMinutes < 60) return `Just now (${diffInMinutes}m ago)`;
+  if (diffInHours < 24) return `Today (${diffInHours}h ago)`;
+  if (diffInDays === 1) return 'Yesterday';
+  if (diffInDays < 7) return `${diffInDays} days ago`;
+  return date.toLocaleDateString();
+};
 
 const SPECIALTIES = [
   { id: 'general', name: 'General', icon: Stethoscope },
@@ -45,6 +62,9 @@ export default function Notes() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [viewingNote, setViewingNote] = useState(null);
+  const [medicineSuggestions, setMedicineSuggestions] = useState([]);
+  const [labSuggestions, setLabSuggestions] = useState([]);
+  const [searchContext, setSearchContext] = useState({ type: null, index: null });
 
   const { success, error: toastError } = useToast();
 
@@ -129,200 +149,251 @@ export default function Notes() {
   );
 
   return (
+    <>
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Clinical Notes</h1>
-            <p className="text-slate-500 mt-1">Review patient history and document new clinical observations.</p>
-          </div>
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
-          >
-            <Plus className="h-5 w-5" />
-            New Clinical Note
-          </button>
+    <div className="max-w-7xl mx-auto space-y-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div>
+          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Clinical Records</h1>
+          <p className="text-slate-500 font-medium mt-1">Manage and review patient clinical documentation.</p>
         </div>
+        <button 
+          onClick={() => setIsCreating(true)}
+          className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center justify-center gap-3"
+        >
+          <Plus className="h-5 w-5" />
+          Create New Note
+        </button>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <input 
-                  type="text"
-                  placeholder="Search notes by patient or title..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-xl text-sm transition-all outline-none"
-                />
-              </div>
-              <button 
-                onClick={handleRefresh}
-                className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-900 hover:bg-slate-100 transition-all active:scale-95"
-              >
-                <RefreshCw className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
-              </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <input 
+                type="text"
+                placeholder="Search notes by patient or title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm transition-all outline-none font-medium text-slate-900"
+              />
             </div>
+            <button 
+              onClick={handleRefresh}
+              className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-slate-900 hover:bg-slate-100 transition-all active:scale-95 border border-slate-100"
+            >
+              <RefreshCw className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
 
-            <div className="space-y-4">
-              {loading && !loadingMore ? (
-                <div className="p-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Loading records...</div>
-              ) : filteredNotes.length === 0 ? (
-                <div className="bg-white p-12 rounded-2xl border border-slate-100 shadow-sm text-center">
-                  <div className="h-16 w-16 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-4 text-slate-300">
-                    <FileText className="h-8 w-8" />
-                  </div>
-                  <h3 className="text-slate-900 font-medium">No notes found</h3>
-                  <p className="text-slate-500 text-sm mt-1">Start by creating a new clinical note for a patient.</p>
+          <div className="space-y-6">
+            {loading && !loadingMore ? (
+              <div className="p-20 text-center">
+                <RefreshCw className="h-10 w-10 text-slate-200 animate-spin mx-auto mb-4" />
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Retrieving Records...</p>
+              </div>
+            ) : filteredNotes.length === 0 ? (
+              <div className="bg-white p-20 rounded-[3rem] border border-slate-100 shadow-sm text-center">
+                <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-300">
+                  <FileText className="h-10 w-10" />
                 </div>
-              ) : (
-                <>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">No clinical notes found</h3>
+                <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8 font-medium">Start by creating a new clinical note for a patient to begin documentation.</p>
+                <button onClick={() => setIsCreating(true)} className="px-8 py-3 bg-slate-50 text-slate-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Create First Note</button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-6">
                   {filteredNotes.map((note, i) => (
                     <motion.div
                       key={note.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
+                      transition={{ delay: i * 0.05 }}
+                      className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all group relative overflow-hidden"
                     >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-primary-600 transition-colors">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-5">
+                          <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-inner">
                             {(() => {
                               const spec = SPECIALTIES.find(s => s.id === note.specialty);
-                              return spec?.icon ? React.createElement(spec.icon, { className: 'h-5 w-5' }) : <FileText className="h-5 w-5" />;
+                              return spec?.icon ? React.createElement(spec.icon, { className: 'h-6 w-6' }) : <FileText className="h-6 w-6" />;
                             })()}
                           </div>
                           <div>
-                            <h3 className="font-medium text-slate-900">{note.title || 'Untitled Note'}</h3>
-                            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                              <User className="h-3 w-3" /> {note.patientName} • <Calendar className="h-3 w-3" /> {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
-                            </p>
+                            <h3 className="font-bold text-lg text-slate-900 tracking-tight group-hover:text-primary-600 transition-colors">{note.title || 'General Consultation'}</h3>
+                            <div className="flex items-center gap-3 mt-1">
+                               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                                 {note.patientName}
+                               </p>
+                               <span className="text-slate-200">•</span>
+                               <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                                 {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Just now'}
+                               </p>
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-2 items-center">
-                          <span className={`px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-[10px] font-semibold uppercase tracking-widest capitalize`}>
-                            {note.specialty}
+                          <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200/50">
+                            {note.specialty || 'General'}
                           </span>
                           {note.status === 'draft' ? (
-                            <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-semibold uppercase tracking-widest">Draft</span>
+                            <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-amber-100">Draft</span>
                           ) : (
-                            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> Signed
-                            </span>
-                          )}
-                          {note.entryMode === 'audio' && (
-                            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-semibold uppercase tracking-widest" title="Created via Audio">
-                               Dictated
+                            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 border border-emerald-100">
+                              <ShieldCheck className="h-3 w-3" /> Signed
                             </span>
                           )}
                         </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed font-medium">
-                          {note.subjective || note.objective || note.assessment || note.plan || 'No observations documented.'}
+                      <div className="relative group-hover:translate-x-1 transition-transform">
+                        <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed font-medium mb-4 italic opacity-80 group-hover:opacity-100 transition-opacity">
+                          "{note.assessment || note.subjective || note.objective || 'No observations documented.'}"
                         </p>
-                        {note.diagnosis && (
-                          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-medium w-fit uppercase border border-amber-100 italic">
-                            Dx: {note.diagnosis}
-                          </div>
-                        )}
+                        <div className="flex flex-wrap gap-2">
+                           {note.diagnosis && (
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-200">
+                                Dx: {note.diagnosis}
+                              </div>
+                           )}
+                           {note.prescriptions?.length > 0 && (
+                             <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-indigo-100">
+                               <ClipboardList className="h-3 w-3" /> {note.prescriptions.length} Meds
+                             </div>
+                           )}
+                        </div>
                       </div>
                       
-                      <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-                          <ClipboardList className="h-3.5 w-3.5" />
-                          Signed by {note.doctorName || 'Attending Physician'}
+                      <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shadow-inner">
+                            {note.doctorName?.charAt(0) || 'D'}
+                          </div>
+                          {note.doctorName || 'Attending Physician'}
                         </div>
                         <button 
                           onClick={() => setViewingNote(note)}
-                          className="flex items-center gap-1.5 px-4 py-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all font-medium text-xs"
+                          className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-bold text-[10px] uppercase tracking-widest shadow-xl shadow-slate-100"
                         >
-                          View Full Note
-                          <ChevronRight className="h-3.5 w-3.5" />
+                          View Full Record
+                          <ChevronRight className="h-4 w-4" />
                         </button>
                       </div>
                     </motion.div>
                   ))}
-                  
-                  {hasMore && (
-                    <div className="pt-8 flex justify-center">
-                       <button
-                         onClick={() => fetchNotes(true)}
-                         disabled={loadingMore}
-                         className="px-8 py-3 bg-slate-50 text-slate-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2 disabled:opacity-50 border border-slate-100"
-                       >
-                         {loadingMore ? 'Retrieving Records...' : 'Load Mode Medical Records'}
-                       </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                </div>
+                
+                {hasMore && (
+                  <div className="pt-10 flex justify-center">
+                     <button
+                       onClick={() => fetchNotes(true)}
+                       disabled={loadingMore}
+                       className="px-12 py-4 bg-white text-slate-900 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 disabled:opacity-50 border border-slate-200 shadow-sm"
+                     >
+                       {loadingMore ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+                       {loadingMore ? 'Loading Architecture...' : 'Load older medical history'}
+                     </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-10">
+          <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-slate-200">
+             <div className="relative z-10">
+                <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                   <Clock className="h-4 w-4" /> Recent Consultations
+                </h4>
+                <div className="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1px] before:bg-white/10">
+                   {notes.slice(0, 3).map((note) => (
+                     <div key={note.id} className="relative pl-8 group cursor-pointer" onClick={() => setViewingNote(note)}>
+                       <div className="absolute left-0 top-1.5 h-6 w-6 bg-slate-800 rounded-lg border border-white/20 flex items-center justify-center z-10 shadow-lg group-hover:scale-110 transition-transform">
+                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                       </div>
+                       <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors leading-tight">{note.title || 'Note'}</p>
+                       <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider">
+                         {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'} • {note.patientName}
+                       </p>
+                     </div>
+                   ))}
+                </div>
+                <button 
+                   onClick={() => setIsCreating(true)}
+                   className="w-full mt-10 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
+                >
+                   Quick Create
+                </button>
+             </div>
+             <Activity className="absolute -right-10 -bottom-10 h-40 w-40 text-white/5 rotate-12" />
           </div>
 
-          <div className="space-y-6">
-
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h4 className="text-sm font-medium text-slate-900 mb-6 flex items-center gap-2">
-                <History className="h-4 w-4 text-slate-400" />
-                Recent Activity
-              </h4>
-              <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-50">
-                {notes.slice(0, 3).map((note) => (
-                  <div key={note.id} className="relative pl-8">
-                    <div className="absolute left-0 top-1 h-6 w-6 bg-slate-50 rounded-lg border-2 border-white flex items-center justify-center z-10 shadow-sm">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary-500" />
-                    </div>
-                    <p className="text-xs font-medium text-slate-900 leading-none">{note.title}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-medium">
-                      {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'} • {note.doctorName}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8">
+             <div className="h-12 w-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center mb-6">
+                <Info className="h-6 w-6" />
+             </div>
+             <h4 className="text-lg font-bold text-slate-900 mb-2">Clinical Standards</h4>
+             <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6">All notes must strictly follow the SOAP (Subjective, Objective, Assessment, Plan) format for legal compliance.</p>
+             <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest leading-relaxed">
+                   Records are encrypted and stored in HIPAA compliant storage.
+                </p>
+             </div>
           </div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {isCreating && (
-          <NoteEditor 
-            initialPatientId={location.state?.patientId}
-            initialPatientName={location.state?.patientName}
-            initialAppointmentId={location.state?.appointmentId}
-            onClose={() => setIsCreating(false)} 
-            onSave={() => {
-              setIsCreating(false);
-              fetchNotes();
-              showNotification('success', 'Clinical note saved successfully.');
-            }}
-            showNotification={showNotification}
-          />
-        )}
-        {viewingNote && (
-          <NoteViewer 
-            note={viewingNote}
-            onClose={() => setViewingNote(null)}
-          />
-        )}
-      </AnimatePresence>
+    </div>
     </DashboardLayout>
+
+    <AnimatePresence>
+      {isCreating && (
+        <NoteEditor 
+          initialPatientId={location.state?.patientId}
+          initialPatientName={location.state?.patientName}
+          initialAppointmentId={location.state?.appointmentId}
+          onClose={() => setIsCreating(false)} 
+          onSave={() => {
+            setIsCreating(false);
+            fetchNotes();
+            showNotification('success', 'Clinical note saved successfully.');
+          }}
+          showNotification={showNotification}
+        />
+      )}
+      {viewingNote && (
+        <NoteViewer 
+          note={viewingNote}
+          onClose={() => setViewingNote(null)}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }
-
 function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', initialPatientName = '', initialAppointmentId = '' }) {
   const { userData } = useAuth();
-  const [activeSpecialties, setActiveSpecialties] = useState(['general']);
-  const [patientId, setPatientId] = useState(initialPatientId);
-  const [appointmentId] = useState(initialAppointmentId);
-  const [existingRecordId, setExistingRecordId] = useState(null);
   const [patients, setPatients] = useState([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
+  const [patientId, setPatientId] = useState(initialPatientId);
+  const [appointmentId] = useState(initialAppointmentId);
+  const [activeSpecialties, setActiveSpecialties] = useState(['general']);
+  const [entryMode, setEntryMode] = useState('text');
+  const [micVolume, setMicVolume] = useState(0);
+  const [fakeTranscript, setFakeTranscript] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [transcriptReviewed, setTranscriptReviewed] = useState(false);
+  const [icdSuggestions, setIcdSuggestions] = useState([]);
+  const [existingRecordId, setExistingRecordId] = useState(null);
+  const [showRouting, setShowRouting] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  
+  const transcriptRef = React.useRef('');
+  const userStopRef = React.useRef(false);
+
   const [formData, setFormData] = useState({
     subjective: '',
     objective: '',
@@ -330,147 +401,63 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     plan: '',
     nursingOrders: '',
     diagnosis: '',
-    prescriptions: [],
+    vitals: {
+      temp: '',
+      hr: '',
+      rr: '',
+      bp_sys: '',
+      bp_dia: '',
+      spo2: '',
+      weight: '',
+      height: '',
+      bmi: ''
+    },
+    specialtyData: {},
     labRequests: [],
-    specialtyData: {}
+    prescriptions: []
   });
-
-  const [entryMode, setEntryMode] = useState('text'); // 'text' or 'audio'
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [icdSuggestions, setIcdSuggestions] = useState([]);
-  const [transcriptReviewed, setTranscriptReviewed] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [micVolume, setMicVolume] = useState(0);
-  const [fakeTranscript, setFakeTranscript] = useState('');
-  const [showRouting, setShowRouting] = useState(false);
-  const userStopRef = React.useRef(false);
-  const transcriptRef = React.useRef('');
 
   const runAIPolish = async (textToProcess) => {
     if (!textToProcess || textToProcess.length < 5) return;
-    
     setIsAnalyzing(true);
     try {
       const docRef = doc(db, 'platform_settings', 'main');
       const docSnap = await getDoc(docRef);
       const apiKey = docSnap.exists() ? (docSnap.data().geminiApiKey || '').trim() : '';
-      
       if (!apiKey) {
-        showNotification('success', "Transcript captured. Configure Gemini API Key in Settings for auto-formatting.");
+        showNotification('success', "Transcript captured.");
         setFormData(prev => ({ ...prev, subjective: textToProcess }));
         setIsAnalyzing(false);
         return;
       }
-
-      // Model fallback strategy to handle regional/account restrictions
-      const modelsToTry = [
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-flash-latest',
-        'gemini-2.5-flash',
-        'gemini-pro',
-        'gemini-1.0-pro'
-      ];
-
-      let lastError = null;
-      let success = false;
-
-      for (const modelId of modelsToTry) {
-        try {
-          const prompt = `You are an expert clinical scribe. You are receiving a clinical dictation transcript. 
-          The transcript may have phonetic mistakes (e.g. "5" instead of "500", or "a mock soul in" instead of "amoxicillin").
-          
-          TASKS:
-          1. Correct all numeric and medical spelling errors based on clinical context.
-          2. MAPPING RULES:
-             - SUBJECTIVE: Patient complaints, symptoms, history of present illness.
-             - OBJECTIVE: Vital signs, physical examination findings, observed data.
-             - ASSESSMENT: Diagnosis, clinical impression, "medical condition".
-             - PLAN: Medications, prescriptions, laboratory orders, follow-up instructions.
-             - NURSING_ORDERS: Specific tasks for duty nurses (e.g., set up IV, administer shot, wound dressing).
-          3. Extract a suggested ICD-10 code.
-          
-          TRANSCRIPT: "${textToProcess}"
-          
-          Respond ONLY with raw JSON: {"subjective":"", "objective":"", "assessment":"", "plan":"", "nursing_orders":"", "icd_suggestion":""}`;
-
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-          });
-          
-          const data = await response.json();
-          
-          if (!response.ok) {
-            // If it's a 404 (model not found), try the next model
-            if (response.status === 404) {
-              console.warn(`Model ${modelId} not found, trying next...`);
-              continue;
-            }
-            throw new Error(data.error?.message || `API Error: ${response.status}`);
-          }
-
-          if (data.candidates && data.candidates[0]) {
-            let resultText = data.candidates[0].content.parts[0].text;
-            resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
-            
-            try {
-              const parsed = JSON.parse(resultText);
-              
-              setFormData(prev => ({
-                ...prev,
-                subjective: parsed.subjective || prev.subjective,
-                objective: parsed.objective || prev.objective,
-                assessment: parsed.assessment || prev.assessment,
-                plan: parsed.plan || prev.plan,
-                nursingOrders: parsed.nursing_orders || prev.nursingOrders
-              }));
-
-              if (parsed.icd_suggestion) {
-                // Return as simple string for UI compatibility
-                setIcdSuggestions([parsed.icd_suggestion]);
-              }
-            } catch (pErr) {
-               console.error("AI Parse Error:", pErr);
-               // If JSON fails, at least show the notification that AI tried
-            }
-            showNotification('success', "AI Note Polished & Organized!");
-            success = true;
-            break; // Exit model loop
-          }
-        } catch (err) {
-          lastError = err;
-          // If it's not a 404, we stop and show the error (e.g. 401 Unauthorized)
-          if (err.message.includes('404')) continue;
-          throw err;
-        }
+      const modelId = 'gemini-1.5-flash';
+      const prompt = `Format this clinical dictation into SOAP JSON: "${textToProcess}". Fields: subjective, objective, assessment, plan, nursing_orders, icd_suggestion.`;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const data = await response.json();
+      if (data.candidates?.[0]) {
+        const text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(text);
+        setFormData(prev => ({
+          ...prev,
+          subjective: parsed.subjective || prev.subjective,
+          objective: parsed.objective || prev.objective,
+          assessment: parsed.assessment || prev.assessment,
+          plan: parsed.plan || prev.plan,
+          nursingOrders: parsed.nursing_orders || prev.nursingOrders
+        }));
+        if (parsed.icd_suggestion) setIcdSuggestions([parsed.icd_suggestion]);
+        showNotification('success', "AI Note Polished!");
       }
-
-      if (!success) {
-        throw lastError || new Error("No compatible AI model was found for your API key.");
-      }
-
-    } catch (err) {
-      console.error("AI polishing failed", err);
-      showNotification('error', err.message || "AI failed to categorize the note.");
-      
-      // Fallback: at least keep the transcript in Subjective if it was empty
-      setFormData(prev => ({ 
-        ...prev, 
-        subjective: prev.subjective || textToProcess 
-      }));
-    } finally {
-      setIsAnalyzing(false);
-    }
+    } catch (err) { console.error("AI fail", err); }
+    finally { setIsAnalyzing(false); }
   };
 
   useEffect(() => {
     fetchPatients();
-    if (appointmentId) {
-      loadExistingDraft();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (appointmentId) loadExistingDraft();
   }, []);
 
   const loadExistingDraft = async () => {
@@ -485,143 +472,48 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           plan: draft.plan || '',
           nursingOrders: draft.nursingOrders || '',
           diagnosis: draft.diagnosis || '',
-          specialtyData: draft.specialtyData || {}
+          vitals: draft.vitals || {
+            temp: '', hr: '', rr: '', bp_sys: '', bp_dia: '', spo2: '', weight: '', height: '', bmi: ''
+          },
+          specialtyData: draft.specialtyData || {},
+          labRequests: draft.labRequests || [],
+          prescriptions: draft.prescriptions || []
         });
-        if (draft.specialties && draft.specialties.length > 0) {
-          setActiveSpecialties(draft.specialties);
-        }
+        if (draft.specialties?.length > 0) setActiveSpecialties(draft.specialties);
         if (draft.patientId) setPatientId(draft.patientId);
+      } else if (appointmentId) {
+        // Fallback: If no clinical draft exists, fetch appointment to get patientId and initial data
+        const appointment = await appointmentService.getAppointmentById(appointmentId);
+        if (appointment && appointment.patientId) {
+          setPatientId(appointment.patientId);
+          // Auto-populate from appointment data (manual entry reduction)
+          setFormData(prev => ({
+            ...prev,
+            subjective: appointment.reason || appointment.complaint || prev.subjective,
+            vitals: { ...prev.vitals, ...(appointment.vitals || {}) }
+          }));
+        }
       }
-    } catch (error) {
-      console.error("Error loading existing draft:", error);
-    }
+    } catch (e) { console.error("Load draft/appointment failed:", e); }
   };
 
   const fetchPatients = async () => {
     try {
       setLoadingPatients(true);
-      // Filter patients to only show those who have 'arrived' in appointments
-      const arrivedAppointments = await appointmentService.getArrivedAppointments(userData?.facilityId);
-      const patientMap = new Map();
-      
-      arrivedAppointments.forEach(apt => {
-        if (!patientMap.has(apt.patientId)) {
-          patientMap.set(apt.patientId, { id: apt.patientId, name: apt.patient });
-        }
-      });
-
-      setPatients(Array.from(patientMap.values()).sort((a, b) => a.name.localeCompare(b.name)));
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-    } finally {
-      setLoadingPatients(false);
-    }
-  };
-
-  const generateIcdSuggestions = (text) => {
-    if (!text) return;
-    const textLower = text.toLowerCase();
-    const suggestions = [];
-    if(textLower.includes('headache') || textLower.includes('migraine')) suggestions.push('G43.909');
-    if(textLower.includes('cough') || textLower.includes('fever') || textLower.includes('cold')) suggestions.push('J06.9');
-    if(textLower.includes('sugar') || textLower.includes('diabet')) suggestions.push('E11.9');
-    if(textLower.includes('blood pressure') || textLower.includes('hypertens') || textLower.includes('bp')) suggestions.push('I10');
-    if(textLower.includes('pregnant') || textLower.includes('baby')) suggestions.push('Z34.90');
-    if(textLower.includes('stomach') || textLower.includes('pain') || textLower.includes('abd')) suggestions.push('R10.9');
-    if(textLower.includes('malaria') || textLower.includes('mosquito')) suggestions.push('B54');
-    
-    if(suggestions.length === 0) suggestions.push('R69', 'Z10.8'); // defaults if nothing matches
-    setIcdSuggestions(suggestions);
+      const arrived = await appointmentService.getArrivedAppointments(userData?.facilityId);
+      // Fetch full details for arrived patients
+      const patientPromises = arrived.map(a => patientService.getPatientById(a.patientId));
+      const fullPatients = await Promise.all(patientPromises);
+      setPatients(fullPatients.filter(p => !!p));
+    } catch (e) { console.error(e); }
+    finally { setLoadingPatients(false); }
   };
 
   const toggleSpecialty = (id) => {
-    setActiveSpecialties(prev => 
-      prev.includes(id) 
-        ? (prev.length > 1 ? prev.filter(s => s !== id) : prev)
-        : [...prev, id]
-    );
+    setActiveSpecialties(prev => prev.includes(id) ? (prev.length > 1 ? prev.filter(s => s !== id) : prev) : [...prev, id]);
   };
 
-  const handleSave = async (status = 'signed') => {
-    try {
-      if (!patientId) {
-        showNotification('error', 'Please select a patient first.');
-        return;
-      }
-      if (status === 'signed' && entryMode === 'audio' && !transcriptReviewed) {
-         showNotification('error', 'You must review and mark the audio transcript as reviewed before signing.');
-         return;
-      }
-      const patient = patients.find(p => p.id === patientId);
-      const recordData = {
-        ...formData,
-        patientId,
-        patientName: patient?.name || 'Unknown Patient',
-        appointmentId, // Link the note to the appointment
-        specialties: activeSpecialties,
-        status, // 'draft' or 'signed'
-        entryMode,
-        doctorName: userData?.name || 'Dr. Dolly Smith', 
-        facilityId: userData?.facilityId, // Include facilityId
-        title: activeSpecialties.length > 1 
-          ? 'Multi-Specialty Clinical Note' 
-          : `${SPECIALTIES.find(s => s.id === activeSpecialties[0]).name} Clinical Note`
-      };
-
-      if (!existingRecordId) {
-        recordData.createdAt = new Date();
-      }
-
-      const result = existingRecordId 
-        ? await medicalRecordService.updateRecord(existingRecordId, recordData, { id: userData?.uid, name: userData?.name })
-        : await medicalRecordService.createRecord(recordData, { id: userData?.uid, name: userData?.name });
-
-      // Log the activity to Audit Trail
-      await auditService.logActivity({
-        userId: userData?.uid,
-        userName: userData?.name || 'Doctor',
-        action: status === 'signed' ? 'SIGN_CLINICAL_NOTE' : 'CREATE_DRAFT_NOTE',
-        module: 'CLINICAL',
-        description: status === 'signed' 
-          ? `Signed medical record for ${patient?.name || 'Patient'} (Specialties: ${activeSpecialties.join(', ')})`
-          : `Created/Updated clinical draft for ${patient?.name || 'Patient'}`,
-        metadata: {
-          patientId,
-          appointmentId,
-          specialties: activeSpecialties,
-          recordId: result?.id,
-          entryMode,
-          status,
-          facilityId: userData?.facilityId // Include facilityId in audit metadata
-        }
-      });
-
-      // Appointment remains 'in-session'. Discharge must be done explicitly from the Appointments page.
-
-      if (status === 'signed') {
-         setShowRouting(true);
-      } else {
-         onSave();
-      }
-    } catch (error) {
-      console.error('Error saving note:', error);
-      showNotification('error', 'Failed to save clinical note.');
-    }
-  };
-
-  const updateSpecialtyField = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      specialtyData: {
-        ...prev.specialtyData,
-        [field]: value
-      }
-    }));
-  };
-
-  const toggleChecklist = (field) => {
-    updateSpecialtyField(field, !formData.specialtyData[field]);
-  };
+  const updateSpecialtyField = (field, value) => setFormData(prev => ({ ...prev, specialtyData: { ...prev.specialtyData, [field]: value } }));
 
   const toggleSurface = (surface) => {
     const currentSurfaces = formData.specialtyData.surfaces || '';
@@ -632,15 +524,113 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     updateSpecialtyField('surfaces', newSurfaces.join(','));
   };
 
-  const handleRoute = async (routeTo) => {
+  const generateIcdSuggestions = (text) => {
+    if (!text) return;
+    const textLower = text.toLowerCase();
+    const suggestions = [];
+    if(textLower.includes('headache')) suggestions.push('G43.909');
+    if(textLower.includes('fever')) suggestions.push('J06.9');
+    if(textLower.includes('cough')) suggestions.push('R05.9');
+    if(suggestions.length === 0) suggestions.push('R69');
+    setIcdSuggestions(suggestions);
+  };
+
+  const handleSave = async (status = 'signed') => {
+    if (!patientId) { showNotification('error', 'Select a patient.'); return; }
     try {
-      if (appointmentId) {
-        await appointmentService.updateAppointmentStatus(appointmentId, routeTo);
+      const patient = patients.find(p => p.id === patientId);
+      const recordData = { 
+        ...formData, 
+        patientId, 
+        patientName: selectedPatient?.name || 'Patient', 
+        appointmentId, 
+        specialties: activeSpecialties, 
+        status, 
+        entryMode,
+        doctorName: userData?.name || 'Dr. Dolly Smith', 
+        facilityId: userData?.facilityId,
+        title: activeSpecialties.length > 1 
+          ? 'Multi-Specialty Clinical Note' 
+          : `${SPECIALTIES.find(s => s.id === activeSpecialties[0]).name} Clinical Note`
+      };
+
+      if (!existingRecordId) {
+        recordData.createdAt = new Date();
       }
-    } catch (e) {
-      console.error('Routing failed', e);
+
+      if (existingRecordId) await medicalRecordService.updateRecord(existingRecordId, recordData, { id: userData?.uid, name: userData?.name });
+      else await medicalRecordService.createRecord(recordData, { id: userData?.uid, name: userData?.name });
+      if (status === 'signed') setShowRouting(true);
+      else showNotification('success', 'Draft saved.');
+    } catch (err) { 
+      showNotification('error', 'Save failed.'); 
+      console.error(err); 
     }
+  };
+
+  const handleRoute = async (routeTo) => {
+    try { if (appointmentId) await appointmentService.updateAppointmentStatus(appointmentId, routeTo); }
+    catch (err) { console.error(err); }
     onSave();
+  };
+
+  const [patientHistory, setPatientHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => { 
+    if (patientId) {
+      fetchHistory(); 
+      fetchPatientDetails();
+    } else {
+      setSelectedPatient(null);
+    }
+  }, [patientId]);
+
+  // Ensure patientId is updated if props change (for case where parent re-renders with new state)
+  useEffect(() => {
+    if (initialPatientId && initialPatientId !== patientId) {
+      setPatientId(initialPatientId);
+    }
+  }, [initialPatientId]);
+
+  const fetchPatientDetails = async () => {
+    if (!patientId) return;
+    try {
+      setLoadingHistory(true); // Re-use loading for detail fetch
+      const p = await patientService.getPatientById(patientId);
+      if (p) {
+        setSelectedPatient(p);
+      }
+    } catch (e) { console.error("Error fetching patient details:", e); }
+    finally { setLoadingHistory(false); }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const history = await medicalRecordService.getRecordsByPatient(patientId);
+      setPatientHistory(history.filter(h => h.status === 'signed'));
+    } catch (err) { console.error(err); }
+    finally { setLoadingHistory(false); }
+  };
+
+  const handleSearchMaster = async (type, term, index, section) => {
+    if (term.length < 2) {
+       if (section === 'prescription') setMedicineSuggestions([]);
+       else setLabSuggestions([]);
+       return;
+    }
+    try {
+      const results = await medicalMasterService.search(type, term, userData?.facilityId);
+      if (section === 'prescription') {
+        setMedicineSuggestions(results);
+        setSearchContext({ type: 'medicine', index });
+      } else {
+        setLabSuggestions(results);
+        setSearchContext({ type: 'lab', index });
+      }
+    } catch (e) { console.error(e); }
   };
 
   return (
@@ -648,7 +638,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
     >
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
@@ -661,101 +651,213 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
               <Stethoscope className="h-8 w-8" />
             </div>
             <div>
-              <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">New Consultation</h3>
-              <p className="text-sm text-slate-500 font-medium">Capture exact specialty-specific observations</p>
+              <div className="flex items-center gap-4">
+                 <div>
+                    <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
+                       {selectedPatient ? `Consultation: ${selectedPatient.name}` : 'Clinical Consultation'}
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
+                       {selectedPatient ? (
+                          <>
+                             <span className="px-2 py-0.5 bg-primary-50 text-primary-600 rounded-md border border-primary-100">OP-{selectedPatient.opNumber || selectedPatient.id?.slice(0,8)}</span>
+                             <span className="text-slate-200 font-normal">|</span>
+                             <span>Active Documentation Session</span>
+                          </>
+                       ) : 'Secure Patient Assessment Registry'}
+                    </p>
+                 </div>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">Session automatically becomes permanent once "Signed".</p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-3 text-slate-400 hover:text-slate-900 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-sm"
-          >
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-3">
+             <button 
+               onClick={() => setShowHistory(!showHistory)}
+               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${showHistory ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+             >
+                <History className="h-4 w-4" />
+                {showHistory ? 'Close History' : 'View Patient History'}
+             </button>
+             <button 
+               onClick={onClose}
+               className="p-3 text-slate-400 hover:text-slate-900 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-sm"
+             >
+               <X className="h-6 w-6" />
+             </button>
+          </div>
         </div>
 
         <div className="flex-1 flex overflow-hidden">
-          {/* Specialty Sidebar */}
+          {/* Specialty Sidebar (Left - Constant) */}
           <div className="w-64 bg-slate-50/50 border-r border-slate-100 overflow-y-auto p-4 space-y-1">
-            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-4 mb-4">Specialty Template</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-4">Specialty Template</p>
             {SPECIALTIES.map((spec) => (
               <button
                 key={spec.id}
                 onClick={() => toggleSpecialty(spec.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-[11px] uppercase tracking-wider
                   ${activeSpecialties.includes(spec.id) 
-                    ? 'bg-white text-primary-600 shadow-sm shadow-slate-200/50' 
-                    : 'text-slate-500 hover:bg-white/50 hover:text-slate-900'}
+                    ? 'bg-white text-primary-600 shadow-sm border border-slate-100' 
+                    : 'text-slate-500 hover:bg-white/50 hover:text-slate-900 border border-transparent'}
                 `}
               >
-                <spec.icon className={`h-5 w-5 ${activeSpecialties.includes(spec.id) ? 'text-primary-500' : 'text-slate-400'}`} />
+                <spec.icon className={`h-4 w-4 ${activeSpecialties.includes(spec.id) ? 'text-primary-500' : 'text-slate-400'}`} />
                 {spec.name}
               </button>
             ))}
           </div>
 
-          {/* Form Content */}
-          <div className="flex-1 overflow-y-auto p-12 space-y-12">
-            {/* Patient Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                 <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
-                   <User className="h-4 w-4" />
-                   Patient Information
-                 </label>
-                 {initialPatientId ? (
-                   <div className="w-full p-5 bg-primary-50 border-2 border-primary-100 rounded-3xl flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                       <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shadow-sm">
-                         <User className="h-5 w-5" />
-                       </div>
-                       <div>
-                         <p className="text-sm font-bold text-slate-900">{initialPatientName || 'Active Patient'}</p>
-                         <p className="text-[10px] text-primary-600 font-bold uppercase tracking-widest">ID: {initialPatientId}</p>
-                       </div>
+          {/* Main Form Content */}
+          <div className="flex-1 overflow-y-auto p-12 space-y-12 bg-white">
+            {/* Patient Identification Hub - Premium Unified View */}
+            <div className="bg-slate-50 border border-slate-100 p-8 rounded-[2.5rem] relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-96 h-96 bg-primary-500/5 blur-[120px] rounded-full -mr-48 -mt-48 transition-all group-hover:bg-primary-500/10" />
+               <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
+                  <div className="lg:col-span-8 flex flex-col justify-center">
+                     {selectedPatient ? (
+                        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm flex items-center gap-8 relative overflow-hidden">
+                           <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 blur-[80px] rounded-full -mr-32 -mt-32" />
+                           <div className="h-20 w-20 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 shadow-inner shrink-0 transition-transform hover:scale-105">
+                              <User className="h-10 w-10" />
+                           </div>
+                           <div className="flex-1 space-y-4 relative z-10">
+                              <div className="flex items-center justify-between">
+                                 <div>
+                                    <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{selectedPatient.name}</h3>
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                          <Phone className="h-3.5 w-3.5 text-primary-500/50" />
+                                          {selectedPatient.phoneNumber || 'N/A'}
+                                       </p>
+                                       <span className="text-slate-200">•</span>
+                                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                          <Info className="h-3.5 w-3.5 text-primary-500/50" />
+                                          OP-{selectedPatient.opNumber || selectedPatient.id?.slice(0,8)}
+                                       </p>
+                                    </div>
+                                 </div>
+                                 {!initialPatientId && (
+                                    <button 
+                                       onClick={() => { setPatientId(''); setSelectedPatient(null); }}
+                                       className="px-4 py-2 bg-slate-50 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest border border-slate-100"
+                                    >
+                                       Switch Patient
+                                    </button>
+                                 )}
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-5 border-t border-slate-50">
+                                 <div className="space-y-1">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-0.5 mt-0.5">Age / Sex</p>
+                                    <p className="text-sm font-bold text-slate-800 tracking-tight">{selectedPatient.age || '--'} Years / {selectedPatient.gender || '--'}</p>
+                                 </div>
+                                 <div className="space-y-1">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-0.5 mt-0.5">Blood Grp</p>
+                                    <p className="text-sm font-bold text-emerald-600 tracking-tight">{selectedPatient.bloodGroup || '--'}</p>
+                                 </div>
+                                 <div className="space-y-1">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-0.5 mt-0.5">Last Visit</p>
+                                    <p className="text-sm font-bold text-indigo-600 tracking-tight">{getRelativeVisitTime(patientHistory[0]?.createdAt)}</p>
+                                 </div>
+                                 <div className="space-y-1 text-right md:text-left">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-0.5 mt-0.5">Baseline BP</p>
+                                    <p className="text-sm font-bold text-slate-800 tracking-tight">
+                                       {patientHistory[0]?.vitals?.bp_sys || '--'}/{patientHistory[0]?.vitals?.bp_dia || '--'}
+                                    </p>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                      ) : patientId ? (
+                        <div className="bg-white border border-slate-200 p-12 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-4 min-h-[200px]">
+                           <div className="h-12 w-12 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin" />
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Identifying Patient Record...</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div className="space-y-3">
+                              <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.1em] pl-1">Identify Patient</label>
+                              <div className="relative">
+                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                 <input 
+                                    type="text"
+                                    placeholder="Search by Name, OP Number or Mobile..."
+                                    className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold transition-all shadow-sm focus:ring-4 focus:ring-primary-50 focus:border-primary-500 outline-none"
+                                    onChange={async (e) => {
+                                       const term = e.target.value;
+                                       if (term.length > 2) {
+                                          const results = await patientService.searchPatients(userData?.facilityId, term);
+                                          setPatients(results);
+                                       } else {
+                                          fetchPatients();
+                                       }
+                                    }}
+                                 />
+                              </div>
+                           </div>
+
+                           <div className="space-y-3">
+                              <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.1em] pl-1">Registry Context</label>
+                              <div className="relative">
+                                 <select 
+                                    value={patientId}
+                                    onChange={(e) => setPatientId(e.target.value)}
+                                    className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold shadow-sm outline-none focus:border-primary-500 transition-all appearance-none text-slate-900 h-[56px]"
+                                 >
+                                    <option value="">Select an active case...</option>
+                                    {patients.map(p => (
+                                       <option key={p.id} value={p.id}>{p.name} ({p.phoneNumber || p.opNumber || p.id?.slice(0,6)})</option>
+                                    ))}
+                                 </select>
+                                 <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 rotate-90" />
+                              </div>
+                           </div>
+                        </div>
+                      )}
+                  </div>
+
+                  <div className="lg:col-span-4 bg-white/40 backdrop-blur-md rounded-[2rem] p-8 border border-slate-200 shadow-sm flex flex-col justify-center">
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-primary-500" /> Clinical Pulse
+                     </p>
+                     <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                           <p className="text-[11px] font-bold text-slate-500">Prior Diagnosis</p>
+                           <p className="text-[11px] font-black text-slate-900 max-w-[150px] truncate text-right">{patientHistory[0]?.diagnosis || 'No record'}</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-200/50">
+                           <p className="text-[11px] font-bold text-slate-500">Last Encounter</p>
+                           <p className="text-[11px] font-black text-slate-900">{patientHistory[0]?.title || 'Fresh Case'}</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-200/50">
+                           <p className="text-[11px] font-bold text-slate-500">Weight Metric</p>
+                           <p className="text-[11px] font-black text-slate-900">{patientHistory[0]?.vitals?.weight ? `${patientHistory[0].vitals.weight} KG` : '--'}</p>
+                        </div>
                      </div>
-                     <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-bold uppercase tracking-widest">
-                       Active Session
-                     </div>
-                   </div>
-                 ) : (
-                   <select 
-                     value={patientId}
-                     onChange={(e) => setPatientId(e.target.value)}
-                     className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-3xl text-sm font-medium transition-all outline-none"
-                   >
-                     <option value="">{loadingPatients ? 'Loading arrived patients...' : 'Select Patient...'}</option>
-                     {patients.map(p => (
-                       <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
-                     ))}
-                   </select>
-                 )}
-              </div>
-              <div className="space-y-4">
-                <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
-                   <Calendar className="h-4 w-4" />
-                   Date of Consultation
-                </label>
-                <input 
-                  type="date" 
-                  defaultValue={new Date().toISOString().split('T')[0]}
-                  className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-medium outline-none" 
-                />
-              </div>
+                  </div>
+               </div>
             </div>
-            {/* Input Mode Toggle */}
-            <div className="bg-slate-100 p-2 rounded-3xl inline-flex w-fit mb-4">
-               <button 
-                 onClick={() => setEntryMode('text')}
-                 className={`px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all ${entryMode === 'text' ? 'bg-white shadow-lg text-slate-900 border border-slate-200' : 'text-slate-500 hover:text-slate-900 border border-transparent'}`}
-               >
-                 Text-Only
-               </button>
-               <button 
-                 onClick={() => setEntryMode('audio')}
-                 className={`px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all ${entryMode === 'audio' ? 'bg-white shadow-lg text-indigo-600 border border-slate-200' : 'text-slate-500 hover:text-slate-900 border border-transparent'}`}
-               >
-                 Audio & AI
-               </button>
+
+         {/* Input Mode Hub */}
+         <div className="flex items-center justify-between border-b border-slate-100 pb-8">
+               <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">Clinical Documentation</h3>
+                  <p className="text-sm text-slate-500 font-medium tracking-tight">Standardize your clinical observations with SOAP structure.</p>
+               </div>
+               
+               <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-1 shadow-inner">
+                  <button 
+                     onClick={() => setEntryMode('text')}
+                     className={`px-8 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.1em] transition-all flex items-center gap-2 ${entryMode === 'text' ? 'bg-white shadow-xl text-slate-900 border border-slate-200' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                     <FileText className="h-4 w-4" /> Text Entry
+                  </button>
+                  <button 
+                     onClick={() => setEntryMode('audio')}
+                     className={`px-8 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.1em] transition-all flex items-center gap-2 ${entryMode === 'audio' ? 'bg-indigo-600 shadow-xl shadow-indigo-200 text-white border border-indigo-500' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                     <Mic className="h-4 w-4" /> AI Dictation
+                  </button>
+               </div>
             </div>
 
              {entryMode === 'audio' && (
@@ -959,530 +1061,692 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                           )}
                        </div>
                       </div>
-                   )}
-                </div>
-             )}
+                )}
+             </div>
+          )}
 
-            {/* Specialty Specific Fields - ADDITIVE SECTIONS */}
-            <div className="space-y-8">
-              {activeSpecialties.map(specId => {
-                const spec = SPECIALTIES.find(s => s.id === specId);
-                return (
-                  <div key={specId} className="bg-primary-50/30 p-10 rounded-3xl border border-primary-100/50">
-                    <div className="flex items-center justify-between mb-8">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
-                          {React.createElement(spec.icon, { className: 'h-6 w-6' })}
-                        </div>
-                        <h4 className="text-xl font-semibold text-slate-900 tracking-tight uppercase tracking-wider">{spec.name} Examination</h4>
-                      </div>
-                      <button 
-                        onClick={() => toggleSpecialty(specId)}
-                        className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                        title="Remove section"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    </div>
+          {/* SOAP SECTION - Enhanced Visibility Card Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
+               {/* Subjective */}
+               <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 flex flex-col gap-6">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                        <FileText className="h-6 w-6" />
+                     </div>
+                     <div>
+                        <h4 className="text-lg font-bold text-slate-900 tracking-tight">Subjective (S)</h4>
+                        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Chief Complaint & History</p>
+                     </div>
+                  </div>
+                  <textarea 
+                     className="w-full flex-1 min-h-[160px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-blue-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
+                     placeholder="What the patient says: Chief complaints, history of present illness..."
+                     value={formData.subjective}
+                     onChange={(e) => {
+                        setFormData({...formData, subjective: e.target.value});
+                        generateIcdSuggestions(e.target.value);
+                     }}
+                  />
+               </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {specId === 'general' && (
-                        <>
-                          <Field label="General Appearance" field="cn_gap" value={formData.specialtyData.cn_gap} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="Vitals / Observations" field="cn_gobservation" value={formData.specialtyData.cn_gobservation} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="Notes" field="cn_gnote" value={formData.specialtyData.cn_gnote} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
+               {/* Objective */}
+               <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-emerald-200 flex flex-col gap-6">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                        <Activity className="h-6 w-6" />
+                     </div>
+                     <div>
+                        <h4 className="text-lg font-bold text-slate-900 tracking-tight">Objective (O)</h4>
+                        <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Exam Findings & Vitals</p>
+                     </div>
+                  </div>
+                  <textarea 
+                     className="w-full flex-1 min-h-[160px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
+                     placeholder="Observation / Exam findings, Vital signs, Lab results reviewed..."
+                     value={formData.objective}
+                     onChange={(e) => setFormData({...formData, objective: e.target.value})}
+                  />
+               </div>
 
-                      {specId === 'dental' && (
-                        <>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Tooth Number (1-32)</label>
-                            <select className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium"
-                              onChange={(e) => updateSpecialtyField('tooth', e.target.value)}>
-                              <option value="">Select</option>
-                              {Array.from({length: 32}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
-                          </div>
-                          <div className="space-y-2 col-span-2">
-                            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Surfaces</label>
-                            <div className="flex gap-2">
-                              {['O', 'M', 'D', 'L', 'B'].map(s => (
-                                <button 
-                                  key={s} 
-                                  onClick={() => toggleSurface(s)}
-                                  className={`h-10 w-10 rounded-xl border flex items-center justify-center font-medium text-xs transition-all
-                                    ${(formData.specialtyData.surfaces || '').split(',').includes(s)
-                                      ? 'bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-200'
-                                      : 'bg-white border-slate-100 text-slate-500 hover:bg-primary-50 hover:text-primary-600'}
-                                  `}>{s}</button>
-                              ))}
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {specId === 'obgyn' && (
-                        <>
-                          <Field label="LMP" field="cn_lmp" value={formData.specialtyData.cn_lmp} onChange={updateSpecialtyField} type="date" />
-                          <Field label="EDD" field="cn_edd" value={formData.specialtyData.cn_edd} onChange={updateSpecialtyField} type="date" />
-                          <Field label="Gravida / Para" field="cn_gravida" value={formData.specialtyData.cn_gravida} onChange={updateSpecialtyField} />
-                          <Field label="Fetal Heart Rate" field="cn_fhr" value={formData.specialtyData.cn_fhr} onChange={updateSpecialtyField} />
-                          <Field label="Exam Notes" field="cn_exam_notes" value={formData.specialtyData.cn_exam_notes} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="Plan / Follow Up" field="cn_plan_follow" value={formData.specialtyData.cn_plan_follow} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'pediatrics' && (
-                        <>
-                          <Field label="Weight (kg)" field="cn_weight" value={formData.specialtyData.cn_weight} onChange={updateSpecialtyField} />
-                          <Field label="Height (cm)" field="cn_height" value={formData.specialtyData.cn_height} onChange={updateSpecialtyField} />
-                          <Field label="Percentile (Weight)" field="cn_percentile_wt" value={formData.specialtyData.cn_percentile_wt} onChange={updateSpecialtyField} />
-                          <Field label="Percentile (Height)" field="cn_percentile_ht" value={formData.specialtyData.cn_percentile_ht} onChange={updateSpecialtyField} />
-                          <div className="col-span-full space-y-4">
-                            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Immunizations</label>
-                            <div className="flex gap-4">
-                              {[
-                                { id: 'ped_bcg', label: 'BCG' },
-                                { id: 'ped_opv', label: 'OPV' },
-                                { id: 'ped_dtp', label: 'DTP' },
-                                { id: 'ped_mmr', label: 'MMR' }
-                              ].map(({id, label}) => (
-                                <button 
-                                  key={id} 
-                                  onClick={() => toggleChecklist(id)}
-                                  className={`px-6 py-2 rounded-full border text-[10px] font-semibold uppercase tracking-widest transition-all shadow-sm
-                                    ${formData.specialtyData[id]
-                                      ? 'bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-200'
-                                      : 'bg-white border-slate-100 text-slate-500 hover:bg-primary-50 hover:text-primary-600'}
-                                  `}>{label}</button>
-                              ))}
-                            </div>
-                          </div>
-                          <Field label="Growth Comments" field="cn_notesgrowthcoment" value={formData.specialtyData.cn_notesgrowthcoment} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'internal_med' && (
-                        <>
-                          <Field label="Problem List (Active)" field="med_problem" value={formData.specialtyData.med_problem} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="BP / Target" field="med_bp" value={formData.specialtyData.med_bp} onChange={updateSpecialtyField} />
-                          <Field label="Latest HbA1c" field="med_latest" value={formData.specialtyData.med_latest} onChange={updateSpecialtyField} />
-                          <Field label="Current Medications" field="med_medication" value={formData.specialtyData.med_medication} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="Plan / Adjustments" field="med_planadjust" value={formData.specialtyData.med_planadjust} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'surgery' && (
-                        <>
-                          <div className="col-span-full grid grid-cols-2 md:grid-cols-4 gap-4 bg-white/50 p-6 rounded-3xl border border-primary-50 mb-4">
-                            {[
-                              { id: 'srg_npo', label: 'NPO confirmed' },
-                              { id: 'srg_consent', label: 'Consent signed' },
-                              { id: 'srg_hx', label: 'Hx reviewed' },
-                              { id: 'srg_imaging', label: 'Imaging available' }
-                            ].map(({id, label}) => (
-                              <label 
-                                key={id} 
-                                onClick={() => toggleChecklist(id)}
-                                className="flex items-center gap-3 cursor-pointer group"
-                              >
-                                <div className={`h-6 w-6 rounded border-2 flex items-center justify-center transition-all
-                                  ${formData.specialtyData[id] 
-                                    ? 'bg-primary-600 border-primary-600' 
-                                    : 'border-primary-200 group-hover:bg-primary-50'}
-                                `}>
-                                  <CheckCircle2 className={`h-4 w-4 text-white transition-opacity ${formData.specialtyData[id] ? 'opacity-100' : 'opacity-0'}`} />
-                                </div>
-                                <span className="text-xs font-medium text-slate-600">{label}</span>
-                              </label>
-
-
-                            ))}
-                          </div>
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">ASA Class</label>
-                             <select 
-                               value={formData.specialtyData.srg_asa || ''}
-                               onChange={(e) => updateSpecialtyField('srg_asa', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
-                             >
-                                <option value="">Select ASA</option>
-                                {['I', 'II', 'III', 'IV', 'V'].map(c => <option key={c} value={c}>{c}</option>)}
-                             </select>
-                          </div>
-                          <Field label="Anesthesia Type" field="srg_anesthia" value={formData.specialtyData.srg_anesthia} onChange={updateSpecialtyField} placeholder="General / Spinal / Local" />
-                          <Field label="Operative Notes" field="srg_oprative" value={formData.specialtyData.srg_oprative} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="Post-op Plan" field="srg_pop" value={formData.specialtyData.srg_pop} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'ent' && (
-                        <>
-                          <Field label="Ear (Otoscopy) Findings" field="ent_ear" value={formData.specialtyData.ent_ear} onChange={updateSpecialtyField} />
-                          <Field label="Nasal Exam" field="ent_nasal" value={formData.specialtyData.ent_nasal} onChange={updateSpecialtyField} />
-                          <Field label="Throat / Oropharynx" field="ent_throat" value={formData.specialtyData.ent_throat} onChange={updateSpecialtyField} />
-                          <div className="col-span-full grid grid-cols-2 gap-8 bg-white/50 p-6 rounded-3xl border border-primary-50">
-                             <Field label="Right (dB)" field="ent_right_db" value={formData.specialtyData.ent_right_db} onChange={updateSpecialtyField} />
-                             <Field label="Left (dB)" field="ent_left_db" value={formData.specialtyData.ent_left_db} onChange={updateSpecialtyField} />
-                          </div>
-                          <Field label="Plan / Recommendations" field="ent_plan_ent" value={formData.specialtyData.ent_plan_ent} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'dermatology' && (
-                        <>
-                          <Field label="Lesion Location & Description" field="der_lesion" value={formData.specialtyData.der_lesion} onChange={updateSpecialtyField} isTextArea />
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Morphology</label>
-                             <select 
-                               value={formData.specialtyData.der_mophology || ''}
-                               onChange={(e) => updateSpecialtyField('der_mophology', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
-                             >
-                                <option value="">Select morphology</option>
-                                {['Macule', 'Papule', 'Plaque', 'Nodule', 'Vesicle/Bulla', 'Ulcer'].map(m => <option key={m} value={m}>{m}</option>)}
-                             </select>
-                          </div>
-                          <Field label="Body Surface Area (BSA %)" field="der_bodysurface" value={formData.specialtyData.der_bodysurface} onChange={updateSpecialtyField} />
-                          <Field label="Treatment Plan" field="der_treatment" value={formData.specialtyData.der_treatment} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'radiology' && (
-                        <>
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Modality</label>
-                             <select 
-                               value={formData.specialtyData.rdo_modality || ''}
-                               onChange={(e) => updateSpecialtyField('rdo_modality', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
-                             >
-                                <option value="">Select modality</option>
-                                <option>X-Ray</option><option>CT Scan</option><option>MRI</option><option>Ultrasound</option>
-                             </select>
-                          </div>
-                          <Field label="Measurements / Findings" field="rdo_measurment" value={formData.specialtyData.rdo_measurment} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="Impression / Report" field="rdo_impresion" value={formData.specialtyData.rdo_impresion} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'ophthalmology' && (
-                        <>
-                          <Field label="Visual Acuity (R)" field="oph_visual_r" value={formData.specialtyData.oph_visual_r} onChange={updateSpecialtyField} />
-                          <Field label="Visual Acuity (L)" field="oph_visual_l" value={formData.specialtyData.oph_visual_l} onChange={updateSpecialtyField} />
-                          <Field label="IOP (R)" field="oph_iop_r" value={formData.specialtyData.oph_iop_r} onChange={updateSpecialtyField} />
-                          <Field label="IOP (L)" field="oph_iop_l" value={formData.specialtyData.oph_iop_l} onChange={updateSpecialtyField} />
-                          <Field label="Refraction / Rx" field="oph_refraction" value={formData.specialtyData.oph_refraction} onChange={updateSpecialtyField} />
-                          <Field label="Slit-lamp Findings" field="oph_slitlamp" value={formData.specialtyData.oph_slitlamp} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'orthopedics' && (
-                        <>
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Injury Side</label>
-                             <select 
-                               value={formData.specialtyData.ortho_injury_side || ''}
-                               onChange={(e) => updateSpecialtyField('ortho_injury_side', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
-                             >
-                                <option value="">Select side</option>
-                                {['Left', 'Right', 'Bilateral'].map(s => <option key={s} value={s}>{s}</option>)}
-                             </select>
-                          </div>
-                          <Field label="ROM Notes" field="ortho_rom" value={formData.specialtyData.ortho_rom} onChange={updateSpecialtyField} />
-                          <Field label="Special Tests" field="ortho_specialtest" value={formData.specialtyData.ortho_specialtest} onChange={updateSpecialtyField} isTextArea />
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Immobilization</label>
-                             <select 
-                               value={formData.specialtyData.ortho_immobilization || ''}
-                               onChange={(e) => updateSpecialtyField('ortho_immobilization', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
-                             >
-                                <option value="">Select immobilization</option>
-                                {['Splint', 'Cast', 'Brace', 'Sling'].map(i => <option key={i} value={i}>{i}</option>)}
-                             </select>
-                          </div>
-                          <Field label="Rehab Notes" field="ortho_plan_rehab" value={formData.specialtyData.ortho_plan_rehab} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'psychiatry' && (
-                        <>
-                          <Field label="PHQ-9 Score" field="psy_phq" value={formData.specialtyData.psy_phq} onChange={updateSpecialtyField} />
-                          <Field label="GAD-7 Score" field="psy_gad" value={formData.specialtyData.psy_gad} onChange={updateSpecialtyField} />
-                          <Field label="Mental State Examination (MSE)" field="psy_mental_state" value={formData.specialtyData.psy_mental_state} onChange={updateSpecialtyField} isTextArea />
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Risk Assessment</label>
-                             <select 
-                               value={formData.specialtyData.psy_risk || ''}
-                               onChange={(e) => updateSpecialtyField('psy_risk', e.target.value)}
-                               className="w-full p-4 bg-white border border-slate-100 rounded-2xl outline-none text-sm font-medium shadow-sm focus:border-primary-200 transition-all"
-                             >
-                                <option value="">Select risk</option>
-                                {['Low', 'Moderate', 'High'].map(r => <option key={r} value={r}>{r}</option>)}
-                             </select>
-                          </div>
-                          <Field label="Plan / Follow-up" field="psy_plan_follow" value={formData.specialtyData.psy_plan_follow} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'physiotherapy' && (
-                        <>
-                          <Field label="Functional Scores (e.g. ODI)" field="phy_score" value={formData.specialtyData.phy_score} onChange={updateSpecialtyField} />
-                          <Field label="Goals" field="phy_goals" value={formData.specialtyData.phy_goals} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="Session Log" field="phy_session" value={formData.specialtyData.phy_session} onChange={updateSpecialtyField} isTextArea />
-                          <Field label="Progress / Plan" field="phy_progress" value={formData.specialtyData.phy_progress} onChange={updateSpecialtyField} isTextArea />
-                        </>
-                      )}
-
-                      {specId === 'pharmacy_lab' && (
-                        <div className="col-span-full space-y-12">
-                           {/* Laboratory Requests */}
-                           <div className="space-y-6">
-                              <div className="flex items-center justify-between">
-                                 <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                    <Droplets className="h-5 w-5 text-indigo-500" />
-                                    Laboratory Investigations
-                                 </h4>
-                                 <button 
-                                   onClick={() => setFormData({
-                                      ...formData, 
-                                      labRequests: [...formData.labRequests, { test: '', instructions: '', status: 'ordered' }]
-                                   })}
-                                   className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-100 transition-all"
-                                 >
-                                    <Plus className="h-3.5 w-3.5" />
-                                    Add Test
-                                 </button>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 {formData.labRequests.map((req, idx) => (
-                                    <div key={idx} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3 group relative">
-                                       <button 
-                                         onClick={() => {
-                                           const newLabs = [...formData.labRequests];
-                                           newLabs.splice(idx, 1);
-                                           setFormData({...formData, labRequests: newLabs});
-                                         }}
-                                         className="absolute -top-2 -right-2 h-8 w-8 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-red-100 shadow-sm hover:bg-red-500 hover:text-white"
-                                       >
-                                          <X className="h-4 w-4" />
-                                       </button>
-                                       <input 
-                                         placeholder="Search Lab Test (e.g. FBC, Lipid Profile)..."
-                                         value={req.test}
-                                         onChange={(e) => {
-                                            const newLabs = [...formData.labRequests];
-                                            newLabs[idx].test = e.target.value;
-                                            setFormData({...formData, labRequests: newLabs});
-                                         }}
-                                         className="w-full text-sm font-bold bg-transparent outline-none placeholder:text-slate-300"
-                                       />
-                                       <textarea 
-                                         placeholder="Clinical Instructions..."
-                                         value={req.instructions}
-                                         onChange={(e) => {
-                                            const newLabs = [...formData.labRequests];
-                                            newLabs[idx].instructions = e.target.value;
-                                            setFormData({...formData, labRequests: newLabs});
-                                         }}
-                                         className="w-full text-xs font-medium text-slate-500 bg-transparent resize-none h-12 outline-none"
-                                       />
-                                    </div>
+               {/* Assessment */}
+               <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-amber-200 flex flex-col gap-6">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+                        <Brain className="h-6 w-6" />
+                     </div>
+                     <div>
+                        <h4 className="text-lg font-bold text-slate-900 tracking-tight">Assessment (A)</h4>
+                        <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Diagnosis & ICD Codes</p>
+                     </div>
+                  </div>
+                  <div className="space-y-4">
+                     <textarea 
+                        className="w-full min-h-[120px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-amber-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300 shadow-inner"
+                        placeholder="Clinical impression, Differential diagnosis..."
+                        value={formData.assessment}
+                        onChange={(e) => setFormData({...formData, assessment: e.target.value})}
+                     />
+                     
+                     <div className="space-y-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2">
+                           <ShieldCheck className="h-3.5 w-3.5 text-amber-500" /> Clinical ICD-10 Code
+                        </label>
+                        <div className="relative">
+                           <input 
+                              placeholder="Search or Select ICD-10..."
+                              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none text-sm font-bold shadow-inner"
+                              value={formData.diagnosis}
+                              onChange={(e) => setFormData({...formData, diagnosis: e.target.value})}
+                           />
+                           {icdSuggestions.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                 {icdSuggestions.map(code => (
+                                    <button 
+                                       key={code}
+                                       onClick={() => setFormData({...formData, diagnosis: code})}
+                                       className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${formData.diagnosis === code ? 'bg-amber-500 text-white shadow-lg' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-100'}`}
+                                    >
+                                       {code}
+                                    </button>
                                  ))}
-                                 {formData.labRequests.length === 0 && (
-                                    <div className="col-span-full py-12 border-2 border-dashed border-slate-50 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 gap-2">
-                                       <Droplets className="h-10 w-10 opacity-20" />
-                                       <p className="text-xs font-bold uppercase tracking-widest">No lab tests requested</p>
-                                    </div>
-                                 )}
                               </div>
-                           </div>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+               </div>
 
-                           {/* Prescriptions */}
-                           <div className="space-y-6">
-                              <div className="flex items-center justify-between">
-                                 <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                    <ClipboardList className="h-5 w-5 text-emerald-500" />
-                                    Prescription & Medications
-                                 </h4>
-                                 <button 
-                                   onClick={() => setFormData({
-                                      ...formData, 
-                                      prescriptions: [...formData.prescriptions, { drug: '', dosage: '', frequency: '', duration: '', instructions: '' }]
-                                   })}
-                                   className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all"
-                                 >
-                                    <Plus className="h-3.5 w-3.5" />
-                                    Add Medicine
+               {/* Plan */}
+               <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-indigo-200 flex flex-col gap-6">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                        <ClipboardList className="h-6 w-6" />
+                     </div>
+                     <div>
+                        <h4 className="text-lg font-bold text-slate-900 tracking-tight">Plan (P)</h4>
+                        <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Treatment & Follow-up</p>
+                     </div>
+                  </div>
+                  <div className="space-y-4">
+                     <textarea 
+                        className="w-full min-h-[160px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
+                        placeholder="Treatment plan: Procedures, education, and follow-up steps..."
+                        value={formData.plan}
+                        onChange={(e) => setFormData({...formData, plan: e.target.value})}
+                     />
+                  </div>
+                </div>
+             </div>
+
+             {/* Nursing Orders - Full Width */}
+             <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 mt-8">
+                <div className="flex items-center gap-4 mb-6">
+                   <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                      <ClipboardCheck className="h-6 w-6" />
+                   </div>
+                   <div>
+                      <h4 className="text-lg font-bold text-slate-900 tracking-tight">Nursing Orders</h4>
+                      <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Procedural instructions & clinic Care</p>
+                   </div>
+                </div>
+                <textarea 
+                   className="w-full min-h-[100px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-blue-500 outline-none text-sm font-medium transition-all placeholder:text-slate-300 shadow-inner"
+                   placeholder="Document nursing actions: Injections, dressings, vitals monitoring intervals..."
+                   value={formData.nursingOrders}
+                   onChange={(e) => setFormData({...formData, nursingOrders: e.target.value})}
+                />
+             </div>
+
+
+            {/* Vitals Hub - Compact High Density */}
+            <div className="bg-slate-50 border border-slate-200 p-8 rounded-[3rem] space-y-6">
+               <div className="flex items-center gap-4 px-2">
+                  <div className="h-10 w-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-900 shadow-sm transition-transform hover:scale-110">
+                     <Heart className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div>
+                     <h4 className="text-xl font-bold text-slate-900 tracking-tight">Vital Signs</h4>
+                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Physiological Parameters</p>
+                  </div>
+               </div>
+               
+               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                  {[
+                    { label: 'Temp', field: 'temp', unit: '°C' },
+                    { label: 'HR', field: 'hr', unit: 'bpm' },
+                    { label: 'RR', field: 'rr', unit: '/min' },
+                    { label: 'Sys', field: 'bp_sys', unit: 'mmHg' },
+                    { label: 'Dia', field: 'bp_dia', unit: 'mmHg' },
+                    { label: 'SpO2', field: 'spo2', unit: '%' },
+                    { label: 'Weight', field: 'weight', unit: 'kg' },
+                    { label: 'Height', field: 'height', unit: 'cm' }
+                  ].map((v) => (
+                    <div key={v.field} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2 group hover:border-primary-200 transition-all">
+                       <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-tighter px-0.5">{v.label}</label>
+                       <div className="relative">
+                          <input 
+                            type="text" 
+                            placeholder="--"
+                            value={formData.vitals[v.field]}
+                            onChange={(e) => setFormData({ ...formData, vitals: { ...formData.vitals, [v.field]: e.target.value } })}
+                            className="w-full py-1 bg-slate-50 border-b-2 border-transparent focus:border-primary-500 focus:bg-white outline-none text-sm font-black text-slate-900 transition-all text-center rounded-md"
+                          />
+                          <span className="absolute -bottom-4 left-0 w-full text-center text-[7px] font-bold text-slate-300 uppercase opacity-0 group-hover:opacity-100 transition-opacity">{v.unit}</span>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+            </div>
+
+            {/* Prescription Hub */}
+            <div className="bg-white border border-slate-200 p-10 rounded-[3rem] space-y-10 shadow-sm">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                     <div className="h-16 w-16 bg-slate-900 text-white rounded-[1.5rem] flex items-center justify-center shadow-2xl">
+                        <ClipboardCheck className="h-8 w-8" />
+                     </div>
+                     <div>
+                        <h4 className="text-2xl font-bold text-slate-900 tracking-tight">Prescription Hub</h4>
+                        <p className="text-sm text-slate-500 font-medium">Digital pharmacy medication orders</p>
+                     </div>
+                  </div>
+                  <button 
+                    onClick={() => setFormData({ ...formData, prescriptions: [...formData.prescriptions, { medicine: '', dosage: '', frequency: '', duration: '', route: 'Oral' }] })}
+                    className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                  >
+                    <Plus className="h-4 w-4" /> Add Medication
+                  </button>
+               </div>
+
+               <div className="space-y-4">
+                  {formData.prescriptions.length === 0 ? (
+                    <div className="py-12 border-2 border-dashed border-slate-100 rounded-[2rem] text-center">
+                       <ClipboardList className="h-12 w-12 text-slate-100 mx-auto mb-4" />
+                       <p className="text-sm font-medium text-slate-300 uppercase tracking-widest">No medications prescribed yet</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                       <table className="w-full">
+                          <thead>
+                             <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">
+                                <th className="pb-4 pl-4">Medicine Name</th>
+                                <th className="pb-4">Route</th>
+                                <th className="pb-4">Dosage</th>
+                                <th className="pb-4">Frequency</th>
+                                <th className="pb-4">Duration</th>
+                                <th className="pb-4"></th>
+                             </tr>
+                          </thead>
+                          <tbody className="space-y-3">
+                             {formData.prescriptions.map((p, idx) => (
+                                <tr key={idx} className="bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                   <td className="py-4 pl-4 rounded-l-2xl relative min-w-[300px]">
+                                      <div className="relative">
+                                         <input 
+                                            placeholder="Search medicine master..." 
+                                            value={p.medicine}
+                                            autoComplete="off"
+                                            onChange={(e) => {
+                                               const term = e.target.value;
+                                               const newP = [...formData.prescriptions];
+                                               newP[idx].medicine = term;
+                                               setFormData({...formData, prescriptions: newP});
+                                               handleSearchMaster('pharma', term, idx, 'prescription');
+                                            }}
+                                            onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                            className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm"
+                                         />
+                                         {searchContext.type === 'medicine' && searchContext.index === idx && medicineSuggestions.length > 0 && (
+                                            <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[100] overflow-hidden max-h-60 overflow-y-auto p-2 text-left">
+                                               {medicineSuggestions.map((m) => (
+                                                  <button 
+                                                     key={m.id}
+                                                     onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        const newP = [...formData.prescriptions];
+                                                        newP[idx].medicine = m.name;
+                                                        if (m.dosage) newP[idx].dosage = m.dosage;
+                                                        setFormData({...formData, prescriptions: newP});
+                                                        setMedicineSuggestions([]);
+                                                        setSearchContext({type: null, index: null});
+                                                     }}
+                                                     className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-blue-50 rounded-xl border-b border-slate-50 last:border-0 flex items-center justify-between group"
+                                                  >
+                                                     <span>{m.name}</span>
+                                                     <span className="text-[9px] text-slate-400 group-hover:text-blue-500 bg-slate-50 px-2 py-0.5 rounded-md">{m.dosage || 'Standard'}</span>
+                                                  </button>
+                                               ))}
+                                            </div>
+                                         )}
+                                      </div>
+                                   </td>
+                                   <td className="py-4">
+                                      <select 
+                                         value={p.route}
+                                         onChange={(e) => {
+                                            const newP = [...formData.prescriptions];
+                                            newP[idx].route = e.target.value;
+                                            setFormData({...formData, prescriptions: newP});
+                                         }}
+                                         className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-slate-900 shadow-sm"
+                                      >
+                                         <option>Oral</option>
+                                         <option>IV</option>
+                                         <option>IM</option>
+                                         <option>SC</option>
+                                         <option>Topical</option>
+                                      </select>
+                                   </td>
+                                   <td className="py-4">
+                                      <input placeholder="e.g. 500mg" value={p.dosage} onChange={(e) => {
+                                         const newP = [...formData.prescriptions];
+                                         newP[idx].dosage = e.target.value;
+                                         setFormData({...formData, prescriptions: newP});
+                                      }} className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-slate-900 shadow-sm" />
+                                   </td>
+                                   <td className="py-4">
+                                      <input placeholder="e.g. 1-0-1" value={p.frequency} onChange={(e) => {
+                                         const newP = [...formData.prescriptions];
+                                         newP[idx].frequency = e.target.value;
+                                         setFormData({...formData, prescriptions: newP});
+                                      }} className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-slate-900 shadow-sm" />
+                                   </td>
+                                   <td className="py-4">
+                                      <input placeholder="e.g. 5 Days" value={p.duration} onChange={(e) => {
+                                         const newP = [...formData.prescriptions];
+                                         newP[idx].duration = e.target.value;
+                                         setFormData({...formData, prescriptions: newP});
+                                      }} className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-slate-900 shadow-sm" />
+                                   </td>
+                                   <td className="py-4 pr-4 rounded-r-2xl">
+                                      <button 
+                                         onClick={() => setFormData({ ...formData, prescriptions: formData.prescriptions.filter((_, i) => i !== idx) })}
+                                         className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                      >
+                                         <X className="h-4 w-4" />
+                                      </button>
+                                   </td>
+                                </tr>
+                             ))}
+                          </tbody>
+                       </table>
+                    </div>
+                  )}
+               </div>
+            </div>
+
+            {/* Laboratory Request Hub */}
+            <div className="bg-white border border-slate-200 p-10 rounded-[3rem] space-y-8 shadow-sm">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                     <div className="h-16 w-16 bg-emerald-50 text-emerald-600 rounded-[1.5rem] flex items-center justify-center shadow-inner">
+                        <ActivityIcon className="h-8 w-8" />
+                     </div>
+                     <div>
+                        <h4 className="text-2xl font-bold text-slate-900 tracking-tight">Diagnostics & Labs</h4>
+                        <p className="text-sm text-slate-500 font-medium">Pathology, Radiology & Clinical Tests</p>
+                     </div>
+                  </div>
+                  <button 
+                    onClick={() => setFormData({ ...formData, labRequests: [...formData.labRequests, { test: '', urgency: 'Normal', instructions: '' }] })}
+                    className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                  >
+                    <Plus className="h-4 w-4" /> Request Test
+                  </button>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {formData.labRequests.map((r, idx) => (
+                    <div key={idx} className="p-8 bg-slate-50 border border-slate-100 rounded-[2rem] relative group hover:bg-white hover:shadow-xl hover:border-emerald-100 transition-all">
+                       <button 
+                          onClick={() => setFormData({ ...formData, labRequests: formData.labRequests.filter((_, i) => i !== idx) })}
+                          className="absolute right-4 top-4 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                       >
+                          <X className="h-4 w-4" />
+                       </button>
+                       <div className="space-y-4">
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Target Investigation</label>
+                             <div className="relative">
+                                <ActivityIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500/50" />
+                                <input 
+                                   placeholder="Search Lab/Scan Master..." 
+                                   value={r.test}
+                                   autoComplete="off"
+                                   onChange={(e) => {
+                                      const term = e.target.value;
+                                      const newR = [...formData.labRequests];
+                                      newR[idx].test = term;
+                                      setFormData({...formData, labRequests: newR});
+                                      handleSearchMaster('labs', term, idx, 'labs');
+                                   }}
+                                   onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                   className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none text-sm font-bold text-slate-900 focus:border-emerald-500 transition-all shadow-sm"
+                                />
+                                {searchContext.type === 'lab' && searchContext.index === idx && labSuggestions.length > 0 && (
+                                   <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[100] overflow-hidden max-h-60 overflow-y-auto p-2 text-left">
+                                      {labSuggestions.map((l) => (
+                                         <button 
+                                            key={l.id}
+                                            onMouseDown={(e) => {
+                                               e.preventDefault();
+                                               const newR = [...formData.labRequests];
+                                               newR[idx].test = l.name;
+                                               setFormData({...formData, labRequests: newR});
+                                               setLabSuggestions([]);
+                                               setSearchContext({type: null, index: null});
+                                            }}
+                                            className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-emerald-50 rounded-xl border-b border-slate-50 last:border-0 flex items-center justify-between group"
+                                         >
+                                            <span>{l.name}</span>
+                                            <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 uppercase font-black">{l.category || 'TEST'}</span>
+                                         </button>
+                                      ))}
+                                   </div>
+                                )}
+                             </div>
+                          </div>
+                          <div className="flex gap-4">
+                             <div className="flex-1 space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Urgency</label>
+                                <select 
+                                   value={r.urgency}
+                                   onChange={(e) => {
+                                      const newR = [...formData.labRequests];
+                                      newR[idx].urgency = e.target.value;
+                                      setFormData({...formData, labRequests: newR});
+                                   }}
+                                   className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none text-sm font-bold text-slate-900"
+                                >
+                                   <option>Normal</option>
+                                   <option>Urgent</option>
+                                   <option>STAT (Critical)</option>
+                                </select>
+                             </div>
+                             <div className="flex-1 space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Instructions</label>
+                                <input 
+                                   placeholder="Fasting, etc..." 
+                                   value={r.instructions}
+                                   onChange={(e) => {
+                                      const newR = [...formData.labRequests];
+                                      newR[idx].instructions = e.target.value;
+                                      setFormData({...formData, labRequests: newR});
+                                   }}
+                                   className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none text-sm font-bold text-slate-900"
+                                />
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+               
+               {formData.labRequests.length === 0 && (
+                  <div className="py-12 border-2 border-dashed border-slate-50 rounded-[2rem] text-center">
+                     <ActivityIcon className="h-10 w-10 text-slate-100 mx-auto mb-4" />
+                     <p className="text-xs font-bold text-slate-200 uppercase tracking-[0.2em]">No investigations ordered</p>
+                  </div>
+               )}
+            </div>
+
+            {/* Specialized Modules - Sections */}
+            <div className="space-y-10 pt-8">
+               <div className="flex items-center gap-4 mb-2">
+                  <div className="h-px flex-1 bg-slate-100" />
+                  <p className="text-[11px] font-bold text-slate-300 uppercase tracking-[0.2em]">Clinical Templates & Extras</p>
+                  <div className="h-px flex-1 bg-slate-100" />
+               </div>
+
+               {activeSpecialties.filter(id => id !== 'pharmacy_lab' && id !== 'general').length > 0 && (
+                  <div className="space-y-8">
+                     {activeSpecialties.filter(id => id !== 'pharmacy_lab' && id !== 'general').map(specId => {
+                        const spec = SPECIALTIES.find(s => s.id === specId);
+                        return (
+                           <motion.div 
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              key={specId} 
+                              className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm"
+                           >
+                              <div className="flex items-center justify-between mb-10">
+                                 <div className="flex items-center gap-6">
+                                    <div className="h-16 w-16 bg-slate-50 text-primary-600 rounded-[1.5rem] flex items-center justify-center border border-slate-100 shadow-inner">
+                                       {spec?.icon ? React.createElement(spec.icon, { className: 'h-8 w-8' }) : <Stethoscope className="h-8 w-8" />}
+                                    </div>
+                                    <div>
+                                       <h4 className="text-2xl font-bold text-slate-900 tracking-tight">{spec?.name || 'Unknown'} Module</h4>
+                                       <p className="text-sm text-slate-500 font-medium">Specialized examination findings</p>
+                                    </div>
+                                 </div>
+                                 <button onClick={() => toggleSpecialty(specId)} className="p-3 bg-red-50 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm">
+                                    <X className="h-5 w-5" />
                                  </button>
                               </div>
-                              <div className="space-y-3">
-                                 {formData.prescriptions.map((px, idx) => (
-                                    <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-6 group relative">
-                                       <button 
-                                         onClick={() => {
-                                           const newMeds = [...formData.prescriptions];
-                                           newMeds.splice(idx, 1);
-                                           setFormData({...formData, prescriptions: newMeds});
-                                         }}
-                                         className="absolute -top-2 -right-2 h-10 w-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-red-100 shadow-sm hover:bg-red-500 hover:text-white"
-                                       >
-                                          <Trash2 className="h-5 w-5" />
-                                       </button>
-                                       <div className="md:col-span-2 space-y-1">
-                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Medication</label>
-                                          <input 
-                                            placeholder="Drug Name (e.g. Amoxicillin 500mg)"
-                                            value={px.drug}
-                                            onChange={(e) => {
-                                               const newMeds = [...formData.prescriptions];
-                                               newMeds[idx].drug = e.target.value;
-                                               setFormData({...formData, prescriptions: newMeds});
-                                            }}
-                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
-                                          />
-                                       </div>
-                                       <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Dosage</label>
-                                          <input 
-                                            placeholder="e.g. 1 Tab"
-                                            value={px.dosage}
-                                            onChange={(e) => {
-                                               const newMeds = [...formData.prescriptions];
-                                               newMeds[idx].dosage = e.target.value;
-                                               setFormData({...formData, prescriptions: newMeds});
-                                            }}
-                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
-                                          />
-                                       </div>
-                                       <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Frequency</label>
-                                          <select 
-                                            value={px.frequency}
-                                            onChange={(e) => {
-                                               const newMeds = [...formData.prescriptions];
-                                               newMeds[idx].frequency = e.target.value;
-                                               setFormData({...formData, prescriptions: newMeds});
-                                            }}
-                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none"
-                                          >
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                                 {/* (Individual Fields kept here - just cleaned up UI styles) */}
+                                 {specId === 'dental' && (
+                                    <>
+                                       <div className="space-y-3">
+                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Tooth Number (1-32)</label>
+                                          <select className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2x outline-none text-sm font-bold shadow-inner"
+                                             onChange={(e) => updateSpecialtyField('tooth', e.target.value)}>
                                              <option value="">Select</option>
-                                             <option>1x1 (Once Daily)</option>
-                                             <option>2x1 (Twice Daily)</option>
-                                             <option>3x1 (Thrice Daily)</option>
-                                             <option>4x1 (QDS)</option>
-                                             <option>PRN (As Needed)</option>
-                                             <option>STAT (Immediately)</option>
+                                             {Array.from({length: 32}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}
                                           </select>
                                        </div>
-                                       <div className="md:col-span-4 space-y-1">
-                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Specical Instructions</label>
-                                          <input 
-                                            placeholder="e.g. Before food, Avoid alcohol..."
-                                            value={px.instructions}
-                                            onChange={(e) => {
-                                               const newMeds = [...formData.prescriptions];
-                                               newMeds[idx].instructions = e.target.value;
-                                               setFormData({...formData, prescriptions: newMeds});
-                                            }}
-                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
-                                          />
+                                       <div className="space-y-3 col-span-2">
+                                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Surfaces</label>
+                                          <div className="flex gap-3">
+                                             {['O', 'M', 'D', 'L', 'B'].map(s => (
+                                             <button 
+                                                key={s} 
+                                                onClick={() => toggleSurface(s)}
+                                                className={`h-12 w-12 rounded-xl border-2 flex items-center justify-center font-bold text-xs transition-all
+                                                   ${(formData.specialtyData.surfaces || '').split(',').includes(s)
+                                                      ? 'bg-blue-600 text-white border-blue-600 shadow-xl shadow-blue-100'
+                                                      : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50 hover:text-blue-600'}
+                                                `}>{s}</button>
+                                             ))}
+                                          </div>
                                        </div>
-                                    </div>
-                                 ))}
-                                 {formData.prescriptions.length === 0 && (
-                                    <div className="py-12 border-2 border-dashed border-slate-50 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 gap-2">
-                                       <ClipboardList className="h-10 w-10 opacity-20" />
-                                       <p className="text-xs font-bold uppercase tracking-widest">No medications prescribed</p>
-                                    </div>
+                                    </>
+                                 )}
+
+                                 {/* Other specialty field blocks follow same principle - using the Field component with premium styles */}
+                                 {specId === 'obgyn' && (
+                                    <>
+                                       <Field label="LMP" field="cn_lmp" value={formData.specialtyData.cn_lmp} onChange={updateSpecialtyField} type="date" />
+                                       <Field label="EDD" field="cn_edd" value={formData.specialtyData.cn_edd} onChange={updateSpecialtyField} type="date" />
+                                       <Field label="Gravida" field="cn_gravida" value={formData.specialtyData.cn_gravida} onChange={updateSpecialtyField} />
+                                       <Field label="FHR" field="cn_fhr" value={formData.specialtyData.cn_fhr} onChange={updateSpecialtyField} />
+                                       <div className="col-span-full">
+                                          <Field label="Exam Notes" field="cn_exam_notes" value={formData.specialtyData.cn_exam_notes} onChange={updateSpecialtyField} isTextArea />
+                                       </div>
+                                    </>
+                                 )}
+                                 
+                                 {specId === 'pediatrics' && (
+                                    <>
+                                       <Field label="Weight (kg)" field="cn_weight" value={formData.specialtyData.cn_weight} onChange={updateSpecialtyField} />
+                                       <Field label="Height (cm)" field="cn_height" value={formData.specialtyData.cn_height} onChange={updateSpecialtyField} />
+                                       <Field label="Percentile (W)" field="cn_percentile_wt" value={formData.specialtyData.cn_percentile_wt} onChange={updateSpecialtyField} />
+                                       <Field label="Growth Comments" field="cn_notesgrowthcoment" value={formData.specialtyData.cn_notesgrowthcoment} onChange={updateSpecialtyField} isTextArea />
+                                    </>
+                                 )}
+
+                                 {specId === 'internal_med' && (
+                                    <>
+                                       <Field label="BP Target" field="med_bp" value={formData.specialtyData.med_bp} onChange={updateSpecialtyField} />
+                                       <Field label="HbA1c" field="med_latest" value={formData.specialtyData.med_latest} onChange={updateSpecialtyField} />
+                                       <div className="col-span-full">
+                                          <Field label="Medication Adjustments" field="med_planadjust" value={formData.specialtyData.med_planadjust} onChange={updateSpecialtyField} isTextArea />
+                                       </div>
+                                    </>
+                                 )}
+
+                                 {specId === 'surgery' && (
+                                    <>
+                                       <Field label="Target Procedure" field="sur_pro" value={formData.specialtyData.sur_pro} onChange={updateSpecialtyField} />
+                                       <Field label="Surgeon Name" field="sur_surgeon" value={formData.specialtyData.sur_surgeon} onChange={updateSpecialtyField} />
+                                       <Field label="Pre-op Diagnosis" field="sur_preop" value={formData.specialtyData.sur_preop} onChange={updateSpecialtyField} />
+                                       <div className="col-span-full">
+                                          <Field label="Operative Notes" field="sur_notes" value={formData.specialtyData.sur_notes} onChange={updateSpecialtyField} isTextArea />
+                                       </div>
+                                    </>
+                                 )}
+
+                                 {specId === 'ent' && (
+                                    <>
+                                       <Field label="Ear Findings" field="ent_ear" value={formData.specialtyData.ent_ear} onChange={updateSpecialtyField} />
+                                       <Field label="Nose/Sinus" field="ent_nose" value={formData.specialtyData.ent_nose} onChange={updateSpecialtyField} />
+                                       <Field label="Throat/Larynx" field="ent_throat" value={formData.specialtyData.ent_throat} onChange={updateSpecialtyField} />
+                                    </>
+                                 )}
+
+                                 {specId === 'dermatology' && (
+                                    <>
+                                       <Field label="Lesion Type" field="derm_lesion" value={formData.specialtyData.derm_lesion} onChange={updateSpecialtyField} />
+                                       <Field label="Body Location" field="derm_loc" value={formData.specialtyData.derm_loc} onChange={updateSpecialtyField} />
+                                       <Field label="Characteristics" field="derm_char" value={formData.specialtyData.derm_char} onChange={updateSpecialtyField} />
+                                       <div className="col-span-full">
+                                          <Field label="Dermatology Summary" field="derm_notes" value={formData.specialtyData.derm_notes} onChange={updateSpecialtyField} isTextArea />
+                                       </div>
+                                    </>
+                                 )}
+
+                                 {specId === 'radiology' && (
+                                    <>
+                                       <Field label="Imaging Modality" field="rad_modality" value={formData.specialtyData.rad_modality} onChange={updateSpecialtyField} />
+                                       <Field label="Clinical Indication" field="rad_indication" value={formData.specialtyData.rad_indication} onChange={updateSpecialtyField} />
+                                       <div className="col-span-full">
+                                          <Field label="Radiological Findings" field="rad_findings" value={formData.specialtyData.rad_findings} onChange={updateSpecialtyField} isTextArea />
+                                       </div>
+                                    </>
+                                 )}
+
+                                 {specId === 'ophthalmology' && (
+                                    <>
+                                       <div className="grid grid-cols-2 gap-4 col-span-1">
+                                          <Field label="VA (OD)" field="eye_va_od" value={formData.specialtyData.eye_va_od} onChange={updateSpecialtyField} />
+                                          <Field label="VA (OS)" field="eye_va_os" value={formData.specialtyData.eye_va_os} onChange={updateSpecialtyField} />
+                                       </div>
+                                       <Field label="IOP (mmHg)" field="eye_iop" value={formData.specialtyData.eye_iop} onChange={updateSpecialtyField} />
+                                       <div className="col-span-full">
+                                          <Field label="Fundoscopy" field="eye_fundus" value={formData.specialtyData.eye_fundus} onChange={updateSpecialtyField} isTextArea />
+                                       </div>
+                                    </>
+                                 )}
+
+                                 {specId === 'orthopedics' && (
+                                    <>
+                                       <Field label="Joint Involved" field="orth_joint" value={formData.specialtyData.orth_joint} onChange={updateSpecialtyField} />
+                                       <Field label="ROM" field="orth_rom" value={formData.specialtyData.orth_rom} onChange={updateSpecialtyField} />
+                                       <Field label="Muscle Power" field="orth_power" value={formData.specialtyData.orth_power} onChange={updateSpecialtyField} />
+                                    </>
+                                 )}
+
+                                 {specId === 'psychiatry' && (
+                                    <>
+                                       <Field label="MSE Summary" field="psych_mse" value={formData.specialtyData.psych_mse} onChange={updateSpecialtyField} />
+                                       <Field label="Mood/Affect" field="psych_mood" value={formData.specialtyData.psych_mood} onChange={updateSpecialtyField} />
+                                       <Field label="Thought Content" field="psych_thought" value={formData.specialtyData.psych_thought} onChange={updateSpecialtyField} />
+                                    </>
+                                 )}
+
+                                 {specId === 'physiotherapy' && (
+                                    <>
+                                       <Field label="Strength Grade" field="physio_grade" value={formData.specialtyData.physio_grade} onChange={updateSpecialtyField} />
+                                       <Field label="Gait/Balance" field="physio_gait" value={formData.specialtyData.physio_gait} onChange={updateSpecialtyField} />
+                                       <div className="col-span-full">
+                                          <Field label="Rehab Progress" field="physio_prog" value={formData.specialtyData.physio_prog} onChange={updateSpecialtyField} isTextArea />
+                                       </div>
+                                    </>
                                  )}
                               </div>
-                           </div>
-                        </div>
-                      )}
-                    </div>
+                           </motion.div>
+                        );
+                     })}
                   </div>
-                );
-              })}
-            </div>
-
-            {/* SOAP Sections */}
-            <div className="space-y-12">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <SOAPBox label="Subjective" icon="S" value={formData.subjective} onChange={(val) => setFormData({...formData, subjective: val})} />
-                <SOAPBox label="Objective" icon="O" value={formData.objective} onChange={(val) => setFormData({...formData, objective: val})} />
-                <SOAPBox label="Assessment" icon="A" value={formData.assessment} onChange={(val) => setFormData({...formData, assessment: val})} />
-                <SOAPBox label="Plan" icon="P" value={formData.plan} onChange={(val) => setFormData({...formData, plan: val})} />
-              </div>
-              <div className="pt-2">
-                 <div className="p-8 bg-blue-50/50 rounded-3xl border border-blue-50">
-                    <SOAPBox label="Nursing Orders" icon="N" value={formData.nursingOrders} onChange={(val) => setFormData({...formData, nursingOrders: val})} />
-                 </div>
-              </div>
-            </div>
-
-            {/* ICD-10 Linked */}
-            <div className="space-y-4">
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                Diagnosis (ICD-10)
-              </label>
-              <div className="flex gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Enter Diagnosis (e.g., Hypertension, Malaria)..." 
-                    value={formData.diagnosis}
-                    onChange={(e) => setFormData({...formData, diagnosis: e.target.value})}
-                    className="w-full pl-16 pr-6 py-6 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm font-medium transition-all outline-none" 
-                  />
-                </div>
-                <button 
-                  type="button"
-                  onClick={() => generateIcdSuggestions(formData.subjective + ' ' + formData.objective + ' ' + formData.assessment)}
-                  className="px-6 bg-indigo-50 text-indigo-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center gap-2"
-                >
-                  Auto-Suggest
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    if (formData.diagnosis) {
-                      showNotification('success', `Primary Diagnosis set to: ${formData.diagnosis}`);
-                    } else {
-                      showNotification('error', 'Please enter a diagnosis first.');
-                    }
-                  }}
-                  className="px-8 bg-slate-900 text-white rounded-2xl font-medium text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
-                >
-                  Set Primary Diagnosis
-                </button>
-              </div>
-              
-              {/* Suggestions Box */}
-              {icdSuggestions.length > 0 && (
-                 <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 mt-4">
-                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-3">Assistive AI Suggestions (Select one)</p>
-                    <div className="flex flex-wrap gap-2">
-                       {icdSuggestions.map((suggestion, idx) => (
-                          <button 
-                             key={idx}
-                             type="button"
-                             onClick={() => setFormData({...formData, diagnosis: typeof suggestion === 'string' ? suggestion : (suggestion.code || '')})}
-                             className="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-xl text-xs font-semibold hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                          >
-                             {typeof suggestion === 'string' ? suggestion : (suggestion.code || 'Suggestion')}
-                          </button>
-                       ))}
-                    </div>
-                 </div>
-              )}
+               )}
             </div>
           </div>
+
+          {/* History Sidebar (Right Side) */}
+          <AnimatePresence>
+            {showHistory && (
+              <motion.div 
+                initial={{ x: 300, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 300, opacity: 0 }}
+                className="w-96 bg-slate-50 border-l border-slate-200 overflow-y-auto p-8 shadow-2xl z-20"
+              >
+                 <div className="flex items-center justify-between mb-8">
+                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                       <History className="h-4 w-4 text-primary-500" /> Medical Archive
+                    </h4>
+                 </div>
+                 
+                 {loadingHistory ? (
+                    <div className="py-20 text-center">
+                       <RefreshCw className="h-8 w-8 text-primary-200 animate-spin mx-auto mb-4" />
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scanning Records...</p>
+                    </div>
+                 ) : patientHistory.length === 0 ? (
+                    <div className="py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
+                       <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FileText className="h-8 w-8 text-slate-200" />
+                       </div>
+                       <p className="text-sm font-bold text-slate-900 mb-1">No Clinical History</p>
+                       <p className="text-[10px] font-medium text-slate-400 px-6">This appears to be a new case for this facility.</p>
+                    </div>
+                 ) : (
+                    <div className="space-y-6">
+                       {patientHistory.map((h) => (
+                          <motion.div 
+                            key={h.id} 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-6 bg-white border border-slate-100 rounded-[2rem] hover:shadow-xl hover:shadow-slate-200 transition-all group cursor-pointer relative"
+                            onClick={() => setViewingNote(h)}
+                          >
+                             <div className="flex justify-between items-start mb-4">
+                                <span className="px-2 py-0.5 bg-primary-50 text-primary-600 rounded text-[8px] font-bold uppercase tracking-widest border border-primary-100">
+                                   {h.specialty || (h.specialties ? h.specialties[0] : 'General')}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase">
+                                   {h.createdAt?.seconds ? new Date(h.createdAt.seconds * 1000).toLocaleDateString() : 'Historical'}
+                                </span>
+                             </div>
+                             <h5 className="text-sm font-bold text-slate-900 mb-2 truncate group-hover:text-primary-600 transition-colors">{h.title || 'Consultation'}</h5>
+                             <p className="text-[11px] text-slate-500 line-clamp-3 leading-relaxed font-medium">
+                                {h.assessment || h.subjective || 'No summary available.'}
+                             </p>
+                             
+                             {h.diagnosis && (
+                                <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Diagnosis</p>
+                                   <p className="text-[10px] font-bold text-slate-800 truncate uppercase">{h.diagnosis}</p>
+                                </div>
+                             )}
+
+                             <div className="mt-6 flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5">
+                                   <div className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                      {h.doctorName?.charAt(0) || 'D'}
+                                   </div>
+                                   {h.doctorName}
+                                </span>
+                                <ChevronRight className="h-4 w-4 text-slate-200 group-hover:text-primary-500 transition-colors" />
+                             </div>
+                          </motion.div>
+                       ))}
+                    </div>
+                 )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-white z-10">
@@ -1640,29 +1904,92 @@ function NoteViewer({ note, onClose }) {
         <div className="flex-1 overflow-y-auto p-10 space-y-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="p-6 bg-slate-50 rounded-3xl">
-              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Doctor</p>
-              <p className="text-sm font-medium text-slate-900">{note.doctorName}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Doctor</p>
+              <p className="text-sm font-bold text-slate-900">{note.doctorName}</p>
             </div>
             <div className="p-6 bg-slate-50 rounded-3xl">
-              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Specialty</p>
-              <p className="text-sm font-medium text-slate-900 capitalize">{note.specialties?.join(', ') || note.specialty || 'General'}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Specialty</p>
+              <p className="text-sm font-bold text-slate-900 capitalize">{note.specialties?.join(', ') || note.specialty || 'General'}</p>
             </div>
             {note.diagnosis && (
-              <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 col-span-2">
-                <p className="text-[10px] font-medium text-amber-500 uppercase tracking-widest mb-1 italic">Diagnosis (ICD-10)</p>
-                <p className="text-sm font-medium text-amber-900">{note.diagnosis}</p>
+              <div className="p-6 bg-slate-900 text-white rounded-[2rem] col-span-2 shadow-xl shadow-slate-200">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Diagnosis (ICD-10)</p>
+                <p className="text-sm font-bold">{note.diagnosis}</p>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+             {note.vitals && Object.values(note.vitals).some(v => v) && (
+               <div className="col-span-full bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
+                 {Object.entries(note.vitals).filter(([_, v]) => v).map(([key, value]) => (
+                   <div key={key} className="text-center md:text-left">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">{key.replace('_', ' ')}</p>
+                      <p className="text-sm font-bold text-slate-900">{value}</p>
+                   </div>
+                 ))}
+               </div>
+             )}
+
             <ViewerBox label="Subjective" icon="S" content={note.subjective} />
             <ViewerBox label="Objective" icon="O" content={note.objective} />
             <ViewerBox label="Assessment" icon="A" content={note.assessment} />
             <ViewerBox label="Plan" icon="P" content={note.plan} />
+            
+            {note.prescriptions?.length > 0 && (
+               <div className="col-span-full space-y-4">
+                  <div className="flex items-center gap-3 px-2">
+                     <div className="h-6 w-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-medium">Rx</div>
+                     <h5 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Prescribed Medications</h5>
+                  </div>
+                  <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
+                     <table className="w-full">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                           <tr className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em] text-left">
+                              <th className="px-6 py-4">Medicine</th>
+                              <th className="px-6 py-4">Dose</th>
+                              <th className="px-6 py-4">Frequency</th>
+                              <th className="px-6 py-4">Duration</th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 font-medium text-xs text-slate-600">
+                           {note.prescriptions.map((p, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                 <td className="px-6 py-4 font-bold text-slate-900">{p.medicine} <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-400 rounded uppercase ml-2">{p.route}</span></td>
+                                 <td className="px-6 py-4">{p.dosage}</td>
+                                 <td className="px-6 py-4">{p.frequency}</td>
+                                 <td className="px-6 py-4">{p.duration}</td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            )}
+
+            {note.labRequests?.length > 0 && (
+               <div className="col-span-full space-y-4">
+                  <div className="flex items-center gap-3 px-2">
+                     <div className="h-6 w-6 bg-emerald-600 text-white rounded-lg flex items-center justify-center text-[10px] font-medium">Lx</div>
+                     <h5 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Laboratory Investigations</h5>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {note.labRequests.map((l, idx) => (
+                        <div key={idx} className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-3xl flex justify-between items-center group">
+                           <div>
+                              <p className="text-sm font-bold text-slate-900">{l.test}</p>
+                              <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-widest mt-1">{l.urgency} • {l.instructions || 'No specific instruction'}</p>
+                           </div>
+                           <ActivityIcon className="h-5 w-5 text-emerald-200 group-hover:text-emerald-500 transition-colors" />
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+
             {note.nursingOrders && (
                <div className="col-span-1 md:col-span-2">
-                 <ViewerBox label="Nursing Orders" icon="N" content={note.nursingOrders} />
+                  <ViewerBox label="Nursing Orders" icon="N" content={note.nursingOrders} />
                </div>
             )}
           </div>

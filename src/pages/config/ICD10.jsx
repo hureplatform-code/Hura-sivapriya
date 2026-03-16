@@ -3,6 +3,8 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Search, ListFilter, Plus, MoreVertical, FileText, Edit2, Trash2, X, Save, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import medicalMasterService from '../../services/medicalMasterService';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 const CATEGORIES = [
   'Infectious Diseases', 'Viral Infections', 'Neoplasms', 'Metabolic Diseases',
@@ -13,6 +15,9 @@ const CATEGORIES = [
 const EMPTY_FORM = { code: '', description: '', category: '' };
 
 export default function ICD10() {
+  const { userData } = useAuth();
+  const { success, error } = useToast();
+  const isSuperadmin = userData?.role === 'superadmin' || userData?.role === 'platform_owner';
   const [icdCodes, setIcdCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,7 +34,7 @@ export default function ICD10() {
   const fetchCodes = async () => {
     try {
       setLoading(true);
-      const data = await medicalMasterService.getAll('icd');
+      const data = await medicalMasterService.getAll('icd', null, null, null, isSuperadmin ? null : userData?.facilityId);
       setIcdCodes(data);
     } catch (err) {
       console.error('Error fetching ICD-10 codes:', err);
@@ -65,14 +70,22 @@ export default function ICD10() {
     if (!form.code || !form.description) return;
     try {
       setSaving(true);
-      const payload = { code: form.code.trim().toUpperCase(), description: form.description.trim(), category: form.category };
+      const payload = { 
+        code: form.code.trim().toUpperCase(), 
+        description: form.description.trim(), 
+        category: form.category,
+        facilityId: isSuperadmin ? null : userData?.facilityId,
+        isGlobal: isSuperadmin
+      };
 
       if (editingItem) {
         await medicalMasterService.update('icd', editingItem.id, payload);
         setIcdCodes(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...payload } : i));
+        success("ICD code updated.");
       } else {
         const created = await medicalMasterService.create('icd', payload);
         setIcdCodes(prev => [...prev, created]);
+        success("Custom ICD code added.");
       }
       setIsModalOpen(false);
     } catch (err) {
@@ -84,10 +97,15 @@ export default function ICD10() {
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
+    if (!deleteConfirm.facilityId && !isSuperadmin) {
+      error("Global codes cannot be deleted.");
+      return;
+    }
     try {
       await medicalMasterService.delete('icd', deleteConfirm.id);
       setIcdCodes(prev => prev.filter(i => i.id !== deleteConfirm.id));
       setDeleteConfirm(null);
+      success("Code removed.");
     } catch (err) {
       console.error('Error deleting ICD code:', err);
     }
@@ -188,14 +206,22 @@ export default function ICD10() {
                       </td>
                       <td className="py-5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1 transition-all">
-                          <button onClick={() => openEdit(icd)}
-                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => setDeleteConfirm(icd)}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {(!icd.isGlobal || isSuperadmin) ? (
+                            <>
+                              <button onClick={() => openEdit(icd)}
+                                className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all">
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button onClick={() => setDeleteConfirm(icd)}
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="px-3 py-1 bg-slate-50 text-[10px] font-bold text-slate-300 rounded-lg uppercase tracking-widest border border-slate-100">
+                               Global
+                            </span>
+                          )}
                         </div>
                       </td>
                     </motion.tr>

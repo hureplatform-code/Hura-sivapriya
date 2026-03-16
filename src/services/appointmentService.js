@@ -10,6 +10,11 @@ const appointmentService = {
     return firestoreService.getAll(this.collection, q);
   },
 
+  async getAppointmentById(id) {
+    if (!id) return null;
+    return firestoreService.getById(this.collection, id);
+  },
+
   async getRecentAppointments(facilityId) {
     const q = [orderBy('createdAt', 'desc'), limit(10)];
     if (facilityId) q.push(where('facilityId', '==', facilityId));
@@ -94,7 +99,7 @@ const appointmentService = {
     const q = [where('status', 'in', ['arrived', 'triage', 'calling', 'in-session'])];
     if (facilityId) q.push(where('facilityId', '==', facilityId));
     const results = await firestoreService.getAll(this.collection, q);
-    return results.sort((a, b) => new Date(a.date) - new Date(a.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
+    return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
   },
 
   async getPharmacyQueue(facilityId) {

@@ -127,7 +127,7 @@ const menuItems = [
     icon: Database,
     label: 'System Codes',
     path: '/superadmin/codes',
-    roles: ['superadmin']
+    roles: ['superadmin', 'clinic_owner', 'admin']
   },
   {
     id: 'reports',

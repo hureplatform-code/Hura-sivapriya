@@ -1,6 +1,6 @@
 import firestoreService from './firestoreService';
 import { db } from '../firebase';
-import { query, collection, getDocs, orderBy, limit, startAfter } from 'firebase/firestore';
+import { query, collection, getDocs, orderBy, limit, startAfter, where } from 'firebase/firestore';
 
 const medicalMasterService = {
   // Collection Mappings
@@ -20,7 +20,7 @@ const medicalMasterService = {
   },
 
   // Generic Master CRUD helpers
-  async getAll(type, limitNum = null, lastDoc = null, sortField = null) {
+  async getAll(type, limitNum = null, lastDoc = null, sortField = null, facilityId = null) {
     const col = this.collections[type];
     if (!col) throw new Error(`Invalid master type: ${type}`);
     
@@ -31,15 +31,42 @@ const medicalMasterService = {
         constraints.push(orderBy(sortField));
       }
 
-      if (limitNum !== null) {
-        constraints.push(limit(limitNum));
+      // If facilityId is provided, we want to fetch global codes (null/missing) AND facility-specific ones
+      // Since 'or' queries are complex with ordering/pagination, we can use 'where' if we strictly follow one path,
+      // but for masters, usually we want ALL global + ONE facility.
+      // Easiest is to fetch all where facilityId == null (global) and where facilityId == facilityId (local)
+      
+      const qConstraints = [...constraints];
+      if (limitNum !== null) qConstraints.push(limit(limitNum));
+      if (lastDoc) qConstraints.push(startAfter(lastDoc));
+
+      // Strategy: Most codes are global. We'll fetch everything and filter in-memory if it's small,
+      // but if big, we need real queries.
+      // For now, let's implement a robust query that handles the facility filter if provided.
+      
+      let q;
+      if (facilityId) {
+        // Fetch facility-specific items
+        const facilityQ = query(collection(db, col), where('facilityId', '==', facilityId), ...qConstraints);
+        // Fetch global items
+        const globalQ = query(collection(db, col), where('facilityId', '==', null), ...qConstraints);
+        
+        const [facSnap, globSnap] = await Promise.all([getDocs(facilityQ), getDocs(globalQ)]);
+        
+        const items = [
+          ...facSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+          ...globSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        ];
+        
+        // Sorting in memory if combined
+        if (sortField) {
+          items.sort((a, b) => (a[sortField] > b[sortField] ? 1 : -1));
+        }
+
+        return limitNum === null ? items : { items, lastDoc: globSnap.docs[globSnap.docs.length - 1] };
       }
 
-      if (lastDoc) {
-        constraints.push(startAfter(lastDoc));
-      }
-
-      const q = query(collection(db, col), ...constraints);
+      q = query(collection(db, col), ...qConstraints);
       const snap = await getDocs(q);
       
       const lastVisible = snap.docs[snap.docs.length - 1];
@@ -71,6 +98,32 @@ const medicalMasterService = {
   async delete(type, id) {
     const col = this.collections[type];
     return firestoreService.delete(col, id);
+  },
+
+  async search(type, term, facilityId = null) {
+    const col = this.collections[type];
+    if (!col) throw new Error(`Invalid master type: ${type}`);
+    
+    try {
+      const qConstraints = [
+        where('name', '>=', term),
+        where('name', '<=', term + '\uf8ff'),
+        limit(10)
+      ];
+
+      const q = query(collection(db, col), ...qConstraints);
+      const snap = await getDocs(q);
+      let results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      if (facilityId) {
+        results = results.filter(item => !item.facilityId || item.facilityId === facilityId);
+      }
+
+      return results;
+    } catch (error) {
+      console.error(`Error searching ${type}:`, error);
+      return [];
+    }
   }
 };
 

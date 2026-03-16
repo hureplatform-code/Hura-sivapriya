@@ -24,6 +24,7 @@ export default function SystemCodes() {
   const { userData } = useAuth();
   const { success, error } = useToast();
   const { confirm } = useConfirm();
+  const isSuperadmin = userData?.role === 'superadmin' || userData?.role === 'platform_owner';
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,19 +54,18 @@ export default function SystemCodes() {
 
       if (activeType === 'All') {
         const [icdRes, pharmaRes] = await Promise.all([
-          medicalMasterService.getAll('icd', 50, isLoadMore ? lastVisible : null),
-          medicalMasterService.getAll('pharma', 50, isLoadMore ? lastVisible : null)
+          medicalMasterService.getAll('icd', 50, isLoadMore ? lastVisible : null, null, isSuperadmin ? null : userData?.facilityId),
+          medicalMasterService.getAll('pharma', 50, isLoadMore ? lastVisible : null, null, isSuperadmin ? null : userData?.facilityId)
         ]);
         
         const icdItems = (icdRes.items || icdRes).map(c => ({ ...c, type: 'ICD-10' }));
         const pharmaItems = (pharmaRes.items || pharmaRes).map(c => ({ ...c, type: 'CDT' }));
         
         combinedItems = [...icdItems, ...pharmaItems];
-        // For combined 'All', pagination lastVisible is less reliable, but we'll use the last doc from ICD as a proxy
         combinedLastDoc = icdRes.lastDoc || pharmaRes.lastDoc;
       } else {
         const typeKey = activeType === 'CDT' ? 'pharma' : 'icd';
-        const result = await medicalMasterService.getAll(typeKey, 50, isLoadMore ? lastVisible : null);
+        const result = await medicalMasterService.getAll(typeKey, 50, isLoadMore ? lastVisible : null, null, isSuperadmin ? null : userData?.facilityId);
         const { items: newItems, lastDoc } = result.items ? result : { items: result, lastDoc: null };
         
         combinedItems = newItems.map(c => ({ ...c, type: activeType }));
@@ -117,32 +117,38 @@ export default function SystemCodes() {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      const collection = newCode.type === 'ICD-10' 
+      const collectName = newCode.type === 'ICD-10' 
         ? firestoreService.collections.icd_masters 
         : firestoreService.collections.pharma_masters;
       
+      const payload = {
+        ...newCode,
+        facilityId: isSuperadmin ? null : userData?.facilityId,
+        isGlobal: isSuperadmin
+      };
+
       if (editingItem) {
-        await firestoreService.update(collection, editingItem.id, newCode);
+        await firestoreService.update(collectName, editingItem.id, payload);
         await auditService.logActivity({
           userId: userData?.uid,
-          userName: userData?.name || 'Superadmin',
+          userName: userData?.name || (isSuperadmin ? 'Superadmin' : 'Clinic Staff'),
           action: 'UPDATE_SYSTEM_CODE',
-          module: 'GOVERNANCE',
+          module: isSuperadmin ? 'GOVERNANCE' : 'CLINICAL',
           description: `Updated ${newCode.type} code: ${newCode.code}`,
-          metadata: { codeId: editingItem.id, code: newCode.code, type: newCode.type }
+          metadata: { codeId: editingItem.id, code: newCode.code, type: newCode.type, facilityId: userData?.facilityId }
         });
-        success(`Successfully updated master code: ${newCode.code}`);
+        success(`Successfully updated ${isSuperadmin ? 'master' : 'custom'} code: ${newCode.code}`);
       } else {
-        const result = await firestoreService.create(collection, newCode);
+        const result = await firestoreService.create(collectName, payload);
         await auditService.logActivity({
           userId: userData?.uid,
-          userName: userData?.name || 'Superadmin',
-          action: 'INJECT_SYSTEM_CODE',
-          module: 'GOVERNANCE',
-          description: `Injected new ${newCode.type} code: ${newCode.code}`,
-          metadata: { codeId: result.id, code: newCode.code, type: newCode.type }
+          userName: userData?.name || (isSuperadmin ? 'Superadmin' : 'Clinic Staff'),
+          action: 'ADD_SYSTEM_CODE',
+          module: isSuperadmin ? 'GOVERNANCE' : 'CLINICAL',
+          description: `${isSuperadmin ? 'Injected' : 'Added'} new ${newCode.type} code: ${newCode.code}`,
+          metadata: { codeId: result.id, code: newCode.code, type: newCode.type, facilityId: userData?.facilityId }
         });
-        success(`Successfully injected master code: ${newCode.code}`);
+        success(`Successfully ${isSuperadmin ? 'injected' : 'added'} code: ${newCode.code}`);
       }
 
       setIsAdding(false);
@@ -158,9 +164,19 @@ export default function SystemCodes() {
   };
 
   const handleDelete = async (id, type) => {
+    const codeToRemove = codes.find(c => c.id === id);
+    const isGlobal = !codeToRemove?.facilityId;
+
+    if (isGlobal && !isSuperadmin) {
+      error("Global master codes cannot be deleted by clinic users.");
+      return;
+    }
+
     const isConfirmed = await confirm({
-       title: 'Delete Global Master Code',
-       message: `Are you sure you want to delete this global ${type} code? This terminology change impacts all running organizations.`,
+       title: isGlobal ? 'Delete Global Master Code' : 'Delete Custom Clinical Code',
+       message: isGlobal 
+          ? `Are you sure you want to delete this global ${type} code? This impacts all running organizations.`
+          : `Delete ${codeToRemove?.code} from your clinic's catalog?`,
        confirmText: 'Delete Code',
        cancelText: 'Cancel',
        isDestructive: true
@@ -205,15 +221,21 @@ export default function SystemCodes() {
       <div className="space-y-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">System Codes Master</h1>
-            <p className="text-slate-500 font-medium mt-1">Global ICD-10 and CDT terminology management for platform-wide clinical accuracy.</p>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
+              {isSuperadmin ? 'System Codes Master' : 'Clinical Lexicon & Codes'}
+            </h1>
+            <p className="text-slate-500 font-medium mt-1">
+              {isSuperadmin 
+                ? 'Global ICD-10 and CDT terminology management for platform-wide clinical accuracy.'
+                : 'Manage clinical ICD-10 and CDT identifiers for your facility.'}
+            </p>
           </div>
           <button 
             onClick={openAdd}
             className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
           >
             <Plus className="h-5 w-5" />
-            Inject New Code
+            {isSuperadmin ? 'Inject New Code' : 'Add Facility Code'}
           </button>
         </div>
 
@@ -274,18 +296,26 @@ export default function SystemCodes() {
                     </td>
                     <td className="py-6 px-4">
                       <div className="flex items-center justify-center gap-2 transition-opacity">
-                        <button 
-                          onClick={() => openEdit(code)}
-                          className="h-9 w-9 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary-600 transition-all"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(code.id, code.type)}
-                          className="h-9 w-9 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 transition-all"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {(!code.isGlobal || isSuperadmin) ? (
+                          <>
+                            <button 
+                              onClick={() => openEdit(code)}
+                              className="h-9 w-9 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary-600 transition-all"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(code.id, code.type)}
+                              className="h-9 w-9 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 transition-all"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <div className="h-9 px-3 bg-slate-50 rounded-xl flex items-center justify-center text-[10px] font-bold text-slate-300 uppercase tracking-widest border border-slate-100">
+                             Global Locked
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -304,8 +334,12 @@ export default function SystemCodes() {
                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden">
                   <div className="p-8 border-b border-slate-100">
-                     <h3 className="text-xl font-semibold text-slate-900 uppercase">{editingItem ? 'Update' : 'Inject'} Master Code</h3>
-                     <p className="text-xs text-slate-500 font-medium mt-1">{editingItem ? 'Modify existing terminology.' : 'Add verified ICD-10 or CDT terminology.'}</p>
+                     <h3 className="text-xl font-semibold text-slate-900 uppercase">
+                       {editingItem ? 'Update' : isSuperadmin ? 'Inject' : 'Add'} {isSuperadmin ? 'Master' : 'Clinical'} Code
+                     </h3>
+                     <p className="text-xs text-slate-500 font-medium mt-1">
+                       {editingItem ? 'Modify existing terminology.' : `Add verified ${activeType === 'All' ? 'ICD-10 or CDT' : activeType} terminology.`}
+                     </p>
                   </div>
                   <form onSubmit={handleInject} className="p-8 space-y-6">
                      <div className="grid grid-cols-2 gap-4">
@@ -356,9 +390,9 @@ export default function SystemCodes() {
                      </div>
                      <div className="flex gap-3 pt-4">
                         <button type="button" disabled={isSaving} onClick={() => setIsAdding(false)} className="flex-1 py-4 bg-slate-50 font-medium text-[10px] uppercase tracking-widest text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
-                        <button type="submit" disabled={isSaving} className={`flex-1 py-4 bg-slate-900 font-medium text-[10px] uppercase tracking-widest text-white rounded-2xl transition-all ${isSaving ? 'opacity-50 cursor-not-allowed shadow-none' : 'shadow-xl shadow-slate-200 hover:bg-slate-800'}`}>
-                           {isSaving ? 'Saving...' : editingItem ? 'Save Changes' : 'Commit Injection'}
-                        </button>
+                         <button type="submit" disabled={isSaving} className={`flex-1 py-4 bg-slate-900 font-medium text-[10px] uppercase tracking-widest text-white rounded-2xl transition-all ${isSaving ? 'opacity-50 cursor-not-allowed shadow-none' : 'shadow-xl shadow-slate-200 hover:bg-slate-800'}`}>
+                           {isSaving ? 'Saving...' : editingItem ? 'Save Changes' : isSuperadmin ? 'Commit Injection' : 'Add to Catalog'}
+                         </button>
                      </div>
                   </form>
                </motion.div>
@@ -366,15 +400,18 @@ export default function SystemCodes() {
           )}
         </AnimatePresence>
 
-        <div className="bg-amber-50 border border-amber-100 rounded-3xl p-8 flex items-start gap-6">
-          <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-amber-100 flex items-center justify-center text-amber-500">
-            <AlertTriangle className="h-6 w-6" />
+        <div className={`${isSuperadmin ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'} border rounded-3xl p-8 flex items-start gap-6`}>
+          <div className={`h-12 w-12 bg-white rounded-2xl shadow-sm border ${isSuperadmin ? 'border-amber-100 text-amber-500' : 'border-blue-100 text-blue-500'} flex items-center justify-center`}>
+            {isSuperadmin ? <AlertTriangle className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
           </div>
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-amber-900 uppercase tracking-widest">Global Synchronization Protocol</h4>
-            <p className="text-xs font-medium text-amber-700 leading-relaxed">
-              Modifying these codes impacts billing and clinical documentation across ALL organizations. 
-              Changes are versioned and logged in the Global Audit Trail. Only use verified WHO and ADA terminology.
+            <h4 className={`text-sm font-medium ${isSuperadmin ? 'text-amber-900' : 'text-blue-900'} uppercase tracking-widest`}>
+              {isSuperadmin ? 'Global Synchronization Protocol' : 'Hybrid Clinical Lexicon'}
+            </h4>
+            <p className={`text-xs font-medium ${isSuperadmin ? 'text-amber-700' : 'text-blue-700'} leading-relaxed`}>
+              {isSuperadmin 
+                ? 'Modifying these codes impacts billing and clinical documentation across ALL organizations. Changes are versioned and logged in the Global Audit Trail.' 
+                : 'You are viewing a combination of Global Standards (locked) and your facility-specific codes. Adding custom codes ensures your clinical reporting fits your specific practice needs.'}
             </p>
           </div>
         </div>

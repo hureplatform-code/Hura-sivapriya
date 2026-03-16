@@ -61,6 +61,29 @@ const patientService = {
 
   async deletePatient(id) {
     return firestoreService.delete(this.collection, id);
+  },
+
+  async searchPatients(facilityId, searchTerm) {
+    if (!facilityId || !searchTerm) return [];
+    try {
+      const termLower = searchTerm.toLowerCase();
+      // Firestore limited queries - we fetch by facility and filter local for better UX with partial match
+      const q = query(
+        collection(db, this.collection), 
+        where('facilityId', '==', facilityId)
+      );
+      const snap = await getDocs(q);
+      const patients = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      return patients.filter(p => 
+        p.id?.toLowerCase().includes(termLower) || 
+        p.name?.toLowerCase().includes(termLower) || 
+        p.phoneNumber?.toLowerCase().includes(termLower)
+      ).slice(0, 10);
+    } catch (error) {
+      console.error('Error searching patients:', error);
+      return [];
+    }
   }
 };
 
