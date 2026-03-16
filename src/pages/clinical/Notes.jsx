@@ -61,10 +61,13 @@ export default function Notes() {
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState(null);
   const [viewingNote, setViewingNote] = useState(null);
   const [medicineSuggestions, setMedicineSuggestions] = useState([]);
   const [labSuggestions, setLabSuggestions] = useState([]);
   const [searchContext, setSearchContext] = useState({ type: null, index: null });
+  const [viewingHistoryPatient, setViewingHistoryPatient] = useState(null);
+  const [dateFilter, setDateFilter] = useState('today');
 
   const { success, error: toastError } = useToast();
 
@@ -143,209 +146,248 @@ export default function Notes() {
     );
   }
 
-  const filteredNotes = notes.filter(note => 
-    note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    note.patientName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = (note.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (note.patientName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (note.patientOp || note.patientId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (note.patientPhone || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // If user is searching, filter by search only (global search)
+    if (searchQuery.trim().length > 0) return matchesSearch;
+
+    // Otherwise apply date filters
+    if (!matchesSearch) return false;
+
+    const noteDate = note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000) : new Date(note.createdAt);
+    const now = new Date();
+    const clinicalToday = new Date(now);
+    clinicalToday.setHours(2, 0, 0, 0);
+    // If it's before 2 AM today, the "clinical day" still belongs to yesterday's 2 AM start
+    if (now.getHours() < 2) {
+      clinicalToday.setDate(clinicalToday.getDate() - 1);
+    }
+    
+    const clinicalYesterday = new Date(clinicalToday);
+    clinicalYesterday.setDate(clinicalYesterday.getDate() - 1);
+
+    const startOfWeek = new Date(clinicalToday);
+    startOfWeek.setDate(clinicalToday.getDate() - clinicalToday.getDay()); // Start of this week (Sunday 2 AM)
+
+    const startOfLastWeek = new Date(startOfWeek);
+    startOfLastWeek.setDate(startOfWeek.getDate() - 7);
+    const endOfLastWeek = new Date(startOfWeek);
+    endOfLastWeek.setMilliseconds(-1);
+
+    switch (dateFilter) {
+      case 'today':
+        return noteDate >= clinicalToday;
+      case 'yesterday':
+        return noteDate >= clinicalYesterday && noteDate < clinicalToday;
+      case 'this_week':
+        return noteDate >= startOfWeek;
+      case 'last_week':
+        return noteDate >= startOfLastWeek && noteDate <= endOfLastWeek;
+      case 'all':
+      default:
+        return true;
+    }
+  });
+
+  // Group by patient to show only the most recent one
+  const uniquePatientNotes = Object.values(
+    filteredNotes.reduce((acc, note) => {
+      const pId = note.patientId || note.patientOp;
+      const noteDate = note.createdAt?.seconds ? note.createdAt.seconds * 1000 : new Date(note.createdAt).getTime();
+      const accDate = acc[pId]?.createdAt?.seconds ? acc[pId].createdAt.seconds * 1000 : new Date(acc[pId]?.createdAt).getTime() || 0;
+      
+      if (!acc[pId] || noteDate > accDate) {
+        acc[pId] = note;
+      }
+      return acc;
+    }, {})
+  ).sort((a, b) => {
+     const dateA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
+     const dateB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime();
+     return dateB - dateA;
+  });
+
+  const getPatientHistory = (id) => {
+    return notes.filter(n => n.patientId === id || n.patientOp === id);
+  };
 
   return (
     <>
     <DashboardLayout>
-    <div className="max-w-7xl mx-auto space-y-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Clinical Records</h1>
-          <p className="text-slate-500 font-medium mt-1">Manage and review patient clinical documentation.</p>
-        </div>
-        <button 
-          onClick={() => setIsCreating(true)}
-          className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center justify-center gap-3"
-        >
-          <Plus className="h-5 w-5" />
-          Create New Note
-        </button>
-      </div>
+      <div className="max-w-[1600px] mx-auto pb-24">
+        {/* Standard Clinical Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 px-2">
+          <h1 className="text-xl font-bold text-slate-800">Clinical Records</h1>
+          <div className="flex items-center gap-3">
+             <div className="relative">
+               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+               <input 
+                 type="text"
+                 placeholder="Search OP or phone..."
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 className="pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg outline-none text-xs w-56 focus:border-indigo-500 transition-all shadow-sm"
+               />
+             </div>
+             
+             <select 
+               value={dateFilter}
+               onChange={(e) => setDateFilter(e.target.value)}
+               className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition-all shadow-sm cursor-pointer"
+             >
+               <option value="today">Today</option>
+               <option value="yesterday">Yesterday</option>
+               <option value="this_week">This Week</option>
+               <option value="last_week">Last Week</option>
+               <option value="all">All Days</option>
+             </select>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input 
-                type="text"
-                placeholder="Search notes by patient or title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm transition-all outline-none font-medium text-slate-900"
-              />
-            </div>
-            <button 
-              onClick={handleRefresh}
-              className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-slate-900 hover:bg-slate-100 transition-all active:scale-95 border border-slate-100"
-            >
-              <RefreshCw className={`h-5 w-5 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
-            </button>
+             <button 
+               onClick={handleRefresh}
+               className="p-1.5 bg-white text-slate-500 rounded-lg hover:text-indigo-600 border border-slate-200 shadow-sm transition-all"
+               title="Refresh Data"
+             >
+               <RefreshCw className={`h-4 w-4 ${loading && !loadingMore ? 'animate-spin' : ''}`} />
+             </button>
           </div>
+        </div>
 
-          <div className="space-y-6">
-            {loading && !loadingMore ? (
-              <div className="p-20 text-center">
-                <RefreshCw className="h-10 w-10 text-slate-200 animate-spin mx-auto mb-4" />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Retrieving Records...</p>
-              </div>
-            ) : filteredNotes.length === 0 ? (
-              <div className="bg-white p-20 rounded-[3rem] border border-slate-100 shadow-sm text-center">
-                <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-300">
-                  <FileText className="h-10 w-10" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No clinical notes found</h3>
-                <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8 font-medium">Start by creating a new clinical note for a patient to begin documentation.</p>
-                <button onClick={() => setIsCreating(true)} className="px-8 py-3 bg-slate-50 text-slate-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Create First Note</button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 gap-6">
-                  {filteredNotes.map((note, i) => (
-                    <motion.div
-                      key={note.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all group relative overflow-hidden"
-                    >
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="flex items-center gap-5">
-                          <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-inner">
-                            {(() => {
-                              const spec = SPECIALTIES.find(s => s.id === note.specialty);
-                              return spec?.icon ? React.createElement(spec.icon, { className: 'h-6 w-6' }) : <FileText className="h-6 w-6" />;
-                            })()}
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-lg text-slate-900 tracking-tight group-hover:text-primary-600 transition-colors">{note.title || 'General Consultation'}</h3>
-                            <div className="flex items-center gap-3 mt-1">
-                               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 leading-none">
-                                 {note.patientName}
-                               </p>
-                               <span className="text-slate-200">•</span>
-                               <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
-                                 {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Just now'}
-                               </p>
+        {/* Clean Data Table */}
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Patient Name</th>
+                  <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">OP ID</th>
+                  <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Phone</th>
+                  <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Specialty</th>
+                  <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Diagnosis</th>
+                  <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Status</th>
+                  <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase text-right">Actions</th>
+                </tr>
+              </thead>
+             <tbody className="divide-y divide-slate-100/30">
+               {loading && !loadingMore ? (
+                 <tr>
+                   <td colSpan="7" className="py-80 text-center">
+                     <div className="flex flex-col items-center gap-8">
+                       <div className="relative h-24 w-24">
+                          <div className="absolute inset-0 border-8 border-slate-100 rounded-full shadow-inner" />
+                          <div className="absolute inset-0 border-8 border-t-indigo-600 rounded-full animate-spin" />
+                       </div>
+                       <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.5em] animate-pulse">Synchronizing Tactical Data...</p>
+                     </div>
+                   </td>
+                 </tr>
+               ) : filteredNotes.length === 0 ? (
+                 <tr>
+                   <td colSpan="7" className="py-80 text-center">
+                     <div className="h-40 w-40 bg-slate-50 rounded-[4rem] flex items-center justify-center text-slate-200 mx-auto mb-10 shadow-inner">
+                        <ClipboardList className="h-16 w-16" />
+                     </div>
+                      <p className="text-slate-400 font-bold text-sm tracking-wide">No Clinical Records Found</p>
+                   </td>
+                 </tr>
+                ) : (
+                  uniquePatientNotes.map((note, i) => {
+                    const history = getPatientHistory(note.patientId || note.patientOp);
+                    return (
+                      <motion.tr 
+                        key={note.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="hover:bg-slate-50 transition-colors border-b border-slate-100"
+                      >
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-900">{note.patientName}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Last Visit: {getRelativeVisitTime(note.createdAt)}</span>
+                              {history.length > 1 && (
+                                <button 
+                                  onClick={() => setViewingHistoryPatient({ name: note.patientName, records: history })}
+                                  className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 underline underline-offset-2"
+                                >
+                                  ({history.length} records)
+                                </button>
+                              )}
                             </div>
                           </div>
-                        </div>
-                        <div className="flex gap-2 items-center">
-                          <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200/50">
-                            {note.specialty || 'General'}
+                        </td>
+                      <td className="py-4 px-6">
+                        <span className="text-xs font-mono font-bold text-slate-600">
+                           #{note.patientOp || note.patientId?.slice(-6).toUpperCase() || '---'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="text-sm text-slate-600 font-medium">{note.patientPhone || '---'}</span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                           {note.specialty || 'General'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="text-sm text-slate-900 font-bold max-w-[200px] truncate block">
+                           {note.diagnosis || '--'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        {note.status === 'draft' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-600 rounded text-[10px] font-bold uppercase border border-amber-100">
+                             Draft
                           </span>
-                          {note.status === 'draft' ? (
-                            <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-amber-100">Draft</span>
-                          ) : (
-                            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 border border-emerald-100">
-                              <ShieldCheck className="h-3 w-3" /> Signed
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="relative group-hover:translate-x-1 transition-transform">
-                        <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed font-medium mb-4 italic opacity-80 group-hover:opacity-100 transition-opacity">
-                          "{note.assessment || note.subjective || note.objective || 'No observations documented.'}"
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                           {note.diagnosis && (
-                              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-200">
-                                Dx: {note.diagnosis}
-                              </div>
-                           )}
-                           {note.prescriptions?.length > 0 && (
-                             <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-indigo-100">
-                               <ClipboardList className="h-3 w-3" /> {note.prescriptions.length} Meds
-                             </div>
-                           )}
-                        </div>
-                      </div>
-                      
-                      <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
-                        <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                          <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shadow-inner">
-                            {note.doctorName?.charAt(0) || 'D'}
-                          </div>
-                          {note.doctorName || 'Attending Physician'}
-                        </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold uppercase border border-emerald-100">
+                             Signed
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-4 px-6 text-right">
                         <button 
-                          onClick={() => setViewingNote(note)}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-bold text-[10px] uppercase tracking-widest shadow-xl shadow-slate-100"
+                          onClick={() => {
+                             if (note.status === 'draft') {
+                                setEditingNoteId(note.id);
+                                setIsCreating(true);
+                             } else {
+                                setViewingNote(note);
+                             }
+                          }}
+                          className="px-4 py-1.5 bg-slate-900 text-white rounded-lg hover:bg-indigo-600 transition-all font-bold text-[11px] active:scale-95"
                         >
-                          View Full Record
-                          <ChevronRight className="h-4 w-4" />
+                          {note.status === 'draft' ? 'Resume' : 'View'}
                         </button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-                
-                {hasMore && (
-                  <div className="pt-10 flex justify-center">
-                     <button
-                       onClick={() => fetchNotes(true)}
-                       disabled={loadingMore}
-                       className="px-12 py-4 bg-white text-slate-900 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 disabled:opacity-50 border border-slate-200 shadow-sm"
-                     >
-                       {loadingMore ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
-                       {loadingMore ? 'Loading Architecture...' : 'Load older medical history'}
-                     </button>
-                  </div>
+                      </td>
+                    </motion.tr>
+                    );
+                  })
                 )}
-              </>
-            )}
+              </tbody>
+            </table>
           </div>
-        </div>
-
-        <div className="space-y-10">
-          <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-slate-200">
-             <div className="relative z-10">
-                <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                   <Clock className="h-4 w-4" /> Recent Consultations
-                </h4>
-                <div className="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1px] before:bg-white/10">
-                   {notes.slice(0, 3).map((note) => (
-                     <div key={note.id} className="relative pl-8 group cursor-pointer" onClick={() => setViewingNote(note)}>
-                       <div className="absolute left-0 top-1.5 h-6 w-6 bg-slate-800 rounded-lg border border-white/20 flex items-center justify-center z-10 shadow-lg group-hover:scale-110 transition-transform">
-                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                       </div>
-                       <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors leading-tight">{note.title || 'Note'}</p>
-                       <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider">
-                         {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'} • {note.patientName}
-                       </p>
-                     </div>
-                   ))}
-                </div>
-                <button 
-                   onClick={() => setIsCreating(true)}
-                   className="w-full mt-10 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
+           
+          <div className="p-4 flex items-center justify-between bg-slate-50/50 border-t border-slate-200">
+             <div className="flex items-center gap-4">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Page 1 of 1</span>
+             </div>
+             {hasMore && (
+                <button
+                  onClick={() => fetchNotes(true)}
+                  disabled={loadingMore}
+                  className="flex items-center gap-2 px-6 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
                 >
-                   Quick Create
+                  {loadingMore ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  {loadingMore ? 'Syncing...' : 'View More Records'}
                 </button>
-             </div>
-             <Activity className="absolute -right-10 -bottom-10 h-40 w-40 text-white/5 rotate-12" />
-          </div>
-
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8">
-             <div className="h-12 w-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center mb-6">
-                <Info className="h-6 w-6" />
-             </div>
-             <h4 className="text-lg font-bold text-slate-900 mb-2">Clinical Standards</h4>
-             <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6">All notes must strictly follow the SOAP (Subjective, Objective, Assessment, Plan) format for legal compliance.</p>
-             <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest leading-relaxed">
-                   Records are encrypted and stored in HIPAA compliant storage.
-                </p>
-             </div>
+             )}
           </div>
         </div>
       </div>
-    </div>
     </DashboardLayout>
 
     <AnimatePresence>
@@ -354,9 +396,14 @@ export default function Notes() {
           initialPatientId={location.state?.patientId}
           initialPatientName={location.state?.patientName}
           initialAppointmentId={location.state?.appointmentId}
-          onClose={() => setIsCreating(false)} 
+          initialRecordId={editingNoteId}
+          onClose={() => {
+            setIsCreating(false);
+            setEditingNoteId(null);
+          }} 
           onSave={() => {
             setIsCreating(false);
+            setEditingNoteId(null);
             fetchNotes();
             showNotification('success', 'Clinical note saved successfully.');
           }}
@@ -367,13 +414,124 @@ export default function Notes() {
         <NoteViewer 
           note={viewingNote}
           onClose={() => setViewingNote(null)}
+          onEdit={(id) => {
+             setViewingNote(null);
+             setEditingNoteId(id);
+             setIsCreating(true);
+          }}
+        />
+      )}
+      {viewingHistoryPatient && (
+        <PatientHistoryModal 
+          patient={viewingHistoryPatient}
+          onClose={() => setViewingHistoryPatient(null)}
+          onViewNote={(note) => {
+            setViewingHistoryPatient(null);
+            setViewingNote(note);
+          }}
         />
       )}
     </AnimatePresence>
     </>
   );
 }
-function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', initialPatientName = '', initialAppointmentId = '' }) {
+
+function PatientHistoryModal({ patient, onClose, onViewNote }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 mb-12">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[70vh] border border-white/20"
+      >
+        <div className="p-6 sm:p-8 border-b border-slate-100 flex items-center justify-between bg-white relative z-10">
+          <div className="flex items-center gap-4">
+             <div className="h-12 w-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm">
+                <History className="h-6 w-6" />
+             </div>
+             <div>
+               <h2 className="text-xl font-bold text-slate-900 leading-tight">{patient.name}</h2>
+               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Clinical Journey Ledger</p>
+             </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="h-10 w-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-white transition-all active:scale-95"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/30">
+          <div className="space-y-3">
+            {[...patient.records].sort((a,b) => {
+              const dateA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
+              const dateB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime();
+              return dateB - dateA;
+            }).map((record, idx) => (
+              <motion.div 
+                key={record.id} 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="group relative flex items-center justify-between p-4 bg-white border border-slate-200/60 rounded-2xl hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-500/5 transition-all cursor-pointer"
+                onClick={() => onViewNote(record)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="text-xs font-black text-slate-900 tabular-nums">
+                      {record.createdAt?.seconds 
+                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { day: '2-digit' })
+                        : new Date(record.createdAt).toLocaleDateString('en-US', { day: '2-digit' })}
+                    </div>
+                    <div className="text-[9px] font-bold text-slate-400 uppercase">
+                      {record.createdAt?.seconds 
+                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short' })
+                        : new Date(record.createdAt).toLocaleDateString('en-US', { month: 'short' })}
+                    </div>
+                  </div>
+                  
+                  <div className="h-8 w-[1px] bg-slate-100" />
+
+                  <div>
+                    <div className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      {record.specialty || 'General Consultation'}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                       <span className={`h-1.5 w-1.5 rounded-full ${record.status === 'draft' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                       <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                         Status: {record.status} • {record.createdAt?.seconds 
+                           ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { year: 'numeric' })
+                           : new Date(record.createdAt).toLocaleDateString('en-US', { year: 'numeric' })}
+                       </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-8 w-8 rounded-lg bg-slate-50 text-slate-300 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                   <ChevronRight className="h-4 w-4" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="p-4 bg-white border-t border-slate-100 text-center">
+           <p className="text-[10px] text-slate-400 font-medium">Total Records Logged: {patient.records.length}</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', initialPatientName = '', initialAppointmentId = '', initialRecordId = null }) {
   const { userData } = useAuth();
   const [patients, setPatients] = useState([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
@@ -389,7 +547,12 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   const [icdSuggestions, setIcdSuggestions] = useState([]);
   const [existingRecordId, setExistingRecordId] = useState(null);
   const [showRouting, setShowRouting] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState(initialPatientName ? { name: initialPatientName, id: initialPatientId } : null);
+  const [loadingPatient, setLoadingPatient] = useState(false);
+  const [medicineSuggestions, setMedicineSuggestions] = useState([]);
+  const [labSuggestions, setLabSuggestions] = useState([]);
+  const [searchContext, setSearchContext] = useState({ type: null, index: null });
+  const [viewingHistoryPatient, setViewingHistoryPatient] = useState(null);
   
   const transcriptRef = React.useRef('');
   const userStopRef = React.useRef(false);
@@ -457,8 +620,34 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 
   useEffect(() => {
     fetchPatients();
-    if (appointmentId) loadExistingDraft();
-  }, []);
+    if (initialRecordId) loadExistingRecord(initialRecordId);
+    else if (appointmentId) loadExistingDraft();
+  }, [initialRecordId]);
+
+  const loadExistingRecord = async (id) => {
+    try {
+      const record = await medicalRecordService.getRecordById(id);
+      if (record) {
+        setExistingRecordId(record.id);
+        setFormData({
+          subjective: record.subjective || '',
+          objective: record.objective || '',
+          assessment: record.assessment || '',
+          plan: record.plan || '',
+          nursingOrders: record.nursingOrders || '',
+          diagnosis: record.diagnosis || '',
+          vitals: record.vitals || {
+            temp: '', hr: '', rr: '', bp_sys: '', bp_dia: '', spo2: '', weight: '', height: '', bmi: ''
+          },
+          specialtyData: record.specialtyData || {},
+          labRequests: record.labRequests || [],
+          prescriptions: record.prescriptions || []
+        });
+        if (record.specialties?.length > 0) setActiveSpecialties(record.specialties);
+        if (record.patientId) setPatientId(record.patientId);
+      }
+    } catch (e) { console.error("Load record failed:", e); }
+  };
 
   const loadExistingDraft = async () => {
     try {
@@ -543,6 +732,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
         ...formData, 
         patientId, 
         patientName: selectedPatient?.name || 'Patient', 
+        patientOp: selectedPatient?.opNumber || selectedPatient?.patientId || '',
+        patientPhone: selectedPatient?.phone || '',
         appointmentId, 
         specialties: activeSpecialties, 
         status, 
@@ -597,13 +788,23 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   const fetchPatientDetails = async () => {
     if (!patientId) return;
     try {
-      setLoadingHistory(true); // Re-use loading for detail fetch
+      setLoadingPatient(true);
       const p = await patientService.getPatientById(patientId);
       if (p) {
         setSelectedPatient(p);
+      } else if (initialPatientId === patientId && initialPatientName) {
+         // Keep the skeleton if ID match but doc not found (maybe slow indexing)
+         setSelectedPatient({ name: initialPatientName, id: patientId });
+      } else {
+         // If truly not found and no skeleton, reset to allow search
+         setSelectedPatient(null);
+         if (!initialPatientId) setPatientId(''); 
       }
-    } catch (e) { console.error("Error fetching patient details:", e); }
-    finally { setLoadingHistory(false); }
+    } catch (e) { 
+       console.error("Error fetching patient details:", e);
+       if (initialPatientName) setSelectedPatient({ name: initialPatientName, id: patientId });
+    }
+    finally { setLoadingPatient(false); }
   };
 
   const fetchHistory = async () => {
@@ -618,7 +819,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   const handleSearchMaster = async (type, term, index, section) => {
     if (term.length < 2) {
        if (section === 'prescription') setMedicineSuggestions([]);
-       else setLabSuggestions([]);
+       else if (section === 'labs') setLabSuggestions([]);
+       else if (section === 'diagnosis') setIcdSuggestions([]);
        return;
     }
     try {
@@ -626,9 +828,14 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
       if (section === 'prescription') {
         setMedicineSuggestions(results);
         setSearchContext({ type: 'medicine', index });
-      } else {
+      } else if (section === 'labs') {
         setLabSuggestions(results);
         setSearchContext({ type: 'lab', index });
+      } else if (section === 'diagnosis') {
+        // Map ICD results to simple identifiers for the existing suggestion bubble logic
+        // or we can show a full dropdown if preferred.
+        setIcdSuggestions(results.map(r => r.code));
+        setSearchContext({ type: 'diagnosis', index: 0 });
       }
     } catch (e) { console.error(e); }
   };
@@ -714,8 +921,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                <div className="absolute top-0 right-0 w-96 h-96 bg-primary-500/5 blur-[120px] rounded-full -mr-48 -mt-48 transition-all group-hover:bg-primary-500/10" />
                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
                   <div className="lg:col-span-8 flex flex-col justify-center">
-                     {selectedPatient ? (
-                        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm flex items-center gap-8 relative overflow-hidden">
+                     {selectedPatient && !loadingPatient ? (
+                        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm flex items-center gap-8 relative overflow-hidden h-full min-h-[180px]">
                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 blur-[80px] rounded-full -mr-32 -mt-32" />
                            <div className="h-20 w-20 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 shadow-inner shrink-0 transition-transform hover:scale-105">
                               <User className="h-10 w-10" />
@@ -767,13 +974,15 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                               </div>
                            </div>
                         </div>
-                      ) : patientId ? (
+                      ) : (patientId || loadingPatient) ? (
                         <div className="bg-white border border-slate-200 p-12 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-4 min-h-[200px]">
                            <div className="h-12 w-12 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin" />
-                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Identifying Patient Record...</p>
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                              {loadingPatient ? 'Verifying Identity...' : 'Loading Clinical Environment...'}
+                           </p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
                            <div className="space-y-3">
                               <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.1em] pl-1">Identify Patient</label>
                               <div className="relative">
@@ -1136,7 +1345,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                               placeholder="Search or Select ICD-10..."
                               className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none text-sm font-bold shadow-inner"
                               value={formData.diagnosis}
-                              onChange={(e) => setFormData({...formData, diagnosis: e.target.value})}
+                              onChange={(e) => { const term = e.target.value; setFormData({...formData, diagnosis: term}); handleSearchMaster("icd", term, 0, "diagnosis"); }}
                            />
                            {icdSuggestions.length > 0 && (
                               <div className="flex flex-wrap gap-2 mt-3">
@@ -1873,7 +2082,7 @@ function SOAPBox({ label, icon, value, onChange }) {
     </div>
   );
 }
-function NoteViewer({ note, onClose }) {
+function NoteViewer({ note, onClose, onEdit }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -2009,7 +2218,15 @@ function NoteViewer({ note, onClose }) {
           )}
         </div>
 
-        <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+          {note.status === 'draft' && (
+             <button 
+                onClick={() => onEdit(note.id)}
+                className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95"
+             >
+                Edit Script
+             </button>
+          )}
           <button onClick={onClose} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-medium text-xs uppercase tracking-widest">Close Viewer</button>
         </div>
       </motion.div>

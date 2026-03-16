@@ -64,8 +64,21 @@ const medicalRecordService = {
   },
 
   async getRecordsByPatient(patientId) {
-    const q = [where('patientId', '==', patientId), orderBy('createdAt', 'desc')];
-    return firestoreService.getAll(this.collection, q);
+    if (!patientId) return [];
+    try {
+      const q = [where('patientId', '==', patientId), orderBy('createdAt', 'desc')];
+      return await firestoreService.getAll(this.collection, q);
+    } catch (error) {
+      console.warn("getRecordsByPatient fallback:", error);
+      // Fallback: fetch without order and sort in-memory
+      const q = [where('patientId', '==', patientId)];
+      const records = await firestoreService.getAll(this.collection, q);
+      return records.sort((a, b) => {
+        const dateA = a.createdAt?.seconds ? a.createdAt.seconds : (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
+        const dateB = b.createdAt?.seconds ? b.createdAt.seconds : (b.createdAt instanceof Date ? b.createdAt.getTime() : 0);
+        return dateB - dateA;
+      });
+    }
   },
 
   async createRecord(recordData, userContext = { id: 'sys', name: 'System' }) {

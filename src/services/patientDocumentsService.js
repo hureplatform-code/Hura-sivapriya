@@ -5,10 +5,23 @@ const patientDocumentsService = {
   collection: firestoreService.collections.patient_documents,
 
   async getDocumentsByPatient(patientId) {
-    return firestoreService.getAll(this.collection, [
-      where('patientId', '==', patientId),
-      orderBy('createdAt', 'desc')
-    ]);
+    if (!patientId) return [];
+    try {
+      return await firestoreService.getAll(this.collection, [
+        where('patientId', '==', patientId),
+        orderBy('createdAt', 'desc')
+      ]);
+    } catch (error) {
+      console.warn("getDocumentsByPatient fallback:", error);
+      const docs = await firestoreService.getAll(this.collection, [
+        where('patientId', '==', patientId)
+      ]);
+      return docs.sort((a, b) => {
+        const dateA = a.createdAt?.seconds ? a.createdAt.seconds : (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
+        const dateB = b.createdAt?.seconds ? b.createdAt.seconds : (b.createdAt instanceof Date ? b.createdAt.getTime() : 0);
+        return dateB - dateA;
+      });
+    }
   },
 
   async uploadDocument(documentData) {

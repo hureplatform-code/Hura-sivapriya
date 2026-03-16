@@ -16,12 +16,18 @@ import {
   CreditCard,
   Heart,
   ChevronRight,
-  Info,
+  Search,
   CheckCircle2,
   Folder,
   File,
+  FileText,
   Upload,
-  Trash2
+  Trash2,
+  Home,
+  Printer,
+  X,
+  History,
+  Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import patientService from '../../services/patientService';
@@ -33,7 +39,6 @@ import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Printer } from 'lucide-react';
 
 export default function PatientDetails() {
   const { id } = useParams();
@@ -45,6 +50,9 @@ export default function PatientDetails() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [isUploading, setIsUploading] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [historyMonthFilter, setHistoryMonthFilter] = useState('All');
 
   const { userData } = useAuth();
   const { success, error: toastError } = useToast();
@@ -81,27 +89,40 @@ export default function PatientDetails() {
   const fetchPatientData = async () => {
     try {
       setLoading(true);
-      const [patientData, recordsData, docsData] = await Promise.all([
-        patientService.getPatientById(id),
-        medicalRecordService.getRecordsByPatient(id),
-        patientDocumentsService.getDocumentsByPatient(id)
-      ]);
-      setPatient(patientData);
-      setFormData(patientData || {});
-      setRecords(recordsData || []);
-      setDocuments(docsData || []);
+      
+      // 1. Fetch Patient Profile First (Essential)
+      const patientData = await patientService.getPatientById(id);
+      if (patientData) {
+        setPatient(patientData);
+        setFormData(patientData);
+      } else {
+        setPatient(null);
+      }
 
-      // Log the data access
-      await auditService.logActivity({
-        userId: userData?.uid,
-        userName: userData?.name || 'Staff',
-        action: 'VIEW_PATIENT_BIO',
-        module: 'RECORDS',
-        description: `Accessed full biometric profile and digital archives for ${patientData?.name}`,
-        metadata: { patientId: id }
-      });
+      // 2. Fetch non-essential data in background (don't block profile)
+      if (patientData) {
+        // Fetch records
+        medicalRecordService.getRecordsByPatient(id)
+          .then(setRecords)
+          .catch(e => console.error("Records fail:", e));
+
+        // Fetch documents
+        patientDocumentsService.getDocumentsByPatient(id)
+          .then(setDocuments)
+          .catch(e => console.error("Docs fail:", e));
+
+        // Log the data access
+        auditService.logActivity({
+          userId: userData?.uid,
+          userName: userData?.name || 'Staff',
+          action: 'VIEW_PATIENT_BIO',
+          module: 'RECORDS',
+          description: `Accessed full biometric profile for ${patientData.name}`,
+          metadata: { patientId: id }
+        });
+      }
     } catch (error) {
-      console.error('Error fetching patient data:', error);
+      console.error('Error fetching patient profile:', error);
     } finally {
       setLoading(false);
     }
@@ -259,8 +280,40 @@ export default function PatientDetails() {
     }
   };
 
-  if (loading) return <DashboardLayout><div className="p-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs italic">Decompressing patient record...</div></DashboardLayout>;
-  if (!patient) return <DashboardLayout><div className="p-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs">Biometric Record Not Found.</div></DashboardLayout>;
+  if (loading) return (
+    <DashboardLayout>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-12">
+        <div className="relative">
+          <div className="h-24 w-24 border-4 border-slate-100 border-t-primary-600 rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+             <Heart className="h-8 w-8 text-slate-100 animate-pulse" />
+          </div>
+        </div>
+        <p className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Loading Patient Data...</p>
+      </div>
+    </DashboardLayout>
+  );
+
+  if (!patient) return (
+    <DashboardLayout>
+      <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center bg-white rounded-2xl border border-slate-200 shadow-sm mx-auto max-w-lg mt-12">
+        <div className="h-20 w-20 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 mb-6 border border-slate-100 relative overflow-hidden">
+           <User className="h-12 w-12 relative z-10" />
+           <div className="absolute inset-0 bg-red-100/50 animate-pulse" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Patient Not Found</h2>
+        <p className="text-slate-500 max-w-md mt-4 font-medium leading-relaxed">
+          The requested identifier <span className="text-slate-900 font-bold">{id}</span> does not resolve to any active clinical profile in your registry.
+        </p>
+        <button 
+          onClick={() => navigate('/master/patients')}
+          className="mt-10 px-10 py-4 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+        >
+          Return to Registry
+        </button>
+      </div>
+    </DashboardLayout>
+  );
 
   return (
     <DashboardLayout>
@@ -268,12 +321,10 @@ export default function PatientDetails() {
         <div className="flex items-center justify-between">
           <button 
             onClick={() => navigate('/master/patients')}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium transition-colors group"
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold text-xs uppercase tracking-widest transition-colors"
           >
-            <div className="h-10 w-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center group-hover:bg-slate-50 shadow-sm transition-all group-active:scale-95">
-              <ArrowLeft className="h-5 w-5" />
-            </div>
-            Back to Registry
+            <ArrowLeft className="h-4 w-4" />
+            Back to Patients
           </button>
           
           <div className="flex gap-4">
@@ -285,55 +336,61 @@ export default function PatientDetails() {
                 <Printer className="h-5 w-5" />
              </button>
              <button
-               onClick={() => setIsEditing(!isEditing)}
-               className={`px-8 py-4 ${isEditing ? 'bg-slate-100 text-slate-600' : 'bg-primary-600 text-white shadow-lg shadow-primary-200'} font-medium text-[10px] uppercase tracking-widest rounded-2xl transition-all active:scale-95`}
+               onClick={() => setIsHistoryModalOpen(true)}
+               className="px-6 py-2 bg-slate-100 text-slate-600 font-bold text-[10px] uppercase tracking-widest rounded-lg border border-slate-200 transition-all active:scale-95 flex items-center gap-2"
              >
-               {isEditing ? 'Discard Changes' : 'Modify Bio-Data'}
+               <FileText className="h-3.5 w-3.5" />
+               View Records
              </button>
-             <AnimatePresence>
-               {isEditing && (
-                 <motion.button 
-                   initial={{ opacity: 0, x: 20 }}
-                   animate={{ opacity: 1, x: 0 }}
-                   exit={{ opacity: 0, x: 20 }}
-                   onClick={handleUpdate}
-                   className="px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl shadow-xl shadow-slate-200 flex items-center gap-2 active:scale-95 transition-all"
-                 >
-                   <Save className="h-4 w-4" />
-                   Commit Updates
-                 </motion.button>
-               )}
-             </AnimatePresence>
+              {userData?.role !== 'doctor' && (
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`px-6 py-2 ${isEditing ? 'bg-slate-100 text-slate-600' : 'bg-primary-600 text-white shadow-sm'} font-bold text-[10px] uppercase tracking-widest rounded-lg transition-all active:scale-95`}
+                >
+                 {isEditing ? 'Discard Changes' : 'Modify Bio-Data'}
+                </button>
+              )}
+              <AnimatePresence>
+                {isEditing && (
+                  <motion.button 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    onClick={handleUpdate}
+                    className="px-6 py-2 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-lg shadow-sm flex items-center gap-2 active:scale-95 transition-all"
+                  >
+                    <Save className="h-4 w-4" />
+                    Save Changes
+                  </motion.button>
+                )}
+              </AnimatePresence>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main Info */}
-          <div className="lg:col-span-2 space-y-8">
-            <section className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-               <div className="relative z-10 space-y-12">
-                 <div className="flex items-center gap-10">
+          <div className="lg:col-span-3 space-y-6">
+            <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+               <div className="relative z-10 space-y-8">
+                 <div className="flex items-center gap-8 pb-8 border-b border-slate-100">
                     <div className="relative">
-                      <div className="h-28 w-28 bg-slate-100 rounded-[2.5rem] flex items-center justify-center text-slate-400 text-5xl font-semibold uppercase border-4 border-white shadow-2xl transition-transform group-hover:scale-105">
+                      <div className="h-20 w-20 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 text-3xl font-bold uppercase border-2 border-slate-100 shadow-inner">
                         {patient.name?.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div className="absolute -bottom-2 -right-2 h-10 w-10 bg-emerald-500 rounded-2xl border-4 border-white shadow-lg flex items-center justify-center transition-transform hover:scale-110 cursor-help">
-                        <CheckCircle2 className="h-4 w-4 text-white" />
                       </div>
                     </div>
                     <div>
-                      <h1 className="text-5xl font-medium text-slate-900 tracking-tight leading-none mb-4">{patient.name}</h1>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="px-4 py-2 bg-slate-900 text-white rounded-2xl text-[10px] font-semibold uppercase tracking-widest shadow-lg shadow-slate-200">Patient ID: {patient.id}</span>
-                        <span className="px-4 py-2 bg-slate-50 text-slate-400 rounded-2xl text-[10px] font-semibold uppercase tracking-widest border border-slate-100">Registered: Jan 2026</span>
+                      <h1 className="text-3xl font-bold text-slate-900 tracking-tight leading-none mb-3">{patient.name}</h1>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200">Patient ID: {patient.id}</span>
+                        <span className="px-3 py-1 bg-slate-50 text-slate-400 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-100">Added: Jan 2026</span>
                       </div>
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8">
-                    <div className="space-y-8">
-                       <h3 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] pb-4 border-b border-slate-50 flex items-center gap-2">
-                         <User className="h-4 w-4 text-primary-500" /> Bio-Demographics
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-6">
+                       <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pb-3 border-b border-slate-50 flex items-center gap-2">
+                         <User className="h-3.5 w-3.5 text-slate-400" /> Bio-Demographics
                        </h3>
                        <div className="space-y-5">
                           {isEditing ? (
@@ -345,18 +402,18 @@ export default function PatientDetails() {
                             </>
                           ) : (
                             <>
-                              <DetailRow label="Date of Birth" value={patient.dob || 'Not Record'} />
-                              <DetailRow label="Gender" value={patient.gender || 'Not Record'} />
-                              <DetailRow label="Age" value={patient.age || 'Calc...'} />
-                              <DetailRow label="Primary Mobile" value={patient.contact || patient.mobile || 'Not Record'} />
-                              <DetailRow label="Email Identity" value={patient.email || 'Anonymous'} />
+                               <DetailRow label="Date of Birth" value={patient.dob || '--'} />
+                              <DetailRow label="Gender" value={patient.gender || '--'} />
+                              <DetailRow label="Age" value={patient.age || '--'} />
+                              <DetailRow label="Mobile" value={patient.contact || patient.mobile || '--'} />
+                              <DetailRow label="Email" value={patient.email || '--'} />
                             </>
                           )}
                        </div>
                     </div>
                     <div className="space-y-8">
-                       <h3 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] pb-4 border-b border-slate-50 flex items-center gap-2">
-                         <Heart className="h-4 w-4 text-red-500" /> Emergency & Next of Kin
+                       <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pb-3 border-b border-slate-50 flex items-center gap-2">
+                         <Home className="h-3.5 w-3.5 text-slate-400" /> Contact & Next of Kin
                        </h3>
                        <div className="space-y-5">
                           {isEditing ? (
@@ -364,39 +421,37 @@ export default function PatientDetails() {
                               <EditableField label="Next of Kin Name" value={formData.nextOfKinName} onChange={(v) => setFormData({...formData, nextOfKinName: v})} />
                               <EditableField label="Relationship" value={formData.nextOfKinRelation} onChange={(v) => setFormData({...formData, nextOfKinRelation: v})} />
                               <EditableField label="Emergency Phone" value={formData.nextOfKinPhone} onChange={(v) => setFormData({...formData, nextOfKinPhone: v})} />
-                              <EditableField label="Residential Address" value={formData.address} onChange={(v) => setFormData({...formData, address: v})} isTextArea />
+                              <EditableField label="Address" value={formData.address} onChange={(v) => setFormData({...formData, address: v})} isTextArea />
                             </>
                           ) : (
                             <>
-                              <DetailRow label="Contact Person" value={patient.nextOfKinName || 'Standard'} />
-                              <DetailRow label="Relationship" value={patient.nextOfKinRelation || 'Standard'} />
-                              <DetailRow label="Emergency Line" value={patient.nextOfKinPhone || 'Standard'} />
-                              <DetailRow label="Home Address" value={patient.address || 'Standard'} />
+                              <DetailRow label="Contact Person" value={patient.nextOfKinName || '--'} />
+                              <DetailRow label="Relationship" value={patient.nextOfKinRelation || '--'} />
+                              <DetailRow label="Emergency Line" value={patient.nextOfKinPhone || '--'} />
+                              <DetailRow label="Home Address" value={patient.address || '--'} />
                             </>
                           )}
                        </div>
                     </div>
                  </div>
                </div>
-               <div className="absolute -right-24 -top-24 h-96 w-96 bg-primary-500/5 rounded-full blur-[100px] pointer-events-none" />
-               <div className="absolute -left-24 -bottom-24 h-96 w-96 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
             </section>
 
-            <section className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10 group">
+            <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8">
                <div className="flex items-center justify-between">
-                 <h3 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                   <ShieldCheck className="h-5 w-5 text-emerald-500" /> Insurance & Financial Eligibility
+                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <ShieldCheck className="h-4 w-4 text-emerald-500" /> Insurance & Financial Eligibility
                  </h3>
-                 <span className={`px-4 py-1.5 rounded-2xl text-[10px] font-semibold uppercase tracking-widest ${patient.paymentMode === 'Insurance' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-900 text-white'}`}>
-                    {patient.paymentMode || 'Cash Payer'}
+                 <span className={`px-3 py-1 rounded text-[9px] font-bold uppercase tracking-widest ${patient.paymentMode === 'Insurance' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                    {patient.paymentMode || 'Cash'}
                  </span>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  <div className="p-8 bg-slate-50/50 rounded-[2.5rem] border border-transparent group-hover:border-slate-100 transition-all">
-                     <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3">Primary Payer</p>
-                     <p className="text-xl font-semibold text-slate-900 flex items-center gap-3">
-                       <CreditCard className="h-6 w-6 text-primary-500" />
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl">
+                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Payment Mode</p>
+                     <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                       <CreditCard className="h-4 w-4 text-slate-400" />
                        {isEditing ? (
                          <select className="bg-transparent border-none outline-none font-medium" value={formData.paymentMode} onChange={(e) => setFormData({...formData, paymentMode: e.target.value})}>
                             <option value="Cash">Cash / Private</option>
@@ -410,28 +465,22 @@ export default function PatientDetails() {
                   
                   { (patient.paymentMode === 'Insurance' || formData.paymentMode === 'Insurance') && (
                     <>
-                      <div className="p-8 bg-slate-50/50 rounded-[2.5rem] border border-transparent group-hover:border-slate-100 transition-all">
-                         <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3">Provider Name</p>
-                         <div className="text-lg font-semibold text-slate-900">
-                           {isEditing ? <input className="bg-transparent border-none outline-none font-medium w-full" value={formData.insName} onChange={(e) => setFormData({...formData, insName: e.target.value})} /> : (patient.insName || 'SHA / NHIF')}
+                      <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl">
+                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Provider Name</p>
+                         <div className="text-sm font-bold text-slate-900">
+                           {isEditing ? <input className="bg-transparent border-none outline-none font-bold w-full" value={formData.insName} onChange={(e) => setFormData({...formData, insName: e.target.value})} /> : (patient.insName || '--')}
                          </div>
                       </div>
-                      <div className="p-8 bg-slate-50/50 rounded-[2.5rem] border border-transparent group-hover:border-slate-100 transition-all">
-                         <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3">Member Identifier</p>
-                         <div className="text-lg font-semibold text-slate-900">
-                           {isEditing ? <input className="bg-transparent border-none outline-none font-medium w-full" value={formData.insMemberNo} onChange={(e) => setFormData({...formData, insMemberNo: e.target.value})} /> : (patient.insMemberNo || 'POL-998877')}
+                      <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl">
+                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Member Identifier</p>
+                         <div className="text-sm font-bold text-slate-900">
+                           {isEditing ? <input className="bg-transparent border-none outline-none font-bold w-full" value={formData.insMemberNo} onChange={(e) => setFormData({...formData, insMemberNo: e.target.value})} /> : (patient.insMemberNo || '--')}
                          </div>
                       </div>
-                      <div className="p-8 bg-slate-50/50 rounded-[2.5rem] border border-transparent group-hover:border-slate-100 transition-all">
-                         <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3">Policy Benefit / Plan</p>
-                         <div className="text-lg font-semibold text-slate-900">
-                           {isEditing ? <input className="bg-transparent border-none outline-none font-medium w-full" value={formData.insPlan} onChange={(e) => setFormData({...formData, insPlan: e.target.value})} /> : (patient.insPlan || 'Outpatient Gold')}
-                         </div>
-                      </div>
-                      <div className="p-8 bg-slate-50/50 rounded-[2.5rem] border border-transparent group-hover:border-slate-100 transition-all">
-                         <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3">Rel. to Principal</p>
-                         <div className="text-lg font-semibold text-slate-900">
-                           {isEditing ? <input className="bg-transparent border-none outline-none font-medium w-full" value={formData.insRelation} onChange={(e) => setFormData({...formData, insRelation: e.target.value})} /> : (patient.insRelation || 'Self')}
+                      <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl">
+                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Plan Name</p>
+                         <div className="text-sm font-bold text-slate-900">
+                           {isEditing ? <input className="bg-transparent border-none outline-none font-bold w-full" value={formData.insPlan} onChange={(e) => setFormData({...formData, insPlan: e.target.value})} /> : (patient.insPlan || '--')}
                          </div>
                       </div>
                     </>
@@ -439,65 +488,69 @@ export default function PatientDetails() {
                </div>
             </section>
 
-            <section className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10 group">
+            <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8">
                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-inner">
-                       <Folder className="h-6 w-6" />
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-100 shadow-inner">
+                       <Folder className="h-5 w-5" />
                     </div>
                     <div>
-                       <h3 className="text-xl font-semibold text-slate-900 tracking-tight">Digital Archives</h3>
-                       <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Scanned Records & IDs</p>
+                       <h3 className="text-lg font-bold text-slate-900 tracking-tight">Digital Archives</h3>
+                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Clinical Scans & IDs</p>
                     </div>
                   </div>
-                  <div className="relative">
-                    <input 
-                      type="file" 
-                      id="doc-upload" 
-                      className="hidden" 
-                      onChange={handleUploadDocument}
-                    />
-                    <label 
-                      htmlFor="doc-upload"
-                      className={`flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all cursor-pointer shadow-xl shadow-slate-200 active:scale-95 ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
-                    >
-                      <Upload className="h-4 w-4" />
-                      {isUploading ? 'Uploading...' : 'Upload Archive'}
-                    </label>
-                  </div>
+                  {userData?.role !== 'doctor' && (
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        id="doc-upload" 
+                        className="hidden" 
+                        onChange={handleUploadDocument}
+                      />
+                      <label 
+                        htmlFor="doc-upload"
+                        className={`flex items-center gap-2 px-4 py-2 bg-slate-900 text-white font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-slate-800 transition-all cursor-pointer shadow-sm active:scale-95 ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        {isUploading ? 'Processing...' : 'Upload File'}
+                      </label>
+                    </div>
+                  )}
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {documents.length > 0 ? documents.map((doc) => (
-                    <div key={doc.id} className="p-6 bg-slate-50/50 rounded-3xl border border-transparent hover:border-slate-100 transition-all flex items-center justify-between group/doc">
-                       <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm transition-transform group-hover/doc:scale-110">
-                             <File className="h-5 w-5" />
+                    <div key={doc.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 transition-all flex items-center justify-between group/doc">
+                       <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 bg-white rounded-lg flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm">
+                             <File className="h-4 w-4" />
                           </div>
                           <div>
-                             <p className="text-sm font-medium text-slate-900 truncate max-w-[150px]">{doc.fileName}</p>
-                             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight">{doc.fileSize} • {new Date(doc.uploadedAt || Date.now()).toLocaleDateString()}</p>
+                             <p className="text-xs font-bold text-slate-900 truncate max-w-[120px]">{doc.fileName}</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{doc.fileSize} • {new Date(doc.uploadedAt || Date.now()).toLocaleDateString()}</p>
                           </div>
                        </div>
-                       <div className="flex items-center gap-2 opacity-0 group-hover/doc:opacity-100 transition-opacity">
+                       <div className="flex items-center gap-1 opacity-0 group-hover/doc:opacity-100 transition-opacity">
                           <button 
                             onClick={() => window.open(doc.url, '_blank')}
-                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-white rounded-lg transition-all"
+                            className="p-1.5 text-slate-400 hover:text-slate-900 transition-all"
                           >
                              <ChevronRight className="h-4 w-4" />
                           </button>
-                          <button 
-                            onClick={() => handleDeleteDocument(doc.id, doc.fileName)}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-white rounded-lg transition-all"
-                          >
-                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          {userData?.role !== 'doctor' && (
+                            <button 
+                              onClick={() => handleDeleteDocument(doc.id, doc.fileName)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 transition-all"
+                            >
+                               <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                        </div>
                     </div>
                   )) : (
-                    <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem]">
-                       <Folder className="h-10 w-10 text-slate-100 mx-auto mb-4" />
-                       <p className="text-[10px] font-medium text-slate-300 uppercase tracking-widest leading-loose">No digital assets archived for this profile.</p>
+                    <div className="col-span-full py-10 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                       <Folder className="h-8 w-8 text-slate-100 mx-auto mb-3" />
+                       <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">No archival assets found.</p>
                     </div>
                   )}
                </div>
@@ -505,107 +558,280 @@ export default function PatientDetails() {
           </div>
 
           {/* Clinical Sidebar */}
-          <div className="space-y-8">
-             <div className="bg-slate-900 p-10 rounded-[3.5rem] text-white overflow-hidden relative shadow-2xl group">
-               <div className="relative z-10">
-                 <div className="flex items-center justify-between mb-10">
-                    <h4 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.20em]">Clinical Snapshot</h4>
-                    <Activity className="h-6 w-6 text-emerald-400 group-hover:scale-110 transition-transform" />
-                 </div>
-                 <div className="grid grid-cols-2 gap-10">
-                   <div className="space-y-1">
-                     <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">Last Visit</p>
-                     <p className="text-2xl font-semibold">
-                       {records[0]?.createdAt?.seconds 
-                         ? new Date(records[0].createdAt.seconds * 1000).toLocaleDateString() 
-                         : records[0]?.createdAt 
-                           ? new Date(records[0].createdAt).toLocaleDateString()
-                           : 'No Visits'}
-                     </p>
-                   </div>
-                   <div className="space-y-1">
-                     <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">Total Visits</p>
-                     <p className="text-2xl font-semibold">{records.length} Instances</p>
-                   </div>
-                 </div>
-                 <div className="mt-12 pt-10 border-t border-white/5">
-                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
-                       <Info className="h-3 w-3" /> Reoccurring Diagnoses
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.from(new Set(records.map(r => r.diagnosis).filter(Boolean))).slice(0, 3).map(d => (
-                        <span key={d} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-semibold uppercase tracking-tight border border-white/5 transition-all cursor-default">
-                          {d}
-                        </span>
-                      ))}
-                      {records.filter(r => r.diagnosis).length === 0 && <span className="text-[10px] text-slate-500 italic">No formal diagnoses logged.</span>}
+          <div className="space-y-6">
+             <div className="bg-slate-50 border border-slate-200 p-8 rounded-2xl space-y-8">
+               <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Clinical Status</h4>
+                     <Activity className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <div className="space-y-6">
+                    <div className="space-y-1 pb-4 border-b border-slate-100">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Last Visit</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {records[0]?.createdAt?.seconds 
+                          ? new Date(records[0].createdAt.seconds * 1000).toLocaleDateString() 
+                          : records[0]?.createdAt 
+                            ? new Date(records[0].createdAt).toLocaleDateString()
+                            : '--'}
+                      </p>
                     </div>
-                 </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Visits</p>
+                      <p className="text-lg font-bold text-slate-900">{records.length} Visits Logged</p>
+                    </div>
+                  </div>
                </div>
-               <div className="absolute -right-24 -top-24 h-64 w-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+               
+               <div className="space-y-4 pt-4 border-t border-slate-200">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                     <Info className="h-3 w-3" /> Common Diagnosis
+                  </p>
+                  <div className="space-y-2">
+                    {Array.from(new Set(records.map(r => r.diagnosis).filter(Boolean))).slice(0, 5).map(d => (
+                      <div key={d} className="px-3 py-2 bg-white rounded-lg text-[10px] font-bold text-slate-600 uppercase border border-slate-100 truncate shadow-sm">
+                        {d}
+                      </div>
+                    ))}
+                    {records.filter(r => r.diagnosis).length === 0 && <p className="text-[9px] text-slate-300 italic">No historical logs.</p>}
+                  </div>
+               </div>
              </div>
 
-             <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-6">
-                  <h4 className="text-[10px] font-medium text-slate-900 uppercase tracking-[0.2em]">Activity Log</h4>
+             <div className="bg-white border border-slate-200 p-8 rounded-2xl space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <h4 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Visit Timeline</h4>
                   <button 
                     onClick={() => navigate('/notes', { state: { searchQuery: patient.name } })}
-                    className="h-8 w-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-primary-600 transition-all border border-transparent hover:border-primary-100"
+                    className="h-6 w-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all border border-slate-100"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-50">
-                  {records.length > 0 ? records.slice(0, 5).map((record) => (
+                <div className="space-y-3">
+                  {records.length > 0 ? records.map((record) => (
                     <div 
                       key={record.id} 
-                      className="relative pl-10 group cursor-pointer active:scale-[0.98] transition-all"
-                      onClick={() => navigate('/notes')}
+                      onClick={() => navigate('/notes', { state: { searchQuery: patient.name } })}
+                      className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-all cursor-pointer group"
                     >
-                      <div className="absolute left-0 top-1 h-6 w-6 bg-white rounded-lg border-2 border-slate-100 flex items-center justify-center z-10 group-hover:border-primary-500 transition-colors shadow-sm">
-                        <div className="h-1.5 w-1.5 rounded-full bg-slate-300 group-hover:bg-primary-500 transition-colors" />
+                      <div className="flex justify-between items-start mb-2">
+                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                           {record.createdAt?.seconds 
+                             ? new Date(record.createdAt.seconds * 1000).toLocaleDateString() 
+                             : new Date(record.createdAt).toLocaleDateString()}
+                         </span>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-slate-900 leading-none group-hover:text-primary-600 transition-colors">
-                          {record.title || 'Clinical Note'}
-                        </p>
-                        <p className="text-[10px] text-slate-400 uppercase font-medium tracking-tight">
-                          {record.createdAt?.seconds 
-                            ? new Date(record.createdAt.seconds * 1000).toLocaleDateString() 
-                            : 'Recent'} • {record.doctorName || 'Attending Physician'}
-                        </p>
-                      </div>
+                      <p className="text-xs font-bold text-slate-900 truncate">{record.title || 'Clinical Note'}</p>
+                      <p className="text-[10px] text-slate-500 line-clamp-2 mt-1 font-medium">{record.diagnosis || record.assessment || 'Consultation summary.'}</p>
                     </div>
                   )) : (
-                    <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest text-center py-4">No activity recorded.</div>
+                    <div className="py-10 text-center">
+                       <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">No visit history</p>
+                    </div>
                   )}
                 </div>
              </div>
           </div>
         </div>
       </div>
+      <AnimatePresence>
+        {isHistoryModalOpen && (
+          <PatientHistoryModal 
+            patient={patient}
+            records={records}
+            onClose={() => setIsHistoryModalOpen(false)}
+            searchQuery={historySearchQuery}
+            onSearchChange={setHistorySearchQuery}
+            monthFilter={historyMonthFilter}
+            onMonthChange={setHistoryMonthFilter}
+          />
+        )}
+      </AnimatePresence>
     </DashboardLayout>
+  );
+}
+
+function PatientHistoryModal({ patient, records, onClose, searchQuery, onSearchChange, monthFilter, onMonthChange }) {
+  const months = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  const filteredRecords = records.filter(record => {
+    const matchesSearch = !searchQuery || 
+      (record.diagnosis || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (record.assessment || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (record.title || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    
+    if (monthFilter === 'All') return true;
+    
+    const date = record.createdAt?.seconds ? new Date(record.createdAt.seconds * 1000) : new Date(record.createdAt);
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    return month === monthFilter;
+  }).sort((a,b) => {
+    const dateA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
+    const dateB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime();
+    return dateB - dateA;
+  });
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-4xl bg-white rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-[85vh] border border-slate-200"
+      >
+        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white relative z-10 shrink-0">
+          <div className="flex items-center gap-6">
+             <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-100 shadow-inner">
+                <History className="h-7 w-7" />
+             </div>
+             <div>
+               <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{patient.name}</h2>
+               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Clinical Journey Ledger</p>
+             </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="h-12 w-12 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-white transition-all active:scale-95 shadow-sm"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div className="px-8 py-6 bg-slate-50/50 border-b border-slate-100 flex flex-wrap items-center gap-4 shrink-0">
+          <div className="relative flex-1 min-w-[300px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input 
+              type="text"
+              placeholder="Search diagnosis, notes or symptoms..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all shadow-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {months.map(m => (
+              <button
+                key={m}
+                onClick={() => onMonthChange(m)}
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border ${monthFilter === m 
+                  ? 'bg-slate-900 text-white border-slate-900' 
+                  : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'}`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 bg-white space-y-4">
+          {filteredRecords.length > 0 ? filteredRecords.map((record, idx) => (
+            <motion.div 
+              key={record.id} 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.03 }}
+              className="group p-6 bg-slate-50/50 hover:bg-white border border-slate-100 hover:border-slate-300 rounded-2xl transition-all shadow-sm hover:shadow-md cursor-default"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex items-start gap-4">
+                  <div className="flex flex-col items-center justify-center px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm min-w-[70px]">
+                    <span className="text-lg font-black text-slate-900 leading-none mb-1">
+                      {record.createdAt?.seconds 
+                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { day: '2-digit' })
+                        : new Date(record.createdAt).toLocaleDateString('en-US', { day: '2-digit' })}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      {record.createdAt?.seconds 
+                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+                        : new Date(record.createdAt).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-base font-bold text-slate-900 tracking-tight">{record.title || 'Clinical Consultation'}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] font-bold uppercase tracking-widest border border-emerald-100">Signed</span>
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-bold uppercase tracking-widest border border-slate-200">{record.specialty || 'General'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Attending Physician</p>
+                   <p className="text-xs font-bold text-slate-900">{record.doctorName || record.staffName || 'Dr. Medical Staff'}</p>
+                </div>
+              </div>
+              
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
+                <div className="space-y-2">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Diagnosis & Assessment</p>
+                   <p className="text-sm text-slate-700 font-medium leading-relaxed">{record.diagnosis || record.assessment || 'No clinical data recorded.'}</p>
+                </div>
+                <div className="space-y-2">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Clinical Plan / Notes</p>
+                   <p className="text-sm text-slate-500 italic leading-relaxed">{record.plan || record.notes || 'Routine follow-up scheduled.'}</p>
+                </div>
+              </div>
+
+              {record.prescriptions?.length > 0 && (
+                <div className="mt-6 p-4 bg-white border border-slate-100 rounded-xl space-y-3">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Active Prescriptions</p>
+                   <div className="flex flex-wrap gap-2">
+                     {record.prescriptions.map((p, i) => (
+                       <span key={i} className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-[10px] font-medium border border-slate-200">
+                         {p.medicineName} • {p.dosage}
+                       </span>
+                     ))}
+                   </div>
+                </div>
+              )}
+            </motion.div>
+          )) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+               <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mb-4">
+                  <Search className="h-8 w-8" />
+               </div>
+               <h3 className="text-lg font-bold text-slate-900 tracking-tight">No historical entries found</h3>
+               <p className="text-slate-400 max-w-xs mt-2 text-sm font-medium">Try adjusting your search query or month filter to find older clinical records.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 border-t border-slate-100 bg-slate-50 text-center shrink-0">
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Total Lifecycle Entries: {records.length}</p>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
 function DetailRow({ label, value }) {
   return (
-    <div className="flex justify-between items-center group/row py-1">
-      <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider group-hover/row:text-slate-900 transition-colors">{label}</span>
-      <span className="text-sm font-medium text-slate-900 group-hover/row:translate-x-[-2px] transition-transform">{value}</span>
+    <div className="flex justify-between items-center py-1 border-b border-slate-50 last:border-0">
+      <span className="text-xs text-slate-500">{label}</span>
+      <span className="text-sm font-bold text-slate-900">{value}</span>
     </div>
   );
 }
 
 function EditableField({ label, value, onChange, type = "text", isSelect = false, options = [], isTextArea = false }) {
   return (
-    <div className="space-y-2">
-      <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-1">{label}</label>
+    <div className="space-y-1">
+      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</label>
       {isSelect ? (
         <select 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
-          className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all"
+          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:bg-white focus:border-primary-500 transition-all"
         >
           <option value="">Select...</option>
           {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -614,14 +840,14 @@ function EditableField({ label, value, onChange, type = "text", isSelect = false
         <textarea 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
-          className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all min-h-[100px] resize-none"
+          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:bg-white focus:border-primary-500 transition-all min-h-[80px] resize-none"
         />
       ) : (
         <input 
           type={type} 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
-          className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all"
+          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:bg-white focus:border-primary-500 transition-all"
         />
       )}
     </div>

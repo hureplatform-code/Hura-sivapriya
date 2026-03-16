@@ -1,6 +1,6 @@
 import firestoreService from './firestoreService';
 import { db } from '../firebase';
-import { query, collection, getDocs, orderBy, limit, startAfter, where } from 'firebase/firestore';
+import { query, collection, getDocs, orderBy, limit, startAfter, where, or } from 'firebase/firestore';
 
 const medicalMasterService = {
   // Collection Mappings
@@ -46,24 +46,27 @@ const medicalMasterService = {
       
       let q;
       if (facilityId) {
-        // Fetch facility-specific items
-        const facilityQ = query(collection(db, col), where('facilityId', '==', facilityId), ...qConstraints);
-        // Fetch global items
-        const globalQ = query(collection(db, col), where('facilityId', '==', null), ...qConstraints);
-        
-        const [facSnap, globSnap] = await Promise.all([getDocs(facilityQ), getDocs(globalQ)]);
-        
-        const items = [
-          ...facSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-          ...globSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        ];
-        
-        // Sorting in memory if combined
+        // Strategy: Use 'or' query to fetch platform standards (null facilityId OR isGlobal) and facility items
+        const masterQuery = query(
+          collection(db, col),
+          or(
+            where('facilityId', '==', facilityId),
+            where('facilityId', '==', null),
+            where('isGlobal', '==', true)
+          ),
+          ...constraints,
+          ...(limitNum ? [limit(limitNum)] : []),
+          ...(lastDoc ? [startAfter(lastDoc)] : [])
+        );
+
+        const snap = await getDocs(masterQuery);
+        const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
         if (sortField) {
           items.sort((a, b) => (a[sortField] > b[sortField] ? 1 : -1));
         }
 
-        return limitNum === null ? items : { items, lastDoc: globSnap.docs[globSnap.docs.length - 1] };
+        return limitNum === null ? items : { items, lastDoc: snap.docs[snap.docs.length - 1] };
       }
 
       q = query(collection(db, col), ...qConstraints);
@@ -105,21 +108,39 @@ const medicalMasterService = {
     if (!col) throw new Error(`Invalid master type: ${type}`);
     
     try {
-      const qConstraints = [
-        where('name', '>=', term),
-        where('name', '<=', term + '\uf8ff'),
-        limit(10)
-      ];
+      // Determine search fields based on type
+      let searchFields = ['name'];
+      if (type === 'icd') searchFields = ['code', 'description'];
+      if (type === 'pharma') searchFields = ['name', 'code'];
+      if (type === 'labs') searchFields = ['name', 'test'];
 
-      const q = query(collection(db, col), ...qConstraints);
-      const snap = await getDocs(q);
-      let results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Execute queries for each field
+      const queryPromises = searchFields.map(field => {
+        const q = query(
+           collection(db, col),
+           where(field, '>=', term),
+           where(field, '<=', term + '\uf8ff'),
+           limit(20)
+        );
+        return getDocs(q);
+      });
+
+      const snapshots = await Promise.all(queryPromises);
+      const resultsMap = new Map();
+
+      snapshots.forEach(snap => {
+        snap.docs.forEach(doc => {
+          resultsMap.set(doc.id, { id: doc.id, ...doc.data() });
+        });
+      });
+
+      let results = Array.from(resultsMap.values());
 
       if (facilityId) {
         results = results.filter(item => !item.facilityId || item.facilityId === facilityId);
       }
 
-      return results;
+      return results.slice(0, 15);
     } catch (error) {
       console.error(`Error searching ${type}:`, error);
       return [];

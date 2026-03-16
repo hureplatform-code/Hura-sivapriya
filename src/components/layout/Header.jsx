@@ -35,11 +35,7 @@ export default function Header({ onMenuClick }) {
     setShowResults(true);
     try {
       const facilityId = userData?.facilityId;
-      const [patients, appointments, records] = await Promise.all([
-        patientService.getAllPatients(facilityId),
-        appointmentService.getAllAppointments(facilityId),
-        medicalRecordService.getAllRecords(facilityId)
-      ]);
+      const patients = await patientService.getAllPatients(facilityId);
 
       const queryLower = val.toLowerCase();
       const queryDigits = val.replace(/[^0-9]/g, '');
@@ -47,7 +43,8 @@ export default function Header({ onMenuClick }) {
 
       const filteredPatients = patients.filter(p => {
         const nameMatch = p.name?.toLowerCase().includes(queryLower);
-        const idMatch = (p.id || '').toLowerCase().includes(queryLower);
+        const idMatch = (p.id || '').toLowerCase().includes(queryLower) || 
+                        (p.patientId || '').toLowerCase().includes(queryLower);
         const mobileDigits = (p.mobile || '').replace(/[^0-9]/g, '');
         const contactDigits = (p.contact || '').replace(/[^0-9]/g, '');
         
@@ -55,26 +52,10 @@ export default function Header({ onMenuClick }) {
                           (queryNoZero && (mobileDigits.includes(queryNoZero) || contactDigits.includes(queryNoZero)));
         
         return nameMatch || idMatch || phoneMatch;
-      }).slice(0, 3);
-
-      const filteredApts = appointments.filter(a => {
-        const nameMatch = a.patient?.toLowerCase().includes(queryLower);
-        const mobileDigits = (a.patientPhone || '').replace(/[^0-9]/g, '');
-        const phoneMatch = (queryDigits && mobileDigits.includes(queryDigits)) || (queryNoZero && mobileDigits.includes(queryNoZero));
-        return nameMatch || phoneMatch;
-      }).slice(0, 3);
-
-      const filteredRecords = records.filter(r => 
-        r.patientName?.toLowerCase().includes(queryLower) || 
-        r.title?.toLowerCase().includes(queryLower) ||
-        r.patientId?.toLowerCase().includes(queryLower) ||
-        (r.id || '').toLowerCase().includes(queryLower)
-      ).slice(0, 3);
+      }).slice(0, 5);
 
       setResults([
-        ...filteredPatients.map(p => ({ ...p, type: 'patient', icon: Users, path: `/master/patients/${p.id}` })),
-        ...filteredApts.map(a => ({ ...a, type: 'appointment', icon: Calendar, path: '/appointments' })),
-        ...filteredRecords.map(r => ({ ...r, type: 'record', icon: FileText, path: '/notes' }))
+        ...filteredPatients.map(p => ({ ...p, type: 'patient', icon: Users, path: `/master/patients/${p.id}` }))
       ]);
     } catch (err) {
       console.error("Search error:", err);

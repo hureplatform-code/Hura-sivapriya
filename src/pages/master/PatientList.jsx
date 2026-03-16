@@ -153,13 +153,15 @@ export default function PatientList() {
             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Patient Registry</h1>
             <p className="text-slate-500 mt-1">Centralized database for all registered patients and clinical histories.</p>
           </div>
-          <button 
-            onClick={() => setIsRegisterModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
-          >
-            <UserPlus className="h-5 w-5" />
-            Register New Patient
-          </button>
+          {userData?.role !== 'doctor' && (
+            <button 
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+            >
+              <UserPlus className="h-5 w-5" />
+              Register New Patient
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -270,46 +272,56 @@ export default function PatientList() {
                         </span>
                       </td>
                       <td className="py-5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2 transition-opacity">
+                        {userData?.role === 'doctor' ? (
                           <button 
                             onClick={(e) => { e.stopPropagation(); navigate(`/master/patients/${pat.id}`); }}
-                            className="p-2.5 text-slate-400 hover:text-primary-600 bg-white rounded-xl shadow-sm border border-slate-100"
+                            className="px-4 py-2 bg-slate-50 text-slate-600 font-bold text-[10px] uppercase tracking-widest rounded-lg border border-slate-200 transition-all active:scale-95 flex items-center gap-2 ml-auto hover:bg-white hover:text-slate-900"
                           >
-                            <ExternalLink className="h-4.5 w-4.5" />
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            View Details
                           </button>
-                          <div className="relative">
+                        ) : (
+                          <div className="flex items-center justify-end gap-2 transition-opacity">
                             <button 
-                              onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === pat.id ? null : pat.id); }}
-                              className="p-2.5 text-slate-400 hover:text-slate-900 bg-white rounded-xl shadow-sm border border-slate-100"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/master/patients/${pat.id}`); }}
+                              className="p-2.5 text-slate-400 hover:text-primary-600 bg-white rounded-xl shadow-sm border border-slate-100"
                             >
-                              <MoreVertical className="h-4.5 w-4.5" />
+                              <ExternalLink className="h-4.5 w-4.5" />
                             </button>
+                            <div className="relative">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === pat.id ? null : pat.id); }}
+                                className="p-2.5 text-slate-400 hover:text-slate-900 bg-white rounded-xl shadow-sm border border-slate-100"
+                              >
+                                <MoreVertical className="h-4.5 w-4.5" />
+                              </button>
 
-                            {activeMenu === pat.id && (
-                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); navigate(`/master/patients/${pat.id}`); setActiveMenu(null); }}
-                                  className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
-                                >
-                                  <ExternalLink className="h-4 w-4" /> View Details
-                                </button>
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); navigate(`/master/patients/${pat.id}`); setActiveMenu(null); }}
-                                  className="w-full text-left px-4 py-2 text-sm text-primary-600 hover:bg-slate-50 font-medium flex items-center gap-2"
-                                >
-                                  <User className="h-4 w-4" /> Edit Profile
-                                </button>
-                                <div className="h-px bg-slate-100 my-1" />
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); handleDeletePatient(pat.id); setActiveMenu(null); }}
-                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 font-medium flex items-center gap-2"
-                                >
-                                  <Trash2 className="h-4 w-4" /> Delete Patient
-                                </button>
-                              </div>
-                            )}
+                              {activeMenu === pat.id && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/master/patients/${pat.id}`); setActiveMenu(null); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                  >
+                                    <ExternalLink className="h-4 w-4" /> View Details
+                                  </button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/master/patients/${pat.id}`); setActiveMenu(null); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-primary-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                  >
+                                    <User className="h-4 w-4" /> Edit Profile
+                                  </button>
+                                  <div className="h-px bg-slate-100 my-1" />
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); handleDeletePatient(pat.id); setActiveMenu(null); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 font-medium flex items-center gap-2"
+                                  >
+                                    <Trash2 className="h-4 w-4" /> Delete Patient
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </td>
                     </motion.tr>
                   )

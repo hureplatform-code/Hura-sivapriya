@@ -22,8 +22,31 @@ export default function WaitlistTV() {
   const fetchQueue = async (facilityId) => {
     try {
       const data = await appointmentService.getAllAppointments(facilityId);
-      const waiting = data.filter(a => ['arrived', 'triage', 'in-session'].includes(a.status))
-        .sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
+      
+      const now = new Date();
+      const clinicalDayStart = new Date(now);
+      clinicalDayStart.setHours(2, 0, 0, 0);
+      
+      // If it's before 2 AM, our "clinical today" actually started yesterday at 2 AM
+      if (now.getHours() < 2) {
+        clinicalDayStart.setDate(clinicalDayStart.getDate() - 1);
+      }
+
+      const waiting = data.filter(a => {
+        const isQueuingStatus = ['arrived', 'triage', 'in-session', 'calling'].includes(a.status);
+        if (!isQueuingStatus) return false;
+
+        // Ensure the appointment belongs to the current clinical day
+        // We check createdAt if available, otherwise fallback to the scheduled date
+        const createdDate = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt || a.date);
+        return createdDate >= clinicalDayStart;
+      }).sort((a, b) => {
+        // Sort by check-in time or scheduled time
+        const timeA = a.createdAt?.seconds || new Date(a.date + ' ' + (a.time || '00:00')).getTime();
+        const timeB = b.createdAt?.seconds || new Date(b.date + ' ' + (b.time || '00:00')).getTime();
+        return timeA - timeB;
+      });
+      
       setAppointments(waiting);
     } catch (e) {
       console.error(e);

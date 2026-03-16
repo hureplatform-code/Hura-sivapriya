@@ -27,18 +27,19 @@ const patientService = {
       const q = query(collection(db, this.collection), ...constraints);
       const snap = await getDocs(q);
       const lastVisible = snap.docs[snap.docs.length - 1];
-      const patients = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const patients = snap.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
 
       if (limitNum === null) return patients;
       return { patients, lastDoc: lastVisible };
     } catch (error) {
       console.error('Error fetching patients:', error);
-      // Fallback: If orderBy fails (missing index), try without index
-      if (error.code === 'failed-precondition') {
+      // Fallback: If index missing, try without orderBy
+      if (error.code === 'failed-precondition' || error.message?.includes('index')) {
         try {
           const q = query(collection(db, this.collection), where('facilityId', '==', facilityId));
           const snap = await getDocs(q);
-          return limitNum === null ? snap.docs.map(d => ({id: d.id, ...d.data()})) : { patients: snap.docs.map(d => ({id: d.id, ...d.data()})), lastDoc: null };
+          const patients = snap.docs.map(d => ({ ...d.data(), docId: d.id }));
+          return limitNum === null ? patients : { patients, lastDoc: null };
         } catch (inner) {
           return limitNum === null ? [] : { patients: [], lastDoc: null };
         }
@@ -48,7 +49,27 @@ const patientService = {
   },
 
   async getPatientById(id) {
-    return firestoreService.getById(this.collection, id);
+    if (!id) return null;
+    // 1. Try fetching by Document ID
+    const byDocId = await firestoreService.getById(this.collection, id);
+    if (byDocId) return { ...byDocId, docId: byDocId.id };
+
+    // 2. Try fetching by patient id fields (id or patientId)
+    const q1 = query(collection(db, this.collection), where('id', '==', id), limit(1));
+    const snap1 = await getDocs(q1);
+    if (!snap1.empty) {
+      const doc = snap1.docs[0];
+      return { ...doc.data(), docId: doc.id };
+    }
+
+    const q2 = query(collection(db, this.collection), where('patientId', '==', id), limit(1));
+    const snap2 = await getDocs(q2);
+    if (!snap2.empty) {
+      const doc = snap2.docs[0];
+      return { ...doc.data(), docId: doc.id };
+    }
+    
+    return null;
   },
 
   async createPatient(patientData) {

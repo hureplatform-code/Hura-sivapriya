@@ -28,7 +28,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
 
-const menuItems = [
+const getMenuItems = (role) => [
   { 
     id: 'dashboard',
     icon: LayoutDashboard, 
@@ -37,6 +37,13 @@ const menuItems = [
     roles: ['superadmin', 'doctor', 'clinic_owner', 'nurse', 'receptionist', 'pharmacist', 'lab_tech']
   },
 
+  { 
+    id: 'patients',
+    icon: Users, 
+    label: 'Patient Registry', 
+    path: '/master/patients',
+    roles: ['clinic_owner', 'doctor', 'nurse', 'receptionist']
+  },
   {
     id: 'master-setup',
     icon: Settings,
@@ -44,7 +51,6 @@ const menuItems = [
     roles: ['superadmin', 'clinic_owner'],
     subItems: [
       { label: 'Facility Profile', path: '/master/profile', roles: ['clinic_owner'] },
-      { label: 'Patient Registry', path: '/master/patients', roles: ['clinic_owner', 'doctor', 'nurse', 'receptionist'] },
       { label: 'Users & Staff', path: '/master/users', roles: ['superadmin', 'clinic_owner'] },
       { label: 'Security Matrix', path: '/master/permissions', roles: ['superadmin', 'clinic_owner'] },
       { label: 'Branch Management', path: '/master/branches', roles: ['clinic_owner'] },
@@ -125,7 +131,7 @@ const menuItems = [
   {
     id: 'system-codes',
     icon: Database,
-    label: 'System Codes',
+    label: role === 'superadmin' ? 'System Codes Master' : 'Clinical Lexicon',
     path: '/superadmin/codes',
     roles: ['superadmin', 'clinic_owner', 'admin']
   },
@@ -196,6 +202,11 @@ export default function Sidebar({ isOpen, onClose }) {
        });
     }
 
+    // Auto-expand Clinical Ops for Doctor role
+    if (role === 'doctor' || role === 'clinic_owner') {
+      setExpandedItems(prev => ({ ...prev, clinical: true }));
+    }
+
     if (role === 'superadmin') {
       import('../../services/smsSettingsService').then(m => {
         m.default.getAtBalance().then(bal => {
@@ -205,7 +216,7 @@ export default function Sidebar({ isOpen, onClose }) {
     }
   }, [userData?.facilityId, role]);
 
-  const filteredMenuItems = menuItems.filter(item => 
+  const filteredMenuItems = getMenuItems(role).filter(item => 
     !item.roles || item.roles.includes(role)
   );
 
