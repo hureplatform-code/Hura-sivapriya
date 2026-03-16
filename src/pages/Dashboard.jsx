@@ -272,117 +272,89 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className={`grid grid-cols-1 ${role === 'lab_tech' ? '' : 'lg:grid-cols-2'} gap-8`}>
           {/* Main Visual Section */}
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
+          <div className={`bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col ${role === 'lab_tech' ? 'lg:col-span-2' : ''}`}>
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">
-              {role === 'doctor' ? 'Clinical Schedule' : role === 'lab_tech' ? 'Lab Queue' : 'Financial Arrears'}
+              {role === 'doctor' ? 'Clinical Schedule' : role === 'lab_tech' ? 'Lab Intake Queue' : 'Financial Arrears'}
             </h3>
             <div className="h-10 w-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400">
-              {role === 'doctor' ? <Calendar className="h-5 w-5" /> : role === 'lab_tech' ? <Thermometer className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
+              {role === 'doctor' ? <Calendar className="h-5 w-5" /> : role === 'lab_tech' ? <Activity className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
             </div>
           </div>
           
           <div className="flex-1 space-y-4">
             {(role === 'doctor' || role === 'nurse' || role === 'receptionist' || role === 'lab_tech') ? (
-              arrears.length > 0 ? arrears.map((apt, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-primary-100 transition-all cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 bg-primary-50 rounded-lg flex items-center justify-center border border-primary-100">
-                       <span className="text-[10px] font-bold text-primary-600">T-{apt.tokenNumber || '0'}</span>
+              arrears.length > 0 ? (
+                <div className={role === 'lab_tech' ? "space-y-4" : "space-y-4"}>
+                  {arrears.map((apt, i) => (
+                    <div 
+                      key={i} 
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-[2rem] group transition-all cursor-pointer border-2 ${role === 'lab_tech' ? 'bg-white border-slate-100 hover:border-orange-200 hover:shadow-xl' : 'bg-slate-50 border-transparent hover:bg-white hover:border-primary-100'}`}
+                      onClick={() => role === 'lab_tech' && navigate('/lab/queue')}
+                    >
+                      <div className="flex items-center gap-6">
+                        <div className={`h-16 w-16 rounded-2xl flex items-center justify-center border shadow-sm ${role === 'lab_tech' ? 'bg-orange-50 border-orange-100 text-orange-600' : 'bg-primary-50 border-primary-100 text-primary-600'}`}>
+                           <span className="text-lg font-black tracking-tighter">T-{apt.tokenNumber || '0'}</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-lg leading-tight">{apt.patient}</p>
+                          <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-100">
+                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">OP#</span>
+                               <span className="text-[10px] font-bold text-slate-700">{apt.id?.slice(-8) || 'NEW-CASE'}</span>
+                            </div>
+                            {apt.phoneNumber && (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-100">
+                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">MOB</span>
+                                 <span className="text-[10px] font-bold text-slate-700">{apt.phoneNumber}</span>
+                              </div>
+                            )}
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em]">{apt.type}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                         {role === 'lab_tech' && (
+                           <div className="text-right hidden sm:block">
+                              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Protocol</p>
+                              <p className="text-[10px] font-bold text-orange-600 uppercase">Emergency</p>
+                           </div>
+                         )}
+
+                        {role === 'receptionist' && apt.status === 'scheduled' && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleCheckIn(apt.id); }}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md active:scale-95"
+                          >
+                            Check In
+                          </button>
+                        )}
+
+                        {role === 'doctor' && (apt.status === 'arrived' || apt.status === 'triage') && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleCallIn(apt.id); }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md active:scale-95"
+                          >
+                            Call In
+                          </button>
+                        )}
+
+                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest 
+                          ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-600' : 
+                            apt.status === 'calling' ? 'bg-amber-50 text-amber-600 animate-pulse' :
+                            apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
+                            apt.status === 'awaiting-lab' ? 'bg-orange-50 text-orange-600' :
+                            'bg-slate-50 text-slate-500'}`}>
+                          {apt.status}
+                        </span>
+                      </div>
                     </div>
-                    <div className="h-12 w-12 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center shadow-sm">
-                      <span className="text-[10px] font-bold text-slate-400">{(apt.time || '00:00').split(':')[0]}</span>
-                      <span className="text-xs font-bold text-slate-900 leading-none">{(apt.time || '00:00').split(':')[1]}</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900 text-sm">{apt.patient}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{apt.type}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {/* Receptionist: Check In */}
-                    {role === 'receptionist' && apt.status === 'scheduled' && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCheckIn(apt.id);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
-                      >
-                        <ShieldCheck className="h-3 w-3" />
-                        Check In
-                      </button>
-                    )}
-
-                    {/* Lab Tech: Manage */}
-                    {role === 'lab_tech' && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/lab/queue');
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-orange-700 transition-all shadow-md shadow-orange-100 active:scale-95"
-                      >
-                        <Thermometer className="h-3 w-3" />
-                        Open Queue
-                      </button>
-                    )}
-
-                    {/* Doctor: Call In for Arrived/Triage */}
-                    {role === 'doctor' && (apt.status === 'arrived' || apt.status === 'triage') && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCallIn(apt.id);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-100 active:scale-95"
-                      >
-                        <Volume2 className="h-3 w-3" />
-                        Call In
-                      </button>
-                    )}
-
-                    {/* Doctor: Start Session for Calling */}
-                    {role === 'doctor' && apt.status === 'calling' && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartSession(apt);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
-                      >
-                        <Play className="h-3 w-3" />
-                        Start Session
-                      </button>
-                    )}
-
-                    {/* Doctor: Resume Session if already in-session */}
-                    {role === 'doctor' && apt.status === 'in-session' && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartSession(apt);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-95"
-                      >
-                        <ArrowRight className="h-3 w-3" />
-                        Resume Session
-                      </button>
-                    )}
-
-                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest 
-                      ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-600' : 
-                        apt.status === 'calling' ? 'bg-amber-50 text-amber-600 animate-pulse' :
-                        apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
-                        apt.status === 'awaiting-lab' ? 'bg-orange-50 text-orange-600' :
-                        'bg-slate-50 text-slate-500'}`}>
-                      {apt.status}
-                    </span>
-                  </div>
+                  ))}
                 </div>
-              )) : (
+              ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-400 italic text-sm">
                   <p>No patients scheduled for this window.</p>
                 </div>
@@ -421,50 +393,52 @@ export default function Dashboard() {
           </button>
         </div>
 
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">Recent Activity Log</h3>
-              <div className="h-10 w-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400">
-                <History className="h-5 w-5" />
+          {role !== 'lab_tech' && (
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">Recent Activity Log</h3>
+                <div className="h-10 w-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400">
+                  <History className="h-5 w-5" />
+                </div>
               </div>
-            </div>
 
-            <div className="flex-1 space-y-6">
-              {auditLogs.length > 0 ? auditLogs.map((log, i) => (
-                <div 
-                  key={i} 
-                  onClick={() => navigate('/superadmin/audit')}
-                  className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-emerald-100 transition-all cursor-pointer active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                      <ShieldCheck className={`h-6 w-6 ${log.module === 'CLINICAL' ? 'text-primary-500' : 'text-emerald-500'}`} />
+              <div className="flex-1 space-y-6">
+                {auditLogs.length > 0 ? auditLogs.map((log, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => navigate('/superadmin/audit')}
+                    className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-emerald-100 transition-all cursor-pointer active:scale-[0.98]"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                        <ShieldCheck className={`h-6 w-6 ${log.module === 'CLINICAL' ? 'text-primary-500' : 'text-emerald-500'}`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900 text-sm">{log.description}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase">{log.userName} • {log.action}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-slate-900 text-sm">{log.description}</p>
-                      <p className="text-[10px] text-slate-400 font-semibold uppercase">{log.userName} • {log.action}</p>
+                    <div className="text-right">
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">
+                         {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">
-                       {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                    </p>
+                )) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 italic text-sm">
+                     <p>Initial system boot complete. Waiting for clinical activity...</p>
                   </div>
-                </div>
-              )) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 italic text-sm">
-                   <p>Initial system boot complete. Waiting for clinical activity...</p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <button 
-              onClick={() => navigate('/superadmin/audit')}
-              className="w-full mt-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
-            >
-               Audit Full Ledger
-            </button>
-          </div>
+              <button 
+                onClick={() => navigate('/superadmin/audit')}
+                className="w-full mt-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
+              >
+                 Audit Full Ledger
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

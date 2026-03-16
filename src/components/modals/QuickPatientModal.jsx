@@ -19,12 +19,14 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
     gender: 'Other',
     address: '',
     paymentMode: 'Cash',
-    insurer: '',
-    plan: '',
-    memberNumber: '',
+    insName: '',
+    insPlan: '',
+    insMemberNo: '',
     relationship: 'Self',
     memberNameIfOther: '',
-    nextOfKin: '',
+    nextOfKinName: '',
+    nextOfKinRelation: '',
+    nextOfKinPhone: '',
     status: 'active'
   });
 
@@ -33,14 +35,11 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
     setFormData(prev => {
       const newState = { ...prev, [name]: value };
       
-      // Auto-calculate age if DOB components change
-      if (name === 'dob_day' || name === 'dob_month' || name === 'dob_year') {
-        const day = name === 'dob_day' ? value : prev.dob_day;
-        const month = name === 'dob_month' ? value : prev.dob_month;
-        const year = name === 'dob_year' ? value : prev.dob_year;
-
-        if (day && month && year) {
-          const birthDate = new Date(year, month - 1, day);
+      // Auto-calculate age if DOB changes
+      if (name === 'dob') {
+        const value = e.target.value;
+        if (value) {
+          const birthDate = new Date(value);
           const today = new Date();
           let age = today.getFullYear() - birthDate.getFullYear();
           const m = today.getMonth() - birthDate.getMonth();
@@ -48,7 +47,6 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
             age--;
           }
           newState.age = age >= 0 ? age : '';
-          newState.dob = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
       }
       return newState;
@@ -177,43 +175,16 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Date of Birth</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <select
-                      name="dob_day"
-                      value={formData.dob_day || ''}
+                  <div className="relative">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <input
+                      name="dob"
+                      type="date"
+                      value={formData.dob}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all appearance-none"
-                    >
-                      <option value="">Day</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                    <select
-                      name="dob_month"
-                      value={formData.dob_month || ''}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all appearance-none"
-                    >
-                      <option value="">Month</option>
-                      {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, i) => (
-                        <option key={m} value={i + 1}>{m}</option>
-                      ))}
-                    </select>
-                    <select
-                      name="dob_year"
-                      value={formData.dob_year || ''}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all appearance-none"
-                    >
-                      <option value="">Year</option>
-                      {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
+                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all"
+                    />
                   </div>
                 </div>
 
@@ -261,17 +232,39 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Next of Kin</label>
-                  <div className="relative">
-                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <input
-                      name="nextOfKin"
-                      value={formData.nextOfKin}
-                      onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all"
-                      placeholder="Name & Relationship"
-                    />
+                <div className="space-y-4">
+                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Next of Kin / Emergency Contact</label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        name="nextOfKinName"
+                        value={formData.nextOfKinName}
+                        onChange={handleChange}
+                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-xl text-sm font-medium outline-none transition-all"
+                        placeholder="Name"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        name="nextOfKinRelation"
+                        value={formData.nextOfKinRelation}
+                        onChange={handleChange}
+                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-xl text-sm font-medium outline-none transition-all"
+                        placeholder="Relationship"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        name="nextOfKinPhone"
+                        value={formData.nextOfKinPhone}
+                        onChange={handleChange}
+                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-xl text-sm font-medium outline-none transition-all"
+                        placeholder="Emergency Phone"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -314,8 +307,8 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
                     <div className="space-y-2">
                       <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Insurer Name</label>
                       <input
-                        name="insurer"
-                        value={formData.insurer}
+                        name="insName"
+                        value={formData.insName}
                         onChange={handleChange}
                         required
                         className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-primary-500 transition-all"
@@ -325,8 +318,8 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
                     <div className="space-y-2">
                       <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Member Number</label>
                       <input
-                        name="memberNumber"
-                        value={formData.memberNumber}
+                        name="insMemberNo"
+                        value={formData.insMemberNo}
                         onChange={handleChange}
                         required
                         className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-primary-500 transition-all"
