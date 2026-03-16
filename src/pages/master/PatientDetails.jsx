@@ -601,19 +601,12 @@ export default function PatientDetails() {
              <div className="bg-white border border-slate-200 p-8 rounded-2xl space-y-6">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                   <h4 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Visit Timeline</h4>
-                  <button 
-                    onClick={() => navigate('/notes', { state: { searchQuery: patient.name } })}
-                    className="h-6 w-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all border border-slate-100"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
                 </div>
                 <div className="space-y-3">
-                  {records.length > 0 ? records.map((record) => (
+                  {records.length > 0 ? records.slice(0, 5).map((record) => (
                     <div 
                       key={record.id} 
-                      onClick={() => navigate('/notes', { state: { searchQuery: patient.name } })}
-                      className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-all cursor-pointer group"
+                      className="p-4 bg-slate-50 rounded-xl border border-slate-100 transition-all group"
                     >
                       <div className="flex justify-between items-start mb-2">
                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
