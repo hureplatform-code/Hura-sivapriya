@@ -103,7 +103,7 @@ export default function PlatformSettings() {
         <form onSubmit={handleSave} className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Currency Configuration */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
               <div className="p-8 border-b border-slate-100 bg-slate-50/50">
                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
                    <div className="h-10 w-10 bg-emerald-100 rounded-xl flex items-center justify-center">
@@ -120,7 +120,7 @@ export default function PlatformSettings() {
                   <select
                     value={config.baseCurrency}
                     onChange={(e) => setConfig({ ...config, baseCurrency: e.target.value })}
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-[1.5rem] focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all font-semibold text-slate-700 appearance-none cursor-pointer"
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all font-semibold text-slate-700 appearance-none cursor-pointer"
                   >
                     <option value="USD">USD - United States Dollar</option>
                     <option value="MVR">MVR - Maldivian Rufiyaa</option>
@@ -145,7 +145,7 @@ export default function PlatformSettings() {
             </div>
 
             {/* AI Configuration */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
               <div className="p-8 border-b border-slate-100 bg-slate-50/50">
                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
                    <div className="h-10 w-10 bg-indigo-100 rounded-xl flex items-center justify-center">
@@ -167,7 +167,7 @@ export default function PlatformSettings() {
                       type={showKey ? 'text' : 'password'}
                       value={config.geminiApiKey}
                       onChange={(e) => setConfig({ ...config, geminiApiKey: e.target.value })}
-                      className="w-full pl-6 pr-14 py-4 bg-slate-50 border border-slate-200 rounded-[1.5rem] focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all font-medium text-slate-700"
+                      className="w-full pl-6 pr-14 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all font-medium text-slate-700"
                       placeholder="AIzaSyA..."
                     />
                     <button
@@ -194,7 +194,7 @@ export default function PlatformSettings() {
             <button
               type="submit"
               disabled={isSaving}
-              className="flex items-center gap-3 px-10 py-4 bg-slate-900 text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-widest shadow-2xl shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
+              className="flex items-center gap-3 px-10 py-4 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-2xl shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
             >
               {isSaving ? (
                 <>

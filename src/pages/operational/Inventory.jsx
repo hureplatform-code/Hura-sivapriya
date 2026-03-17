@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import inventoryService from '../../services/inventoryService';
+import medicalMasterService from '../../services/medicalMasterService';
 
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -44,7 +45,33 @@ export default function Inventory() {
 
   useEffect(() => {
     fetchInventory();
-  }, [userData]); // Dependency on userData to ensure facilityId is present
+  }, [userData]); 
+
+  // Real-time search implementation
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchTerm.trim().length >= 2) {
+        performSearch();
+      } else if (searchTerm.trim().length === 0) {
+        fetchInventory(); // Reset to default view
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
+  const performSearch = async () => {
+    try {
+      setLoading(true);
+      const results = await inventoryService.search(searchTerm, userData?.facilityId);
+      setItems(results);
+      setHasMore(false); // Disable pagination during search
+    } catch (e) {
+      console.error('Search error:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (userData?.role === 'superadmin') {
     return (
@@ -105,10 +132,8 @@ export default function Inventory() {
   };
 
   const filteredItems = items.filter(item => {
-    const nameMatch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const batchMatch = (item.batch || '').toLowerCase().includes(searchTerm.toLowerCase());
     const categoryMatch = category === 'All' || item.category === category;
-    return (nameMatch || batchMatch) && categoryMatch;
+    return categoryMatch;
   });
 
   const handleEdit = (item) => {
@@ -376,13 +401,44 @@ function InboundModal({ onClose, onSave, editData, facilityId }) {
     stock: editData?.stock || 0,
     batch: editData?.batch || '',
     expiry: editData?.expiry || '',
-    price: editData?.price || 0
+    price: editData?.price || 0,
+    code: editData?.code || ''
   });
+  const [suggestions, setSuggestions] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async (term) => {
+    setFormData({ ...formData, name: term });
+    if (term.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const type = formData.category === 'Pharmacological' ? 'pharma' : 'nonPharma';
+      const results = await medicalMasterService.search(type, term);
+      setSuggestions(results);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelect = (item) => {
+    setFormData({
+      ...formData,
+      name: item.brandName ? `${item.brandName} (${item.genericName})` : item.name,
+      code: item.code || formData.code,
+      category: formData.category 
+    });
+    setSuggestions([]);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (editData) {
-      await inventoryService.updateItem(editData.id, formData);
+      await inventoryService.updateStock(editData.id, formData);
     } else {
       await inventoryService.addStock({ ...formData, facilityId });
     }
@@ -394,7 +450,7 @@ function InboundModal({ onClose, onSave, editData, facilityId }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md"
     >
       <motion.div
         initial={{ scale: 0.95, y: 20 }}
@@ -417,15 +473,60 @@ function InboundModal({ onClose, onSave, editData, facilityId }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-12 space-y-8">
-          <div className="space-y-4">
+          <div className="space-y-4 relative">
             <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Product Name & Specifics</label>
-            <input 
-              required
-              placeholder="e.g. Amoxicillin 500mg (Cap)"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none" 
-            />
+            <div className="relative">
+              <input 
+                required
+                placeholder="Search Master Records..."
+                value={formData.name}
+                onChange={(e) => handleSearch(e.target.value)}
+                onBlur={() => setTimeout(() => setSuggestions([]), 200)}
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none shadow-inner transition-all" 
+              />
+              {isSearching && <div className="absolute right-6 top-1/2 -translate-y-1/2"><Activity className="h-4 w-4 animate-spin text-slate-300" /></div>}
+            </div>
+            
+            <AnimatePresence>
+              {suggestions.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute left-0 right-0 top-full mt-2 bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-[130] overflow-hidden p-2"
+                >
+                  {suggestions.map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleSelect(s)}
+                      className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-2xl transition-all text-left group"
+                    >
+                      <div className="h-10 w-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500">
+                        <Package className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900 leading-tight">{s.brandName ? `${s.brandName} (${s.genericName})` : s.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{s.form || s.category || 'Master Item'}</p>
+                           {s.code && <p className="text-[10px] text-blue-500 font-black">#{s.code}</p>}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="space-y-4">
+             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Product ID / Barcode Code</label>
+             <input 
+               placeholder="e.g. PH-001"
+               value={formData.code}
+               onChange={(e) => setFormData({...formData, code: e.target.value})}
+               className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none shadow-inner" 
+             />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -434,7 +535,7 @@ function InboundModal({ onClose, onSave, editData, facilityId }) {
               <select 
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none appearance-none"
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none appearance-none shadow-inner cursor-pointer"
               >
                 <option>Pharmacological</option>
                 <option>Non-Pharmacological</option>
@@ -447,37 +548,49 @@ function InboundModal({ onClose, onSave, editData, facilityId }) {
                 required
                 value={formData.stock}
                 onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value)})}
-                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none" 
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none shadow-inner" 
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
-              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Batch Number</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Batch Number</label>
               <input 
                 required
                 placeholder="B-2026-X"
                 value={formData.batch}
                 onChange={(e) => setFormData({...formData, batch: e.target.value})}
-                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none" 
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none shadow-inner" 
               />
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Expiry Date</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Expiry Date</label>
               <input 
                 type="date"
                 required
                 value={formData.expiry}
                 onChange={(e) => setFormData({...formData, expiry: e.target.value})}
-                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-medium outline-none" 
+                className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none shadow-inner" 
               />
             </div>
           </div>
 
+          <div className="space-y-4">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Unit Price ({currency})</label>
+            <input 
+              type="number"
+              step="0.01"
+              required
+              value={formData.price}
+              onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value)})}
+              className="w-full p-6 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-[2rem] text-sm font-bold outline-none shadow-inner" 
+            />
+          </div>
+
           <div className="flex gap-4 pt-6">
-            <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-100 transition-all">Cancel</button>
-            <button type="submit" className="flex-1 px-8 py-5 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200">
+            <button type="button" onClick={onClose} className="flex-1 px-8 py-5 bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-100 transition-all">Cancel</button>
+            <button type="submit" className="flex-1 px-8 py-5 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200">
                {editData ? 'Sync Changes' : 'Commit to Stock'}
             </button>
           </div>

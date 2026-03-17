@@ -58,7 +58,7 @@ export default function WaitlistTV() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12 md:mb-16 px-4 md:px-6 text-center md:text-left">
         <div className="flex flex-col md:flex-row items-center gap-6">
-           <div className="h-16 w-16 md:h-20 md:w-20 bg-blue-600 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center shadow-2xl shadow-blue-500/20">
+           <div className="h-16 w-16 md:h-20 md:w-20 bg-blue-600 rounded-xl md:rounded-xl flex items-center justify-center shadow-2xl shadow-blue-500/20">
               <Activity className="h-8 w-8 md:h-10 md:w-10" />
            </div>
            <div>
@@ -80,7 +80,7 @@ export default function WaitlistTV() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 h-auto lg:h-[calc(100vh-250px)]">
         {/* Main List */}
-        <div className="lg:col-span-2 bg-[#12151c] rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-12 border border-white/5 shadow-2xl relative overflow-hidden flex flex-col">
+        <div className="lg:col-span-2 bg-[#12151c] rounded-2xl md:rounded-2xl p-6 md:p-12 border border-white/5 shadow-2xl relative overflow-hidden flex flex-col">
            <div className="flex items-center justify-between mb-8 md:mb-12 px-2 md:px-4">
               <h3 className="text-lg md:text-2xl font-semibold text-slate-400 uppercase tracking-widest">Active Queue</h3>
               <div className="flex gap-4">
@@ -104,7 +104,7 @@ export default function WaitlistTV() {
                     initial={{ opacity: 0, x: -50 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className={`flex items-center justify-between p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border transition-all
+                    className={`flex items-center justify-between p-6 md:p-8 rounded-xl md:rounded-2xl border transition-all
                       ${apt.status === 'in-session' 
                         ? 'bg-blue-600 border-blue-400 shadow-2xl shadow-blue-500/20 scale-[1.01] md:scale-[1.02]' 
                         : 'bg-white/5 border-white/5 hover:bg-white/[0.08]'}
@@ -145,7 +145,7 @@ export default function WaitlistTV() {
 
         {/* Sidebar Info */}
         <div className="flex flex-col md:grid md:grid-cols-2 lg:flex lg:flex-col gap-8">
-           <div className="bg-emerald-600 rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-12 shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
+           <div className="bg-emerald-600 rounded-2xl md:rounded-2xl p-8 md:p-12 shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
               <div className="relative z-10">
                  <Heart className="h-10 w-10 md:h-12 md:w-12 text-emerald-200 mb-4 md:mb-6" />
                  <h4 className="text-xl md:text-2xl font-semibold mb-2">Health Notice</h4>
@@ -154,7 +154,7 @@ export default function WaitlistTV() {
               <div className="absolute -right-12 -bottom-12 h-48 md:h-64 w-48 md:w-64 bg-white/10 rounded-full blur-3xl" />
            </div>
 
-           <div className="bg-[#12151c] rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-10 border border-white/5 flex flex-col items-center justify-center text-center">
+           <div className="bg-[#12151c] rounded-2xl md:rounded-2xl p-8 md:p-10 border border-white/5 flex flex-col items-center justify-center text-center">
               <Thermometer className="h-12 w-12 md:h-16 md:w-16 text-blue-500 mb-4 md:mb-6" />
               <h5 className="text-slate-400 font-semibold uppercase tracking-widest text-[10px] md:text-sm mb-2 md:mb-4">AVG. WAIT TIME</h5>
               <p className="text-5xl md:text-7xl font-medium text-white tracking-tighter">18</p>

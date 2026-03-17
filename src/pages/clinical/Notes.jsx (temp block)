@@ -1,0 +1,23 @@
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import {
+  User, Activity, CheckCircle2, AlertCircle, FileText, Download, TrendingUp, 
+  Search, Calendar, Phone, Edit3, Save, Printer, 
+  RefreshCw, Eye, Mic, List, Info, ClipboardCheck, ClipboardList, Thermometer, 
+  Droplet, Plus, BrainCircuit, Heart, Ear, Stethoscope, 
+  ChevronRight, History, Smile, Baby, Scissors, Wind, Zap, Brain, Clock, 
+  MoreVertical, X, Droplets, ShieldCheck, ShoppingBag, Trash2
+} from 'lucide-react';
+
+import auditService from '../../services/auditService';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { db } from '../../firebase';
+import { getDoc, doc } from 'firebase/firestore';
+import medicalRecordService from '../../services/medicalRecordService';
+import appointmentService from '../../services/appointmentService';
+import patientService from '../../services/patientService';
+import medicalMasterService from '../../services/medicalMasterService';
+import inventoryService from '../../services/inventoryService';
+import { motion, AnimatePresence } from 'framer-motion';

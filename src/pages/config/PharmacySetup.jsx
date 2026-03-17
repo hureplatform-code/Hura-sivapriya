@@ -20,24 +20,36 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import medicalMasterService from '../../services/medicalMasterService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function PharmacySetup() {
   const { currency } = useCurrency();
+  const { userData } = useAuth();
   const [activeTab, setActiveTab] = useState('pharma');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const tabs = [
+  const allTabs = [
     { id: 'pharma', icon: Pill, label: 'Pharmacological' },
     { id: 'nonPharma', icon: Shapes, label: 'Non-Pharma' },
     { id: 'categories', icon: Filter, label: 'Categories' },
     { id: 'icd', icon: Binary, label: 'ICD-10 Catalogue' },
-    { id: 'labs', icon: Microscope, label: 'Lab Master' },
-    { id: 'imaging', icon: Stethoscope, label: 'Imaging Master' }
+    { id: 'labs', icon: Microscope, label: 'Lab Master Repository' },
+    { id: 'imaging', icon: Stethoscope, label: 'Imaging Master Repository' }
   ];
+
+  // Role-based filtering: Hide Labs and Imaging for Pharmacists
+  const tabs = allTabs.filter(tab => {
+    if ((userData?.role === 'pharmacist' || userData?.role === 'pharmacist_admin') && 
+        (tab.id === 'labs' || tab.id === 'imaging')) {
+      return false;
+    }
+    return true;
+  });
 
   const fetchItems = async () => {
     try {
@@ -52,9 +64,34 @@ export default function PharmacySetup() {
   };
 
   useEffect(() => {
+    setSearchQuery(''); // Reset search when switching tabs
     fetchItems();
   }, [activeTab]);
 
+  // Real-time server-side search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        performSearch();
+      } else if (searchQuery.trim().length === 0) {
+        fetchItems(); // Reset to default view
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const performSearch = async () => {
+    try {
+      setLoading(true);
+      const results = await medicalMasterService.search(activeTab, searchQuery, userData?.facilityId);
+      setItems(results);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleDelete = async () => {
     if (!deleteConfirmation) return;
     try {
@@ -70,9 +107,9 @@ export default function PharmacySetup() {
   const getColumns = () => {
     switch(activeTab) {
       case 'pharma':
-        return ['Name', 'Form', 'Dosage', 'Classification'];
+        return ['Medicine / Code', 'Form', 'Stock', 'Classification'];
       case 'nonPharma':
-        return ['Name', 'Unit', 'Re-order', 'Level'];
+        return ['Item / Code', 'Unit', 'Stock', 'Re-order'];
       case 'categories':
         return ['Name', 'Category Type', 'Code', 'Status'];
       case 'icd':
@@ -127,8 +164,10 @@ export default function PharmacySetup() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input 
                       type="text"
-                      placeholder="Search..."
-                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-xs font-medium outline-none"
+                      placeholder={`Search ${currentTabLabel}...`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-primary-500/20"
                     />
                   </div>
                   <button 
@@ -153,8 +192,6 @@ export default function PharmacySetup() {
                 <tbody className="divide-y divide-slate-50">
                   {loading ? (
                     <tr><td colSpan={getColumns().length + 1} className="py-12 text-center text-[10px] font-medium text-slate-300 uppercase tracking-[0.2em]">Synchronizing Master Data...</td></tr>
-                  ) : items.length === 0 ? (
-                    <tr><td colSpan={getColumns().length + 1} className="py-12 text-center text-slate-400 font-medium text-xs">No records found for {currentTabLabel}.</td></tr>
                   ) : items.map((item, i) => (
                     <motion.tr 
                       key={item.id || i}
@@ -164,21 +201,72 @@ export default function PharmacySetup() {
                     >
                       {activeTab === 'pharma' && (
                         <>
-                          <td className="py-4 px-4 font-medium text-slate-900 text-sm">
-                            {item.brandName}
-                            <div className="text-[10px] text-slate-400 font-medium">{item.genericName}</div>
+                          <td className="py-4 px-4">
+                            <div className="flex flex-col">
+                               <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-slate-900 leading-tight">{item.brandName || item.name}</span>
+                                  {item.code && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold">#{item.code}</span>}
+                               </div>
+                               <span className="text-[10px] text-slate-400 font-medium italic">{item.genericName}</span>
+                            </div>
                           </td>
-                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.form}</td>
-                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.dosage} {item.unit}</td>
-                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.classification}</td>
+                          <td className="py-4 px-4 text-xs text-slate-500 font-bold uppercase tracking-wider">
+                             {item.form} 
+                             <div className="text-[9px] text-slate-400 font-medium normal-case">{item.dosage}{item.unit}</div>
+                          </td>
+                          <td className="py-4 px-4">
+                             {(() => {
+                                const s = item.availableStock ?? item.stock ?? item.quantity ?? 0;
+                                const stockNum = typeof s === 'string' ? parseFloat(s) : s;
+                                const reorder = item.reorderLevel || 10;
+                                const isLow = stockNum <= reorder;
+                                return (
+                                   <div className={`flex flex-col items-start gap-1 p-2 rounded-xl border border-dashed transition-all ${!isLow ? 'border-emerald-100 bg-emerald-50/30' : 'border-red-100 bg-red-50/30'}`}>
+                                      <span className={`text-[10px] font-black tracking-tight ${!isLow ? 'text-emerald-700' : 'text-red-700'}`}>
+                                         {stockNum} UNITS
+                                      </span>
+                                      <div className="h-1 w-12 bg-slate-100 rounded-full overflow-hidden">
+                                         <div 
+                                            className={`h-full rounded-full ${!isLow ? 'bg-emerald-500' : 'bg-red-500'}`}
+                                            style={{ width: `${Math.min(100, (stockNum / (reorder * 2)) * 100)}%` }}
+                                         />
+                                      </div>
+                                   </div>
+                                );
+                             })()}
+                          </td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">
+                             <span className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                {item.classification || 'General'}
+                             </span>
+                          </td>
                         </>
                       )}
                       {activeTab === 'nonPharma' && (
                         <>
-                          <td className="py-4 px-4 font-medium text-slate-900 text-sm">{item.name}</td>
-                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.unit}</td>
-                          <td className="py-4 px-4 text-xs font-medium text-slate-500">{item.reorderLevel}</td>
-                          <td className="py-4 px-4 text-xs font-medium text-slate-500">Normal</td>
+                          <td className="py-4 px-4 font-bold text-slate-900">
+                             <div className="flex items-center gap-2">
+                                <span className="text-sm">{item.name}</span>
+                                {item.code && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">#{item.code}</span>}
+                             </div>
+                          </td>
+                          <td className="py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{item.unit}</td>
+                           <td className="py-4 px-4">
+                             {(() => {
+                                const s = item.availableLevel ?? item.stock ?? item.quantity ?? 0;
+                                const stockNum = typeof s === 'string' ? parseFloat(s) : s;
+                                const reorder = item.reorderLevel || 5;
+                                const isLow = stockNum <= reorder;
+                                return (
+                                   <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter ${!isLow ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700'}`}>
+                                      {stockNum} ITEMS
+                                   </span>
+                                );
+                             })()}
+                           </td>
+                          <td className="py-4 px-4 text-xs font-bold text-amber-600">
+                             {item.reorderLevel || 'Not Set'}
+                          </td>
                         </>
                       )}
                       {activeTab === 'categories' && (
@@ -330,28 +418,121 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
     switch(type) {
       case 'pharma':
         return (
-          <>
-            <div className="grid grid-cols-2 gap-4">
-              <TextField label="Brand Name" value={formData.brandName} onChange={val => setFormData({...formData, brandName: val})} required />
-              <TextField label="Generic Name" value={formData.genericName} onChange={val => setFormData({...formData, genericName: val})} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <SelectField label="Form" options={['Tablet', 'Syrup', 'Injection', 'Capsule', 'Cream']} value={formData.form} onChange={val => setFormData({...formData, form: val})} />
-              <div className="flex gap-2 items-end">
-                <TextField label="Dosage" value={formData.dosage} onChange={val => setFormData({...formData, dosage: val})} />
-                <SelectField options={['mg', 'ml', 'g', 'mcg', 'IU']} value={formData.unit} onChange={val => setFormData({...formData, unit: val})} className="w-24" />
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Commercial / Brand</label>
+                <input 
+                  required
+                  placeholder="e.g. Panadol"
+                  value={formData.brandName || ''}
+                  onChange={e => setFormData({...formData, brandName: e.target.value})}
+                  className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Clinical / Generic</label>
+                <input 
+                  required
+                  placeholder="e.g. Paracetamol"
+                  value={formData.genericName || ''}
+                  onChange={e => setFormData({...formData, genericName: e.target.value})}
+                  className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
+                />
               </div>
             </div>
-            <TextField label="Classification / Category" value={formData.classification} onChange={val => setFormData({...formData, classification: val})} />
-          </>
+
+            <div className="grid grid-cols-3 gap-5">
+              <div className="col-span-1 space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Drug Form</label>
+                <select 
+                  value={formData.form || ''}
+                  onChange={e => setFormData({...formData, form: e.target.value})}
+                  className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none appearance-none shadow-inner cursor-pointer"
+                >
+                  <option value="">Select...</option>
+                  {['Tablet', 'Syrup', 'Injection', 'Capsule', 'Cream', 'Ointment', 'Inhaler', 'Drops'].map(opt => <option key={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2 flex gap-3">
+                <div className="flex-1 space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Standard Dosage</label>
+                  <input 
+                    placeholder="e.g. 500"
+                    value={formData.dosage || ''}
+                    onChange={e => setFormData({...formData, dosage: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
+                  />
+                </div>
+                <div className="w-24 space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Unit</label>
+                  <select 
+                    value={formData.unit || ''}
+                    onChange={e => setFormData({...formData, unit: e.target.value})}
+                    className="w-full px-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none appearance-none shadow-inner cursor-pointer"
+                  >
+                    {['mg', 'ml', 'g', 'mcg', 'IU', 'puffs'].map(opt => <option key={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+               <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Product ID / Code</label>
+                  <input 
+                    placeholder="e.g. PH-001"
+                    value={formData.code || ''}
+                    onChange={e => setFormData({...formData, code: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
+                  />
+               </div>
+               <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Therapeutic Classification</label>
+                  <input 
+                    placeholder="e.g. Analgesic"
+                    value={formData.classification || ''}
+                    onChange={e => setFormData({...formData, classification: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner uppercase tracking-wider text-[11px]"
+                  />
+               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+               <div className="space-y-1.5 p-3 bg-blue-50/50 rounded-2xl border border-blue-100">
+                  <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Current Stock Level (Units)</label>
+                  <input 
+                    type="number"
+                    placeholder="e.g. 500"
+                    value={formData.availableStock || ''}
+                    onChange={e => setFormData({...formData, availableStock: Number(e.target.value)})}
+                    className="w-full px-5 py-4 bg-white border-2 border-transparent focus:border-blue-500 rounded-xl text-sm font-bold transition-all outline-none shadow-sm"
+                  />
+               </div>
+               <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Low Stock Alert Level</label>
+                  <input 
+                    type="number"
+                    placeholder="10"
+                    value={formData.reorderLevel || ''}
+                    onChange={e => setFormData({...formData, reorderLevel: Number(e.target.value)})}
+                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
+                  />
+               </div>
+            </div>
+          </div>
         );
       case 'nonPharma':
         return (
           <>
-            <TextField label="Item Name" value={formData.name} onChange={val => setFormData({...formData, name: val})} required />
             <div className="grid grid-cols-2 gap-4">
+              <TextField label="Item Name" value={formData.name} onChange={val => setFormData({...formData, name: val})} required />
+              <TextField label="Product ID / Code" value={formData.code} onChange={val => setFormData({...formData, code: val})} placeholder="e.g. NP-001" />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
               <SelectField label="Unit" options={['Box', 'Piece', 'Pair', 'Pack', 'Roll']} value={formData.unit} onChange={val => setFormData({...formData, unit: val})} />
-              <TextField label="Re-order Level" value={formData.reorderLevel} onChange={val => setFormData({...formData, reorderLevel: val})} type="number" />
+              <TextField label="Current Stock" value={formData.availableLevel} onChange={val => setFormData({...formData, availableLevel: Number(val)})} type="number" />
+              <TextField label="Low Stock Level" value={formData.reorderLevel} onChange={val => setFormData({...formData, reorderLevel: Number(val)})} type="number" />
             </div>
           </>
         );

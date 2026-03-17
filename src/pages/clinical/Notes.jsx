@@ -3,12 +3,13 @@ import { useLocation } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import {
   User, Activity, CheckCircle2, AlertCircle, FileText, Download, TrendingUp, 
-  Search, Calendar, Phone, Activity as ActivityIcon, Edit3, Save, Printer, 
+  Search, Calendar, Phone, Edit3, Save, Printer, 
   RefreshCw, Eye, Mic, List, Info, ClipboardCheck, ClipboardList, Thermometer, 
-  Droplet, Plus, BrainCircuit, Heart, Eye as EyeIcon, Ear, Stethoscope, 
+  Droplet, Plus, BrainCircuit, Heart, Ear, Stethoscope, 
   ChevronRight, History, Smile, Baby, Scissors, Wind, Zap, Brain, Clock, 
-  MoreVertical, X, Droplets, ShieldCheck, ShoppingBag
+  MoreVertical, X, Droplets, ShieldCheck, ShoppingBag, Trash2
 } from 'lucide-react';
+
 import auditService from '../../services/auditService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -18,7 +19,11 @@ import medicalRecordService from '../../services/medicalRecordService';
 import appointmentService from '../../services/appointmentService';
 import patientService from '../../services/patientService';
 import medicalMasterService from '../../services/medicalMasterService';
+import inventoryService from '../../services/inventoryService';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const ActivityIcon = Activity;
+const EyeIcon = Eye;
 
 const getRelativeVisitTime = (timestamp) => {
   if (!timestamp) return 'Fresh Case';
@@ -127,8 +132,8 @@ export default function Notes() {
   if (userData?.role === 'superadmin') {
     return (
       <DashboardLayout>
-        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
-           <div className="h-20 w-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-600 mb-6 shadow-inner">
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-slate-100 shadow-sm">
+           <div className="h-20 w-20 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 mb-6 shadow-inner">
               <ClipboardList className="h-10 w-10" />
            </div>
            <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Clinical Governance Notice</h2>
@@ -287,7 +292,7 @@ export default function Notes() {
                ) : filteredNotes.length === 0 ? (
                  <tr>
                    <td colSpan="7" className="py-80 text-center">
-                     <div className="h-40 w-40 bg-slate-50 rounded-[4rem] flex items-center justify-center text-slate-200 mx-auto mb-10 shadow-inner">
+                      <div className="h-40 w-40 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-10 shadow-inner">
                         <ClipboardList className="h-16 w-16" />
                      </div>
                       <p className="text-slate-400 font-bold text-sm tracking-wide">No Clinical Records Found</p>
@@ -450,7 +455,7 @@ function PatientHistoryModal({ patient, onClose, onViewNote }) {
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[70vh] border border-white/20"
+        className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh] border border-white/20"
       >
         <div className="p-6 sm:p-8 border-b border-slate-100 flex items-center justify-between bg-white relative z-10">
           <div className="flex items-center gap-4">
@@ -599,7 +604,6 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
         return;
       }
 
-      const modelId = 'gemini-1.5-flash';
       const prompt = `You are a medical scribe. Convert this clinical dictation into a structured SOAP JSON object. 
       Dictation: "${textToProcess}"
       
@@ -608,15 +612,64 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
       - Return ONLY the raw JSON object, no markdown, no preamble.
       - If a field is not mentioned, return empty string.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-      });
+      const getResponse = async (ver, mod) => {
+        const url = `https://generativelanguage.googleapis.com/${ver}/models/${mod}:generateContent?key=${apiKey}`;
+        return await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+      };
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error?.message || "AI API Request Failed");
+      let response;
+      let lastError = '';
+
+      // Stage 1: Attempt Discovery (Most Robust)
+      try {
+        const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const modelsResp = await fetch(modelsUrl);
+        if (modelsResp.ok) {
+          const modelsData = await modelsResp.json();
+          const available = modelsData.models?.map(m => m.name.replace('models/', '')) || [];
+          
+          // Priority order for medical documentation
+          const priorities = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro-latest', 'gemini-1.5-pro', 'gemini-pro', 'gemini-1.0-pro'];
+          const best = priorities.find(p => available.includes(p)) || available[0];
+          
+          if (best) {
+            console.log("Discovered best model:", best);
+            response = await getResponse('v1beta', best);
+          }
+        }
+      } catch (discoveryErr) {
+        console.warn("Model discovery failed, falling back to brute-force sequence...", discoveryErr);
+      }
+
+      // Stage 2: Fallback Brute-Force Sequence (If discovery fails or selected model fails)
+      if (!response || !response.ok) {
+        const sequences = [
+          { ver: 'v1', mod: 'gemini-1.5-flash' },
+          { ver: 'v1beta', mod: 'gemini-1.5-flash' },
+          { ver: 'v1', mod: 'gemini-1.5-pro' },
+          { ver: 'v1beta', mod: 'gemini-pro' }
+        ];
+
+        for (const seq of sequences) {
+          try {
+            const r = await getResponse(seq.ver, seq.mod);
+            if (r.ok) {
+              response = r;
+              break;
+            } else {
+              const err = await r.json();
+              lastError = err.error?.message || lastError;
+            }
+          } catch (e) { lastError = e.message; }
+        }
+      }
+
+      if (!response || !response.ok) {
+        throw new Error(lastError || "All AI connection attempts failed. Please verify your API key and quotas in Google AI Studio.");
       }
 
       const data = await response.json();
@@ -644,7 +697,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
       }
     } catch (err) { 
       console.error("AI processing error:", err);
-      showNotification('error', err.message || "AI Analysis failed. Please check your data or API settings.");
+      showNotification('error', err.message || "AI Analysis failed.");
     } finally { setIsAnalyzing(false); }
   };
 
@@ -847,27 +900,76 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   };
 
   const handleSearchMaster = async (type, term, index, section) => {
-    if (term.length < 2) {
+    if (!term || term.trim().length < 1) {
        if (section === 'prescription') setMedicineSuggestions([]);
        else if (section === 'labs') setLabSuggestions([]);
        else if (section === 'diagnosis') setIcdSuggestions([]);
        return;
     }
     try {
-      const results = await medicalMasterService.search(type, term, userData?.facilityId);
       if (section === 'prescription') {
-        setMedicineSuggestions(results);
         setSearchContext({ type: 'medicine', index });
+        // Search both Master Catalogue and Inventory
+        const [masterResults, invResults] = await Promise.all([
+          medicalMasterService.search('pharma', term, userData?.facilityId),
+          inventoryService.search(term, userData?.facilityId)
+        ]);
+
+        // Merge results, giving preference to inventory items if IDs match or names are very similar
+        const merged = masterResults.map(m => ({ ...m, _source: 'Master Catalog' }));
+        
+        // Add inventory items that aren't already represented, or update stock for existing ones
+        invResults.forEach(invItem => {
+          const invName = (invItem.name || '').trim().toLowerCase();
+          const existing = merged.find(m => {
+            const masterBrand = (m.brandName || '').trim().toLowerCase();
+            const masterName = (m.name || '').trim().toLowerCase();
+            // Aggressive fuzzy matching
+            return (
+              (masterBrand && invName.includes(masterBrand)) || 
+              (masterName && invName.includes(masterName)) ||
+              (masterBrand && masterBrand.includes(invName)) ||
+              (masterName && masterName.includes(invName)) ||
+              (m.id === invItem.id) ||
+              (m.code && invItem.code && m.code === invItem.code)
+            );
+          });
+          
+          const invStockRaw = invItem.stock ?? invItem.quantity ?? invItem.availableStock ?? invItem.currentStock ?? invItem.totalStock ?? invItem.availableBalance ?? invItem.qty ?? 0;
+          const invStock = typeof invStockRaw === 'string' ? parseFloat(invStockRaw) : invStockRaw;
+
+          if (existing) {
+            const currentMasterStockRaw = existing.availableStock ?? existing.stock ?? existing.quantity ?? 0;
+            const currentMasterStock = typeof currentMasterStockRaw === 'string' ? parseFloat(currentMasterStockRaw) : currentMasterStockRaw;
+            existing.availableStock = (Number(currentMasterStock) || 0) + invStock;
+            existing._source = 'Unified Inventory';
+            existing._syncedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } else {
+            merged.push({
+              ...invItem,
+              brandName: invItem.name,
+              availableStock: invStock,
+              _source: 'Physical Stock',
+              _syncedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+          }
+        });
+
+        setMedicineSuggestions(merged);
       } else if (section === 'labs') {
+        const results = await medicalMasterService.search(type, term, userData?.facilityId);
         setLabSuggestions(results);
         setSearchContext({ type: 'lab', index });
       } else if (section === 'diagnosis') {
-        // Map ICD results to simple identifiers for the existing suggestion bubble logic
-        // or we can show a full dropdown if preferred.
-        setIcdSuggestions(results.map(r => r.code));
+        const results = await medicalMasterService.search(type, term, userData?.facilityId);
+        setIcdSuggestions(results.map(r => ({ code: r.code, desc: r.description || r.name })));
         setSearchContext({ type: 'diagnosis', index: 0 });
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(`Master search failed for ${type}:`, e); 
+      if (section === 'prescription') setMedicineSuggestions([]);
+      else if (section === 'labs') setLabSuggestions([]);
+    }
   };
 
   return (
@@ -880,7 +982,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-6xl h-[95vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        className="w-full max-w-6xl h-[95vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col"
       >
         <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-4">
@@ -947,12 +1049,12 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           {/* Main Form Content */}
           <div className="flex-1 overflow-y-auto p-12 space-y-12 bg-white">
             {/* Patient Identification Hub - Premium Unified View */}
-            <div className="bg-slate-50 border border-slate-100 p-8 rounded-[2.5rem] relative overflow-hidden group">
+            <div className="bg-slate-50 border border-slate-100 p-8 rounded-2xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-96 h-96 bg-primary-500/5 blur-[120px] rounded-full -mr-48 -mt-48 transition-all group-hover:bg-primary-500/10" />
                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
                   <div className="lg:col-span-8 flex flex-col justify-center">
                      {selectedPatient && !loadingPatient ? (
-                        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm flex items-center gap-8 relative overflow-hidden h-full min-h-[180px]">
+                        <div className="bg-white border border-slate-200 p-8 rounded-xl shadow-sm flex items-center gap-8 relative overflow-hidden h-full min-h-[180px]">
                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 blur-[80px] rounded-full -mr-32 -mt-32" />
                            <div className="flex-1 space-y-4 relative z-10">
                               <div className="flex items-center justify-between">
@@ -1002,7 +1104,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                            </div>
                         </div>
                       ) : (patientId || loadingPatient) ? (
-                        <div className="bg-white border border-slate-200 p-12 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-4 min-h-[200px]">
+                        <div className="bg-white border border-slate-200 p-12 rounded-xl shadow-sm flex flex-col items-center justify-center gap-4 min-h-[200px]">
                            <div className="h-12 w-12 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin" />
                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                               {loadingPatient ? 'Verifying Identity...' : 'Loading Clinical Environment...'}
@@ -1051,7 +1153,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                       )}
                   </div>
 
-                  <div className="lg:col-span-4 bg-white/40 backdrop-blur-md rounded-[2rem] p-8 border border-slate-200 shadow-sm flex flex-col justify-center">
+                  <div className="lg:col-span-4 bg-white/40 backdrop-blur-md rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col justify-center">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                         <Activity className="h-4 w-4 text-primary-500" /> Clinical Pulse
                      </p>
@@ -1097,7 +1199,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             </div>
 
              {entryMode === 'audio' && (
-                <div className="bg-indigo-50/50 border border-indigo-100 rounded-3xl p-8 space-y-6">
+                <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-8 space-y-6">
                    <div className="flex items-center justify-between">
                       <div>
                          <h4 className="text-lg font-semibold text-indigo-900">Audio Dictation</h4>
@@ -1235,7 +1337,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                       </button>
                    </div>
                    {(isRecording || fakeTranscript || isAnalyzing) && (
-                      <div className={`bg-white p-8 rounded-[2.5rem] shadow-xl border transition-all duration-500 ${isRecording ? 'border-primary-200 ring-4 ring-primary-50/50' : 'border-indigo-100'}`}>
+                      <div className={`bg-white p-8 rounded-2xl shadow-xl border transition-all duration-500 ${isRecording ? 'border-primary-200 ring-4 ring-primary-50/50' : 'border-indigo-100'}`}>
                          <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -1266,7 +1368,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                              }}
                              disabled={isRecording || isAnalyzing}
                              placeholder={isRecording ? "Listening... speak clearly" : "Captured clinical script. You can edit this before AI processing..."}
-                             className={`w-full text-base font-medium leading-relaxed p-8 rounded-3xl min-h-[160px] transition-all outline-none resize-none
+                             className={`w-full text-base font-medium leading-relaxed p-8 rounded-xl min-h-[160px] transition-all outline-none resize-none
                                 ${fakeTranscript ? 'text-slate-800 bg-slate-50' : 'text-slate-400 bg-slate-50/50 italic'} 
                                 border border-slate-100 shadow-inner mb-6 focus:ring-4 focus:ring-primary-50 focus:bg-white`}
                           />
@@ -1304,7 +1406,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           {/* SOAP SECTION - Enhanced Visibility Card Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
                {/* Subjective */}
-               <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 flex flex-col gap-6">
+               <div className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 flex flex-col gap-6">
                   <div className="flex items-center gap-4">
                      <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
                         <FileText className="h-6 w-6" />
@@ -1315,7 +1417,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                      </div>
                   </div>
                   <textarea 
-                     className="w-full flex-1 min-h-[160px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-blue-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
+                     className="w-full flex-1 min-h-[160px] p-6 bg-slate-50/50 rounded-xl border-2 border-transparent focus:border-blue-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
                      placeholder="What the patient says: Chief complaints, history of present illness..."
                      value={formData.subjective}
                      onChange={(e) => {
@@ -1326,7 +1428,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                </div>
 
                {/* Objective */}
-               <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-emerald-200 flex flex-col gap-6">
+               <div className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-emerald-200 flex flex-col gap-6">
                   <div className="flex items-center gap-4">
                      <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
                         <Activity className="h-6 w-6" />
@@ -1337,7 +1439,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                      </div>
                   </div>
                   <textarea 
-                     className="w-full flex-1 min-h-[160px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
+                     className="w-full flex-1 min-h-[160px] p-6 bg-slate-50/50 rounded-xl border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
                      placeholder="Observation / Exam findings, Vital signs, Lab results reviewed..."
                      value={formData.objective}
                      onChange={(e) => setFormData({...formData, objective: e.target.value})}
@@ -1345,7 +1447,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                </div>
 
                {/* Assessment */}
-               <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-amber-200 flex flex-col gap-6">
+               <div className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-amber-200 flex flex-col gap-6">
                   <div className="flex items-center gap-4">
                      <div className="h-12 w-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
                         <Brain className="h-6 w-6" />
@@ -1357,7 +1459,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                   </div>
                   <div className="space-y-4">
                      <textarea 
-                        className="w-full min-h-[120px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-amber-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300 shadow-inner"
+                        className="w-full min-h-[120px] p-6 bg-slate-50/50 rounded-xl border-2 border-transparent focus:border-amber-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300 shadow-inner"
                         placeholder="Clinical impression, Differential diagnosis..."
                         value={formData.assessment}
                         onChange={(e) => setFormData({...formData, assessment: e.target.value})}
@@ -1375,14 +1477,19 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                               onChange={(e) => { const term = e.target.value; setFormData({...formData, diagnosis: term}); handleSearchMaster("icd", term, 0, "diagnosis"); }}
                            />
                            {icdSuggestions.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-3">
-                                 {icdSuggestions.map(code => (
+                              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[100] overflow-hidden p-1 max-h-60 overflow-y-auto">
+                                 {icdSuggestions.map(item => (
                                     <button 
-                                       key={code}
-                                       onClick={() => setFormData({...formData, diagnosis: code})}
-                                       className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${formData.diagnosis === code ? 'bg-amber-500 text-white shadow-lg' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-100'}`}
+                                       key={item.code}
+                                       type="button"
+                                       onClick={() => {
+                                          setFormData({...formData, diagnosis: item.code});
+                                          setIcdSuggestions([]);
+                                       }}
+                                       className="w-full text-left px-5 py-3 hover:bg-slate-50 rounded-xl transition-all flex flex-col gap-0.5"
                                     >
-                                       {code}
+                                       <span className="text-xs font-bold text-slate-900">{item.code}</span>
+                                       <span className="text-[10px] text-slate-400 font-medium">{item.desc}</span>
                                     </button>
                                  ))}
                               </div>
@@ -1393,7 +1500,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                </div>
 
                {/* Plan */}
-               <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-indigo-200 flex flex-col gap-6">
+               <div className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-indigo-200 flex flex-col gap-6">
                   <div className="flex items-center gap-4">
                      <div className="h-12 w-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
                         <ClipboardList className="h-6 w-6" />
@@ -1405,7 +1512,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                   </div>
                   <div className="space-y-4">
                      <textarea 
-                        className="w-full min-h-[160px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
+                        className="w-full min-h-[160px] p-6 bg-slate-50/50 rounded-xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none text-sm font-medium leading-relaxed transition-all placeholder:text-slate-300"
                         placeholder="Treatment plan: Procedures, education, and follow-up steps..."
                         value={formData.plan}
                         onChange={(e) => setFormData({...formData, plan: e.target.value})}
@@ -1415,7 +1522,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
              </div>
 
              {/* Nursing Orders - Full Width */}
-             <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 mt-8">
+             <div className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 mt-8">
                 <div className="flex items-center gap-4 mb-6">
                    <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
                       <ClipboardCheck className="h-6 w-6" />
@@ -1426,7 +1533,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                    </div>
                 </div>
                 <textarea 
-                   className="w-full min-h-[100px] p-6 bg-slate-50/50 rounded-3xl border-2 border-transparent focus:border-blue-500 outline-none text-sm font-medium transition-all placeholder:text-slate-300 shadow-inner"
+                   className="w-full min-h-[100px] p-6 bg-slate-50/50 rounded-xl border-2 border-transparent focus:border-blue-500 outline-none text-sm font-medium transition-all placeholder:text-slate-300 shadow-inner"
                    placeholder="Document nursing actions: Injections, dressings, vitals monitoring intervals..."
                    value={formData.nursingOrders}
                    onChange={(e) => setFormData({...formData, nursingOrders: e.target.value})}
@@ -1435,7 +1542,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 
 
             {/* Vitals Hub - Compact High Density */}
-            <div className="bg-slate-50 border border-slate-200 p-8 rounded-[3rem] space-y-6">
+            <div className="bg-slate-50 border border-slate-200 p-8 rounded-2xl space-y-6">
                <div className="flex items-center gap-4 px-2">
                   <div className="h-10 w-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-900 shadow-sm transition-transform hover:scale-110">
                      <Heart className="h-5 w-5 text-red-500" />
@@ -1475,10 +1582,10 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             </div>
 
             {/* Prescription Hub */}
-            <div className="bg-white border border-slate-200 p-10 rounded-[3rem] space-y-10 shadow-sm">
+            <div className="bg-white border border-slate-200 p-10 rounded-2xl space-y-10 shadow-sm">
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-6">
-                     <div className="h-16 w-16 bg-slate-900 text-white rounded-[1.5rem] flex items-center justify-center shadow-2xl">
+                     <div className="h-16 w-16 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-2xl">
                         <ClipboardCheck className="h-8 w-8" />
                      </div>
                      <div>
@@ -1496,126 +1603,165 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 
                <div className="space-y-4">
                   {formData.prescriptions.length === 0 ? (
-                    <div className="py-12 border-2 border-dashed border-slate-100 rounded-[2rem] text-center">
+                    <div className="py-12 border-2 border-dashed border-slate-100 rounded-2xl text-center">
                        <ClipboardList className="h-12 w-12 text-slate-100 mx-auto mb-4" />
                        <p className="text-sm font-medium text-slate-300 uppercase tracking-widest">No medications prescribed yet</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                       <table className="w-full">
-                          <thead>
-                             <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">
-                                <th className="pb-4 pl-4">Medicine Name</th>
-                                <th className="pb-4">Route</th>
-                                <th className="pb-4">Dosage</th>
-                                <th className="pb-4">Frequency</th>
-                                <th className="pb-4">Duration</th>
-                                <th className="pb-4"></th>
-                             </tr>
-                          </thead>
-                          <tbody className="space-y-3">
-                             {formData.prescriptions.map((p, idx) => (
-                                <tr key={idx} className="bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                                   <td className="py-4 pl-4 rounded-l-2xl relative min-w-[300px]">
-                                      <div className="relative">
-                                         <input 
-                                            placeholder="Search medicine master..." 
-                                            value={p.medicine}
-                                            autoComplete="off"
-                                            onChange={(e) => {
-                                               const term = e.target.value;
-                                               const newP = [...formData.prescriptions];
-                                               newP[idx].medicine = term;
-                                               setFormData({...formData, prescriptions: newP});
-                                               handleSearchMaster('pharma', term, idx, 'prescription');
-                                            }}
-                                            onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
-                                            className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm"
-                                         />
-                                         {searchContext.type === 'medicine' && searchContext.index === idx && medicineSuggestions.length > 0 && (
-                                            <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[100] overflow-hidden max-h-60 overflow-y-auto p-2 text-left">
-                                               {medicineSuggestions.map((m) => (
-                                                  <button 
-                                                     key={m.id}
-                                                     onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        const newP = [...formData.prescriptions];
-                                                        newP[idx].medicine = m.name;
-                                                        if (m.dosage) newP[idx].dosage = m.dosage;
-                                                        setFormData({...formData, prescriptions: newP});
-                                                        setMedicineSuggestions([]);
-                                                        setSearchContext({type: null, index: null});
-                                                     }}
-                                                     className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-blue-50 rounded-xl border-b border-slate-50 last:border-0 flex items-center justify-between group"
-                                                  >
-                                                     <span>{m.name}</span>
-                                                     <span className="text-[9px] text-slate-400 group-hover:text-blue-500 bg-slate-50 px-2 py-0.5 rounded-md">{m.dosage || 'Standard'}</span>
-                                                  </button>
-                                               ))}
-                                            </div>
-                                         )}
-                                      </div>
-                                   </td>
-                                   <td className="py-4">
-                                      <select 
-                                         value={p.route}
-                                         onChange={(e) => {
-                                            const newP = [...formData.prescriptions];
-                                            newP[idx].route = e.target.value;
-                                            setFormData({...formData, prescriptions: newP});
-                                         }}
-                                         className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-slate-900 shadow-sm"
-                                      >
-                                         <option>Oral</option>
-                                         <option>IV</option>
-                                         <option>IM</option>
-                                         <option>SC</option>
-                                         <option>Topical</option>
-                                      </select>
-                                   </td>
-                                   <td className="py-4">
-                                      <input placeholder="e.g. 500mg" value={p.dosage} onChange={(e) => {
+                    <div className="w-full">
+                       <div className="hidden md:grid grid-cols-12 gap-4 px-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          <div className="col-span-3">Medicine</div>
+                          <div className="col-span-2">Route</div>
+                          <div className="col-span-1">Dose</div>
+                          <div className="col-span-2">Freq</div>
+                          <div className="col-span-1">Days</div><div className="col-span-2">Instructions</div>
+                          <div className="col-span-1 text-right"></div>
+                       </div>
+                       <div className="space-y-3">
+                          {formData.prescriptions.map((p, idx) => (
+                             <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-center bg-slate-50/50 hover:bg-slate-50 transition-all p-3 md:p-4 rounded-xl border border-slate-100 group">
+                                <div className="md:col-span-3 relative">
+                                   <input 
+                                      placeholder="Search medicine..." 
+                                      value={p.medicine}
+                                      autoComplete="off"
+                                      onChange={(e) => {
+                                         const term = e.target.value;
                                          const newP = [...formData.prescriptions];
-                                         newP[idx].dosage = e.target.value;
+                                         newP[idx].medicine = term;
                                          setFormData({...formData, prescriptions: newP});
-                                      }} className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-slate-900 shadow-sm" />
-                                   </td>
-                                   <td className="py-4">
-                                      <input placeholder="e.g. 1-0-1" value={p.frequency} onChange={(e) => {
+                                         handleSearchMaster('pharma', term, idx, 'prescription');
+                                      }}
+                                      onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm"
+                                   />
+                                   {searchContext.type === 'medicine' && searchContext.index === idx && medicineSuggestions.length > 0 && (
+                                       <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 z-[100] overflow-hidden max-h-60 overflow-y-auto p-1 shadow-blue-500/10">
+                                          {medicineSuggestions.map((m) => (
+                                             <button 
+                                                key={m.id}
+                                                onMouseDown={(e) => {
+                                                   e.preventDefault();
+                                                   const newP = [...formData.prescriptions];
+                                                   newP[idx].medicine = m.brandName || m.name;
+                                                   if (m.dosage) newP[idx].dosage = m.dosage;
+                                                   setFormData({...formData, prescriptions: newP});
+                                                   setMedicineSuggestions([]);
+                                                   setSearchContext({type: null, index: null});
+                                                }}
+                                                className="w-full text-left px-4 py-3 text-[10px] font-bold text-slate-600 hover:bg-blue-50/50 rounded-lg border-b border-slate-50 last:border-0 flex items-center justify-between group/item"
+                                             >
+                                                <div className="flex flex-col gap-0.5">
+                                                   <span className="text-slate-900">{m.brandName || m.name}</span>
+                                                   {m.genericName && <span className="text-[8px] text-slate-400 font-medium italic">({m.genericName})</span>}
+                                                 </div>
+                                                 <div className="flex items-center gap-2">
+                                                    {(() => {
+                                                       const stockFields = [
+                                                          m.availableStock, m.stock, m.quantity, m.availableLevel, 
+                                                          m.currentStock, m.current_stock, m.qty, m.inventory, 
+                                                          m.totalStock, m.availableBalance, m.Units, m.units, m.total_qty, m.stock_level
+                                                       ];
+                                                       const s = Math.max(...stockFields.map(val => {
+                                                          if (val === undefined || val === null || val === '') return 0;
+                                                          const num = typeof val === 'string' ? parseFloat(val.replace(/[^\d.-]/g, '')) : val;
+                                                          return isNaN(num) ? 0 : num;
+                                                       }));
+                                                       return (
+                                                          <div className="flex flex-col items-end gap-0.5">
+                                                             <span className={`px-2 py-0.5 rounded-[4px] text-[8px] font-black tracking-widest ${s > 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+                                                                {s > 0 ? `Stock: ${s}` : 'NOT IN STOCK'}
+                                                             </span>
+                                                             <span className="text-[6px] text-slate-400 uppercase font-black tracking-wider">
+                                                                {m._source || 'Master Records'} {s > 0 && '• Unified'}
+                                                             </span>
+                                                          </div>
+                                                       );
+                                                    })()}
+                                                    <div className="flex flex-col items-end gap-0.5 min-w-[30px]">
+                                                       <span className="text-[8px] font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded-md border border-slate-200 shadow-sm">{m.dosage || "Std"}</span>
+                                                       {m.code && <span className="text-[7px] font-black text-blue-500 uppercase tracking-tighter">#{m.code}</span>}
+                                                    </div>
+                                                 </div>
+                                             </button>
+                                          ))}
+                                       </div>
+                                   )}
+                                </div>
+                                <div className="md:col-span-2">
+                                   <select 
+                                      value={p.route}
+                                      onChange={(e) => {
                                          const newP = [...formData.prescriptions];
-                                         newP[idx].frequency = e.target.value;
+                                         newP[idx].route = e.target.value;
                                          setFormData({...formData, prescriptions: newP});
-                                      }} className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-slate-900 shadow-sm" />
-                                   </td>
-                                   <td className="py-4">
-                                      <input placeholder="e.g. 5 Days" value={p.duration} onChange={(e) => {
-                                         const newP = [...formData.prescriptions];
-                                         newP[idx].duration = e.target.value;
-                                         setFormData({...formData, prescriptions: newP});
-                                      }} className="bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-slate-900 shadow-sm" />
-                                   </td>
-                                   <td className="py-4 pr-4 rounded-r-2xl">
-                                      <button 
-                                         onClick={() => setFormData({ ...formData, prescriptions: formData.prescriptions.filter((_, i) => i !== idx) })}
-                                         className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                                      >
-                                         <X className="h-4 w-4" />
-                                      </button>
-                                   </td>
-                                </tr>
-                             ))}
-                          </tbody>
-                       </table>
+                                      }}
+                                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm appearance-none cursor-pointer"
+                                   >
+                                      <option>Oral</option>
+                                      <option>IV</option>
+                                      <option>IM</option>
+                                      <option>SC</option>
+                                      <option>Topical</option>
+                                   </select>
+                                </div>
+                                <div className="md:col-span-1">
+                                   <input placeholder="Dosage" value={p.dosage} onChange={(e) => {
+                                      const newP = [...formData.prescriptions];
+                                      newP[idx].dosage = e.target.value;
+                                      setFormData({...formData, prescriptions: newP});
+                                   }} className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm" />
+                                </div>
+                                <div className="md:col-span-2">
+                                   <input placeholder="Freq (1-0-1)" value={p.frequency} onChange={(e) => {
+                                      const newP = [...formData.prescriptions];
+                                      newP[idx].frequency = e.target.value;
+                                      setFormData({...formData, prescriptions: newP});
+                                   }} className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm" />
+                                </div>
+                                <div className="md:col-span-1">
+                                   <input placeholder="Days" value={p.duration} onChange={(e) => {
+                                      const newP = [...formData.prescriptions];
+                                      newP[idx].duration = e.target.value;
+                                      setFormData({...formData, prescriptions: newP});
+                                   }} className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm" />
+                                 </div>
+                                 <div className="md:col-span-2">
+                                    <textarea 
+                                       placeholder="Instructions..." 
+                                       value={p.instructions || ""}
+                                       rows={1}
+                                       onChange={(e) => {
+                                          const newP = [...formData.prescriptions];
+                                          newP[idx].instructions = e.target.value;
+                                          setFormData({...formData, prescriptions: newP});
+                                          e.target.style.height = "auto";
+                                          e.target.style.height = e.target.scrollHeight + "px";
+                                       }}
+                                       className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 w-full outline-none focus:border-blue-500 shadow-sm resize-none min-h-[38px] transition-all"
+                                    />
+                                 </div>
+                                 <div className="md:col-span-1 text-right">
+                                   <button 
+                                      onClick={() => setFormData({ ...formData, prescriptions: formData.prescriptions.filter((_, i) => i !== idx) })}
+                                      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all"
+                                   >
+                                      <X className="h-4 w-4" />
+                                   </button>
+                                </div>
+                             </div>
+                          ))}
+                       </div>
                     </div>
                   )}
                </div>
             </div>
 
             {/* Laboratory Request Hub */}
-            <div className="bg-white border border-slate-200 p-10 rounded-[3rem] space-y-8 shadow-sm">
+            <div className="bg-white border border-slate-200 p-10 rounded-2xl space-y-8 shadow-sm">
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-6">
-                     <div className="h-16 w-16 bg-emerald-50 text-emerald-600 rounded-[1.5rem] flex items-center justify-center shadow-inner">
+                     <div className="h-16 w-16 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-inner">
                         <ActivityIcon className="h-8 w-8" />
                      </div>
                      <div>
@@ -1624,107 +1770,105 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                      </div>
                   </div>
                   <button 
-                    onClick={() => setFormData({ ...formData, labRequests: [...formData.labRequests, { test: '', urgency: 'Normal', instructions: '' }] })}
+                    onClick={() => setFormData({ ...formData, labRequests: [...(formData.labRequests || []), { test: '', priority: 'routine', instructions: '' }] })}
                     className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
                   >
                     <Plus className="h-4 w-4" /> Request Test
                   </button>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {formData.labRequests.map((r, idx) => (
-                    <div key={idx} className="p-8 bg-slate-50 border border-slate-100 rounded-[2rem] relative group hover:bg-white hover:shadow-xl hover:border-emerald-100 transition-all">
-                       <button 
-                          onClick={() => setFormData({ ...formData, labRequests: formData.labRequests.filter((_, i) => i !== idx) })}
-                          className="absolute right-4 top-4 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                       >
-                          <X className="h-4 w-4" />
-                       </button>
-                       <div className="space-y-4">
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Target Investigation</label>
-                             <div className="relative">
-                                <ActivityIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500/50" />
-                                <input 
-                                   placeholder="Search Lab/Scan Master..." 
-                                   value={r.test}
-                                   autoComplete="off"
-                                   onChange={(e) => {
-                                      const term = e.target.value;
-                                      const newR = [...formData.labRequests];
-                                      newR[idx].test = term;
-                                      setFormData({...formData, labRequests: newR});
-                                      handleSearchMaster('labs', term, idx, 'labs');
-                                   }}
-                                   onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
-                                   className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none text-sm font-bold text-slate-900 focus:border-emerald-500 transition-all shadow-sm"
-                                />
-                                {searchContext.type === 'lab' && searchContext.index === idx && labSuggestions.length > 0 && (
-                                   <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[100] overflow-hidden max-h-60 overflow-y-auto p-2 text-left">
-                                      {labSuggestions.map((l) => (
-                                         <button 
-                                            key={l.id}
-                                            onMouseDown={(e) => {
-                                               e.preventDefault();
-                                               const newR = [...formData.labRequests];
-                                               newR[idx].test = l.name;
-                                               setFormData({...formData, labRequests: newR});
-                                               setLabSuggestions([]);
-                                               setSearchContext({type: null, index: null});
-                                            }}
-                                            className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-emerald-50 rounded-xl border-b border-slate-50 last:border-0 flex items-center justify-between group"
-                                         >
-                                            <span>{l.name}</span>
-                                            <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 uppercase font-black">{l.category || 'TEST'}</span>
-                                         </button>
-                                      ))}
-                                   </div>
-                                )}
-                             </div>
-                          </div>
-                          <div className="flex gap-4">
-                             <div className="flex-1 space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Urgency</label>
-                                <select 
-                                   value={r.urgency}
-                                   onChange={(e) => {
-                                      const newR = [...formData.labRequests];
-                                      newR[idx].urgency = e.target.value;
-                                      setFormData({...formData, labRequests: newR});
-                                   }}
-                                   className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none text-sm font-bold text-slate-900"
-                                >
-                                   <option>Normal</option>
-                                   <option>Urgent</option>
-                                   <option>STAT (Critical)</option>
-                                </select>
-                             </div>
-                             <div className="flex-1 space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Instructions</label>
-                                <input 
-                                   placeholder="Fasting, etc..." 
-                                   value={r.instructions}
-                                   onChange={(e) => {
-                                      const newR = [...formData.labRequests];
-                                      newR[idx].instructions = e.target.value;
-                                      setFormData({...formData, labRequests: newR});
-                                   }}
-                                   className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none text-sm font-bold text-slate-900"
-                                />
-                             </div>
-                          </div>
-                       </div>
-                    </div>
+               <div className="w-full">
+                  <div className="hidden md:grid grid-cols-12 gap-4 px-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                     <div className="col-span-4">Investigation Type</div>
+                     <div className="col-span-2">Priority</div>
+                     <div className="col-span-5">Clinical Instructions</div>
+                     <div className="col-span-1 text-right"></div>
+                  </div>
+                  <div className="space-y-3">
+                     {(formData.labRequests || []).map((r, idx) => (
+                        <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-center bg-slate-50/50 hover:bg-slate-50 transition-all p-3 md:p-4 rounded-xl border border-slate-100 group">
+                           <div className="md:col-span-3 relative">
+                              <div className="relative h-full flex items-center">
+                                 <input 
+                                    placeholder="Search Investigation..." 
+                                    value={r.test}
+                                    onChange={(e) => {
+                                       const term = e.target.value;
+                                       const newR = [...formData.labRequests];
+                                       newR[idx].test = term;
+                                       setFormData({...formData, labRequests: newR});
+                                       handleSearchMaster('labs', term, idx, 'labs');
+                                    }}
+                                    onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                    className="bg-white border-none rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:ring-2 focus:ring-primary-500/20"
+                                 />
+                                 {searchContext.type === 'lab' && searchContext.index === idx && labSuggestions.length > 0 && (
+                                    <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] overflow-hidden max-h-60 overflow-y-auto p-1">
+                                       {labSuggestions.map((m) => (
+                                          <button 
+                                             key={m.id}
+                                             onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                const newR = [...formData.labRequests];
+                                                newR[idx].test = m.testName || m.name;
+                                                setFormData({...formData, labRequests: newR});
+                                                setLabSuggestions([]);
+                                                setSearchContext({type: null, index: null});
+                                             }}
+                                             className="w-full text-left px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg border-b border-slate-50 last:border-0 flex items-center justify-between"
+                                          >
+                                             <span>{m.testName || m.name}</span>
+                                             <span className="text-[8px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">{m.department || 'General'}</span>
+                                          </button>
+                                       ))}
+                                    </div>
+                                 )}
+                              </div>
+                           </div>
+                           <div className="md:col-span-2">
+                           <select 
+                              value={r.priority}
+                              onChange={(e) => {
+                                 const newR = [...formData.labRequests];
+                                 newR[idx].priority = e.target.value;
+                                 setFormData({...formData, labRequests: newR});
+                              }}
+                              className="bg-white border-none rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer appearance-none"
+                           >
+                              <option value="routine">Routine</option>
+                              <option value="urgent">Urgent</option>
+                              <option value="stat">STAT</option>
+                           </select>
+                        </div>
+                        <div className="md:col-span-5">
+                           <textarea 
+                              placeholder="Clinical instructions..." 
+                              value={r.instructions}
+                              rows={1}
+                              onChange={(e) => {
+                                 const newR = [...formData.labRequests];
+                                 newR[idx].instructions = e.target.value;
+                                 setFormData({...formData, labRequests: newR});
+                                 // Auto resize
+                                 e.target.style.height = 'auto';
+                                 e.target.style.height = e.target.scrollHeight + 'px';
+                              }}
+                              className="bg-white border-none rounded-lg px-3 py-2.5 text-xs font-medium text-slate-700 w-full outline-none focus:ring-2 focus:ring-primary-500/20 resize-none min-h-[38px] transition-all"
+                           />
+                        </div>
+                        <div className="md:col-span-1 text-right">
+                           <button 
+                              onClick={() => setFormData({ ...formData, labRequests: formData.labRequests.filter((_, i) => i !== idx) })}
+                              className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all"
+                           >
+                              <Trash2 className="h-4 w-4" />
+                           </button>
+                        </div>
+                     </div>
                   ))}
                </div>
-               
-               {formData.labRequests.length === 0 && (
-                  <div className="py-12 border-2 border-dashed border-slate-50 rounded-[2rem] text-center">
-                     <ActivityIcon className="h-10 w-10 text-slate-100 mx-auto mb-4" />
-                     <p className="text-xs font-bold text-slate-200 uppercase tracking-[0.2em]">No investigations ordered</p>
-                  </div>
-               )}
             </div>
+         </div>
 
             {/* Specialized Modules - Sections */}
             <div className="space-y-10 pt-8">
@@ -1743,11 +1887,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               key={specId} 
-                              className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm"
+                              className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm"
                            >
                               <div className="flex items-center justify-between mb-10">
                                  <div className="flex items-center gap-6">
-                                    <div className="h-16 w-16 bg-slate-50 text-primary-600 rounded-[1.5rem] flex items-center justify-center border border-slate-100 shadow-inner">
+                                    <div className="h-16 w-16 bg-slate-50 text-primary-600 rounded-xl flex items-center justify-center border border-slate-100 shadow-inner">
                                        {spec?.icon ? React.createElement(spec.icon, { className: 'h-8 w-8' }) : <Stethoscope className="h-8 w-8" />}
                                     </div>
                                     <div>
@@ -1930,7 +2074,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scanning Records...</p>
                     </div>
                  ) : patientHistory.length === 0 ? (
-                    <div className="py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
+                    <div className="py-20 text-center bg-white rounded-xl border border-slate-100 shadow-sm">
                        <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                           <FileText className="h-8 w-8 text-slate-200" />
                        </div>
@@ -1944,7 +2088,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                             key={h.id} 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="p-6 bg-white border border-slate-100 rounded-[2rem] hover:shadow-xl hover:shadow-slate-200 transition-all group cursor-pointer relative"
+                            className="p-6 bg-white border border-slate-100 rounded-2xl hover:shadow-xl hover:shadow-slate-200 transition-all group cursor-pointer relative"
                             onClick={() => setViewingNote(h)}
                           >
                              <div className="flex justify-between items-start mb-4">
@@ -1985,7 +2129,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           </AnimatePresence>
         </div>
 
-        <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-white z-10">
+      <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-white z-10">
           <div className="flex items-center gap-4 text-slate-400 text-xs font-semibold uppercase tracking-widest">
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             Auto-save active
@@ -2025,11 +2169,11 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
         </div>
 
         {showRouting && (
-           <div className="absolute inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 rounded-[2rem]">
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[3rem] p-12 max-w-2xl w-full flex flex-col items-center text-center shadow-2xl relative overflow-hidden">
+           <div className="absolute inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 rounded-2xl">
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-12 max-w-2xl w-full flex flex-col items-center text-center shadow-2xl relative overflow-hidden">
                  <div className="absolute top-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500 left-0" />
                  
-                 <div className="h-24 w-24 bg-emerald-50 text-emerald-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner">
+                 <div className="h-24 w-24 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mb-8 shadow-inner">
                    <CheckCircle2 className="h-12 w-12" />
                  </div>
                  
@@ -2037,19 +2181,19 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                  <p className="text-slate-500 font-medium mb-10 max-w-sm">The clinical note has been securely signed and saved. Where should the patient proceed next?</p>
                  
                  <div className="grid grid-cols-2 w-full gap-4">
-                   <button onClick={() => handleRoute('awaiting-pharmacy')} className="py-6 px-4 bg-purple-50 hover:bg-purple-100 border border-purple-100 text-purple-700 rounded-3xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
+                   <button onClick={() => handleRoute('awaiting-pharmacy')} className="py-6 px-4 bg-purple-50 hover:bg-purple-100 border border-purple-100 text-purple-700 rounded-xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
                       Pharmacy Queue
                       <span className="text-[10px] font-medium text-purple-400 normal-case tracking-normal">Dispense Prescriptions</span>
                    </button>
-                   <button onClick={() => handleRoute('awaiting-billing')} className="py-6 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-100 text-amber-700 rounded-3xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
+                   <button onClick={() => handleRoute('awaiting-billing')} className="py-6 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-100 text-amber-700 rounded-xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
                       Billing Desk (Labs/Tests)
                       <span className="text-[10px] font-medium text-amber-500 normal-case tracking-normal">Collect test payments</span>
                    </button>
-                   <button onClick={() => handleRoute('awaiting-nurse')} className="py-6 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 rounded-3xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
+                   <button onClick={() => handleRoute('awaiting-nurse')} className="py-6 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 rounded-xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
                       Nursing Duty Queue
                       <span className="text-[10px] font-medium text-blue-400 normal-case tracking-normal">Execute nursing orders</span>
                    </button>
-                   <button onClick={() => handleRoute('completed')} className="py-6 px-4 bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-200 rounded-3xl font-semibold uppercase tracking-widest text-xs transition-all flex flex-col items-center gap-2">
+                   <button onClick={() => handleRoute('completed')} className="py-6 px-4 bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-200 rounded-xl font-semibold uppercase tracking-widest text-xs transition-all flex flex-col items-center gap-2">
                       Discharge Patient
                       <span className="text-[10px] font-medium text-slate-400 normal-case tracking-normal">Session Complete</span>
                    </button>
@@ -2120,7 +2264,7 @@ function NoteViewer({ note, onClose, onEdit }) {
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-4xl max-h-[90vh] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col"
+        className="w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
       >
         <div className="p-8 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -2139,16 +2283,16 @@ function NoteViewer({ note, onClose, onEdit }) {
 
         <div className="flex-1 overflow-y-auto p-10 space-y-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="p-6 bg-slate-50 rounded-3xl">
+            <div className="p-6 bg-slate-50 rounded-xl">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Doctor</p>
               <p className="text-sm font-bold text-slate-900">{note.doctorName}</p>
             </div>
-            <div className="p-6 bg-slate-50 rounded-3xl">
+            <div className="p-6 bg-slate-50 rounded-xl">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Specialty</p>
               <p className="text-sm font-bold text-slate-900 capitalize">{note.specialties?.join(', ') || note.specialty || 'General'}</p>
             </div>
             {note.diagnosis && (
-              <div className="p-6 bg-slate-900 text-white rounded-[2rem] col-span-2 shadow-xl shadow-slate-200">
+              <div className="p-6 bg-slate-900 text-white rounded-2xl col-span-2 shadow-xl shadow-slate-200">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Diagnosis (ICD-10)</p>
                 <p className="text-sm font-bold">{note.diagnosis}</p>
               </div>
@@ -2157,7 +2301,7 @@ function NoteViewer({ note, onClose, onEdit }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
              {note.vitals && Object.values(note.vitals).some(v => v) && (
-               <div className="col-span-full bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
+               <div className="col-span-full bg-slate-50 p-8 rounded-2xl border border-slate-100 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
                  {Object.entries(note.vitals).filter(([_, v]) => v).map(([key, value]) => (
                    <div key={key} className="text-center md:text-left">
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">{key.replace('_', ' ')}</p>
@@ -2178,7 +2322,7 @@ function NoteViewer({ note, onClose, onEdit }) {
                      <div className="h-6 w-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-medium">Rx</div>
                      <h5 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Prescribed Medications</h5>
                   </div>
-                  <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
+                  <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
                      <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-100">
                            <tr className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em] text-left">
@@ -2211,11 +2355,13 @@ function NoteViewer({ note, onClose, onEdit }) {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      {note.labRequests.map((l, idx) => (
-                        <div key={idx} className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-3xl flex justify-between items-center group">
+                        <div key={idx} className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-xl flex justify-between items-center group">
                            <div>
-                              <p className="text-sm font-bold text-slate-900">{l.test}</p>
-                              <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-widest mt-1">{l.urgency} • {l.instructions || 'No specific instruction'}</p>
-                           </div>
+                               <p className="text-sm font-bold text-slate-900">{l?.test || 'Unspecified Test'}</p>
+                               <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-widest mt-1">
+                                 {l?.priority || l?.urgency || 'Routine'} • {l?.instructions || 'No specific instruction'}
+                               </p>
+                            </div>
                            <ActivityIcon className="h-5 w-5 text-emerald-200 group-hover:text-emerald-500 transition-colors" />
                         </div>
                      ))}
@@ -2235,7 +2381,7 @@ function NoteViewer({ note, onClose, onEdit }) {
               <h4 className="text-xs font-medium text-slate-400 uppercase tracking-widest px-2">Examination Details</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Object.entries(note.specialtyData).map(([key, value]) => (
-                  <div key={key} className="p-6 bg-primary-50/30 rounded-3xl border border-primary-50">
+                  <div key={key} className="p-6 bg-primary-50/30 rounded-xl border border-primary-50">
                     <p className="text-[10px] font-medium text-primary-400 uppercase tracking-widest mb-1">{key.replace('cn_', '').replace('med_', '').replace('_', ' ')}</p>
                     <p className="text-sm font-medium text-slate-700">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</p>
                   </div>
@@ -2269,7 +2415,7 @@ function ViewerBox({ label, icon, content }) {
         <div className="h-6 w-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-medium">{icon}</div>
         <h5 className="text-xs font-medium text-slate-900 uppercase tracking-widest">{label}</h5>
       </div>
-      <div className="p-6 bg-white border border-slate-100 rounded-[2rem] text-sm text-slate-600 leading-relaxed min-h-[100px] whitespace-pre-wrap font-medium">
+      <div className="p-6 bg-white border border-slate-100 rounded-2xl text-sm text-slate-600 leading-relaxed min-h-[100px] whitespace-pre-wrap font-medium">
         {content}
       </div>
     </div>

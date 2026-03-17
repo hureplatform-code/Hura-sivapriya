@@ -195,7 +195,7 @@ export default function InvestigationSetup() {
         </div>
 
         {/* Table */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <input
@@ -211,7 +211,7 @@ export default function InvestigationSetup() {
             <div className="py-16 text-center text-slate-400 font-medium">Loading catalogue...</div>
           ) : currentList.length === 0 ? (
             <div className="py-20 text-center flex flex-col items-center max-w-md mx-auto">
-              <div className="h-20 w-20 bg-primary-50 text-primary-600 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl shadow-primary-50/50">
+              <div className="h-20 w-20 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center mb-6 shadow-xl shadow-primary-50/50">
                 {activeTab === 'labs' ? <FlaskConical className="h-10 w-10" /> : <Microscope className="h-10 w-10" />}
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-2">No {activeTab === 'labs' ? 'laboratory' : 'imaging'} items found</h3>
@@ -285,7 +285,7 @@ export default function InvestigationSetup() {
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
               <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-slate-900">
                   {editingItem ? 'Edit' : 'Add'} {activeTab === 'labs' ? 'Lab Test' : 'Imaging Procedure'}
@@ -345,7 +345,7 @@ export default function InvestigationSetup() {
     
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar content-start pb-4">
                            {!form.fields || form.fields.length === 0 ? (
-                             <div className="col-span-2 py-16 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                             <div className="col-span-2 py-16 text-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No reading parameters added</p>
                                <p className="text-[10px] text-slate-300 mt-1 uppercase">Click "Add New Field" to start</p>
                              </div>
@@ -391,7 +391,7 @@ export default function InvestigationSetup() {
                         </div>
                       </div>
                     ) : (
-                      <div className="h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50 rounded-[3rem] border border-slate-100 border-dashed">
+                      <div className="h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
                         <Microscope className="h-12 w-12 text-slate-200 mb-4" />
                         <h3 className="text-sm font-semibold text-slate-900">Imaging Configuration</h3>
                         <p className="text-xs text-slate-500 mt-2 max-w-[240px]">Imaging procedures typically use the standard result reporting template. No custom fields are required.</p>
@@ -409,7 +409,7 @@ export default function InvestigationSetup() {
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               className="w-full max-w-sm bg-white rounded-2xl p-8 shadow-2xl text-center">
-              <div className="h-20 w-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <div className="h-20 w-20 bg-red-50 text-red-500 rounded-xl flex items-center justify-center mx-auto mb-6">
                 <Trash2 className="h-10 w-10" />
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-2">Remove Item?</h3>

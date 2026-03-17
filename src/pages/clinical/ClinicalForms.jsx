@@ -152,8 +152,8 @@ export default function ClinicalForms() {
   if (userData?.role === 'superadmin') {
     return (
       <DashboardLayout>
-        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
-           <div className="h-20 w-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-6 shadow-inner">
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-slate-100 shadow-sm">
+           <div className="h-20 w-20 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-6 shadow-inner">
               <FileText className="h-10 w-10" />
            </div>
            <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Access Restricted</h2>
@@ -201,7 +201,7 @@ export default function ClinicalForms() {
                   whileHover={{ x: 5 }}
                   key={form.id}
                   onClick={() => setSelectedForm(form)}
-                  className={`w-full text-left p-6 rounded-3xl border transition-all ${selectedForm?.id === form.id ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-200' : 'bg-white border-slate-100 hover:bg-slate-50 shadow-sm'}`}
+                  className={`w-full text-left p-6 rounded-2xl border transition-all ${selectedForm?.id === form.id ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-200' : 'bg-white border-slate-100 hover:bg-slate-50 shadow-sm'}`}
                 >
                   <div className="flex items-start gap-4">
                      <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${selectedForm?.id === form.id ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-600'}`}>
@@ -218,7 +218,7 @@ export default function ClinicalForms() {
 
           {/* Form Generation Workspace */}
           <div className="lg:col-span-2">
-             <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col print:border-none print:shadow-none">
+             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col print:border-none print:shadow-none">
                 <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50 print:hidden">
                     <div className="flex items-center gap-3">
                        <ClipboardCheck className="h-6 w-6 text-emerald-500" />
@@ -246,7 +246,7 @@ export default function ClinicalForms() {
                                 value={patientSearch}
                                 onChange={handlePatientSearch}
                                 placeholder="Search by Patient Name or Hospital No..."
-                                className="w-full bg-slate-50/50 border-2 border-slate-100 focus:border-primary-500 rounded-3xl py-6 pl-16 pr-8 text-lg font-semibold transition-all outline-none"
+                                className="w-full bg-slate-50/50 border-2 border-slate-100 focus:border-primary-500 rounded-2xl py-6 pl-16 pr-8 text-lg font-semibold transition-all outline-none"
                                />
                                {filteredPatients.length > 0 && (
                                    <div className="absolute top-[80px] left-0 right-0 bg-white border border-slate-100 rounded-2xl shadow-xl z-10 max-h-48 overflow-y-auto">
@@ -261,7 +261,7 @@ export default function ClinicalForms() {
                          </div>
 
                           {selectedPatient && selectedForm.id !== 'intake' ? (
-                             <div className="bg-slate-100/50 p-2 md:p-8 rounded-[3rem] border border-slate-100 overflow-x-auto relative print:p-0 print:border-none print:m-0 print:bg-white print:overflow-visible">
+                             <div className="bg-slate-100/50 p-2 md:p-8 rounded-2xl border border-slate-100 overflow-x-auto relative print:p-0 print:border-none print:m-0 print:bg-white print:overflow-visible">
                                 <div className="absolute top-4 right-8 px-4 py-2 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-full print:hidden">
                                    Print Preview
                                 </div>
@@ -273,7 +273,7 @@ export default function ClinicalForms() {
                                 </div>
                              </div>
                           ) : (
-                             <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center space-y-4 border-dashed relative print:hidden">
+                             <div className="p-8 bg-slate-50 rounded-xl border border-slate-100 text-center space-y-4 border-dashed relative print:hidden">
                                  <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm text-slate-300">
                                     {selectedPatient ? <CheckCircle2 className="h-8 w-8 text-emerald-500" /> : <User className="h-8 w-8" />}
                                  </div>
@@ -293,7 +293,7 @@ export default function ClinicalForms() {
                           )}
 
                          {generatedLink && selectedForm.id === 'intake' && (
-                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-emerald-50 border border-emerald-100 rounded-3xl space-y-3">
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl space-y-3">
                                <div className="flex items-center gap-2 text-emerald-700 font-medium mb-2">
                                   <CheckCircle2 className="h-5 w-5" /> 
                                   Link Generated Successfully!
@@ -309,7 +309,7 @@ export default function ClinicalForms() {
                          {selectedForm.id === 'intake' && (
                             <div className="mt-8 space-y-4 pt-8 border-t border-slate-100">
                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-2">Pending Intakes Queue</h4>
-                               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                                   <table className="w-full text-left">
                                      <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-semibold uppercase text-slate-400">
                                         <tr><th className="p-4">Submission ID</th><th className="p-4">Linked Patient ID</th><th className="p-4">Time</th><th className="p-4 text-right">Action</th></tr>
@@ -344,7 +344,7 @@ export default function ClinicalForms() {
                       </motion.div>
                    ) : (
                       <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-                         <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200">
+                         <div className="h-24 w-24 bg-slate-50 rounded-xl flex items-center justify-center text-slate-200">
                             <FileText className="h-12 w-12" />
                          </div>
                          <div className="space-y-2">
@@ -362,7 +362,7 @@ export default function ClinicalForms() {
       <AnimatePresence>
          {reviewingIntake && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-               <motion.div initial={{scale: 0.95, opacity: 0}} animate={{scale: 1, opacity: 1}} exit={{scale: 0.95, opacity: 0}} className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+               <motion.div initial={{scale: 0.95, opacity: 0}} animate={{scale: 1, opacity: 1}} exit={{scale: 0.95, opacity: 0}} className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                   <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                      <h3 className="text-lg font-bold text-slate-900">Review Patient Intake</h3>
                      <button onClick={() => setReviewingIntake(null)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl"><X className="h-5 w-5"/></button>

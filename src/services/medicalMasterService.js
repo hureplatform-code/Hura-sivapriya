@@ -84,39 +84,62 @@ const medicalMasterService = {
     if (!col) throw new Error(`Invalid master type: ${type}`);
     
     try {
-      // Determine search fields based on type
-      let searchFields = ['name'];
+      let searchFields;
       if (type === 'icd') searchFields = ['code', 'description'];
-      if (type === 'pharma') searchFields = ['name', 'code'];
-      if (type === 'labs') searchFields = ['name', 'test'];
+      else if (type === 'pharma') searchFields = ['brandName', 'genericName', 'code', 'category', 'brand', 'name'];
+      else if (type === 'labs' || type === 'imaging') searchFields = ['testName', 'name', 'code', 'category'];
+      else searchFields = ['name', 'code'];
 
-      // Execute queries for each field
-      const queryPromises = searchFields.map(field => {
-        const q = query(
-           collection(db, col),
-           where(field, '>=', term),
-           where(field, '<=', term + '\uf8ff'),
-           limit(20)
-        );
-        return getDocs(q);
+      // Normalize terms for case-insensitive simulation
+      const searchTerms = [term];
+      const capitalized = term.charAt(0).toUpperCase() + term.slice(1).toLowerCase();
+      if (!searchTerms.includes(capitalized)) searchTerms.push(capitalized);
+      const allUpper = term.toUpperCase();
+      if (!searchTerms.includes(allUpper)) searchTerms.push(allUpper);
+      const allLower = term.toLowerCase();
+      if (!searchTerms.includes(allLower)) searchTerms.push(allLower);
+
+      const queryPromises = [];
+      const distinctTerms = [...new Set(searchTerms)];
+
+      distinctTerms.forEach(t => {
+        searchFields.forEach(field => {
+          const q = query(
+             collection(db, col),
+             where(field, '>=', t),
+             where(field, '<=', t + '\uf8ff'),
+             limit(10)
+          );
+          // Use a wrapper to prevent one failed query from breaking the whole search
+          const qPromise = getDocs(q).catch(err => {
+            console.warn(`Query failed for ${field} in ${col}:`, err);
+            return { docs: [] };
+          });
+          queryPromises.push(qPromise);
+        });
       });
 
       const snapshots = await Promise.all(queryPromises);
       const resultsMap = new Map();
 
       snapshots.forEach(snap => {
-        snap.docs.forEach(doc => {
-          resultsMap.set(doc.id, { id: doc.id, ...doc.data() });
-        });
+        if (snap && snap.docs) {
+          snap.docs.forEach(doc => {
+            const data = doc.data();
+            resultsMap.set(doc.id, { id: doc.id, ...data });
+          });
+        }
       });
 
       let results = Array.from(resultsMap.values());
 
       if (facilityId) {
+        // Only filter by facility if the record specifically specifies it (optional masters are usually global)
         results = results.filter(item => !item.facilityId || item.facilityId === facilityId);
       }
 
-      return results.slice(0, 15);
+      // Sort alphabetically for better UX
+      return results.sort((a,b) => (a.name || a.code || '').localeCompare(b.name || b.code || '')).slice(0, 15);
     } catch (error) {
       console.error(`Error searching ${type}:`, error);
       return [];

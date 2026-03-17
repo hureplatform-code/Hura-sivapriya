@@ -245,15 +245,69 @@ export default function PharmacyQueue() {
                    </div>
                 ) : clinicalRecord ? (
                    <div className="space-y-8">
-                      <div className="bg-amber-50 rounded-[2rem] p-8 border border-amber-100/50">
-                        <div className="flex items-center gap-3 mb-6">
-                           <Pill className="h-6 w-6 text-amber-600" />
-                           <h3 className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Medication Orders</h3>
-                        </div>
-                        <p className="text-amber-900 leading-relaxed font-bold whitespace-pre-wrap text-base">
-                           {clinicalRecord.plan || "No specific medication orders recorded."}
-                        </p>
-                      </div>
+                       {/* Structured Prescriptions */}
+                       <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                          <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex items-center gap-3">
+                             <div className="h-10 w-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600">
+                                <Pill className="h-5 w-5" />
+                             </div>
+                             <div>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Formal Medication Orders</h3>
+                                <p className="text-sm font-bold text-slate-900 tracking-tight">Prescribed by Dr. {selectedPatient.providerName || 'Physician'}</p>
+                             </div>
+                          </div>
+                          
+                          <div className="overflow-x-auto">
+                             <table className="w-full">
+                                <thead>
+                                   <tr className="text-left bg-slate-50/30">
+                                      <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Medicine & Form</th>
+                                      <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Frequency</th>
+                                      <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
+                                      <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Route</th>
+                                      <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Status</th>
+                                   </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                   {clinicalRecord.prescriptions && clinicalRecord.prescriptions.length > 0 ? (
+                                      clinicalRecord.prescriptions.map((p, idx) => (
+                                         <tr key={idx} className="group hover:bg-slate-50/50 transition-all">
+                                            <td className="py-5 px-6">
+                                               <div className="flex flex-col">
+                                                  <span className="font-bold text-slate-900 text-sm tracking-tight">{p.medicine}</span>
+                                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{p.dosage} {p.form || '-'}</span>
+                                               </div>
+                                            </td>
+                                            <td className="py-5 px-6 text-xs font-black text-slate-600 uppercase tracking-widest">{p.frequency}</td>
+                                            <td className="py-5 px-6 text-xs font-bold text-slate-600">{p.duration} {p.durationType || 'Days'}</td>
+                                            <td className="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.route || 'Oral'}</td>
+                                            <td className="py-5 px-6 text-right">
+                                               <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[8px] font-black uppercase tracking-widest border border-blue-100/50">Ordered</span>
+                                            </td>
+                                         </tr>
+                                      ))
+                                   ) : (
+                                      <tr>
+                                         <td colSpan="5" className="py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest italic">
+                                            No structured prescriptions detected.
+                                         </td>
+                                      </tr>
+                                   )}
+                                </tbody>
+                             </table>
+                          </div>
+                       </div>
+
+                       {/* Clinical Plan (Notes) */}
+                       <div className="bg-amber-50 rounded-[2rem] p-8 border border-amber-100/50">
+                         <div className="flex items-center gap-3 mb-6">
+                            <FileText className="h-6 w-6 text-amber-600" />
+                            <h3 className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Clinical Plan & Pharmacist Notes</h3>
+                         </div>
+                         <p className="text-amber-900 leading-relaxed font-bold whitespace-pre-wrap text-[13px] italic">
+                            {clinicalRecord.plan || "No additional clinical directions recorded."}
+                         </p>
+                       </div>
 
                       <div className="grid grid-cols-2 gap-6">
                         <div className="bg-slate-50 rounded-[2rem] p-6">
