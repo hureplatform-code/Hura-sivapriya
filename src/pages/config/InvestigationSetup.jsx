@@ -123,7 +123,8 @@ export default function InvestigationSetup() {
           name: item.name,
           category: item.category,
           code: item.code,
-          price: item.price
+          price: item.price || 0,
+          fields: item.fields || []
         })
       );
 

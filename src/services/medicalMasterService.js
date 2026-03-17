@@ -1,6 +1,6 @@
 import firestoreService from './firestoreService';
 import { db } from '../firebase';
-import { query, collection, getDocs, orderBy, limit, startAfter, where, or } from 'firebase/firestore';
+import { query, collection, getDocs, orderBy, limit, startAfter, where } from 'firebase/firestore';
 
 const medicalMasterService = {
   // Collection Mappings
@@ -45,30 +45,6 @@ const medicalMasterService = {
       // For now, let's implement a robust query that handles the facility filter if provided.
       
       let q;
-      if (facilityId) {
-        // Strategy: Use 'or' query to fetch platform standards (null facilityId OR isGlobal) and facility items
-        const masterQuery = query(
-          collection(db, col),
-          or(
-            where('facilityId', '==', facilityId),
-            where('facilityId', '==', null),
-            where('isGlobal', '==', true)
-          ),
-          ...constraints,
-          ...(limitNum ? [limit(limitNum)] : []),
-          ...(lastDoc ? [startAfter(lastDoc)] : [])
-        );
-
-        const snap = await getDocs(masterQuery);
-        const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (sortField) {
-          items.sort((a, b) => (a[sortField] > b[sortField] ? 1 : -1));
-        }
-
-        return limitNum === null ? items : { items, lastDoc: snap.docs[snap.docs.length - 1] };
-      }
-
       q = query(collection(db, col), ...qConstraints);
       const snap = await getDocs(q);
       
