@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import {
-  Search, Plus, FlaskConical, Microscope,
-  Edit2, Trash2, X, Save, CheckCircle2
+  Search, Plus, FlaskConical, Microscope, 
+  Edit2, Trash2, X, Save, CheckCircle2, Activity,
+  Sparkles, Loader2, Database
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
@@ -10,7 +11,6 @@ import { useCurrency } from '../../contexts/CurrencyContext';
 import medicalMasterService from '../../services/medicalMasterService';
 import { LAB_STANDARDS, IMAGING_STANDARDS } from '../../constants/investigationStandards';
 import { useToast } from '../../contexts/ToastContext';
-import { Sparkles, Loader2, Database } from 'lucide-react';
 
 const EMPTY_FORM = { name: '', category: '', code: '', price: '', fields: [] };
 
@@ -117,23 +117,32 @@ export default function InvestigationSetup() {
     try {
       setImporting(true);
       const standards = activeTab === 'labs' ? LAB_STANDARDS : IMAGING_STANDARDS;
+      const existingItems = activeTab === 'labs' ? labs : imaging;
       
-      const promises = standards.map(item => 
-        medicalMasterService.create(activeTab, {
+      const promises = standards.map(async (item) => {
+        const payload = {
           name: item.name,
           category: item.category,
           code: item.code,
           price: item.price || 0,
           fields: item.fields || []
-        })
-      );
+        };
+        
+        // Find if code already exists
+        const existing = (existingItems || []).find(ex => ex.code === item.code);
+        if (existing) {
+          return medicalMasterService.update(activeTab, existing.id, payload);
+        } else {
+          return medicalMasterService.create(activeTab, payload);
+        }
+      });
 
       await Promise.all(promises);
-      success(`Successfully imported ${standards.length} standard ${activeTab === 'labs' ? 'tests' : 'procedures'}.`);
+      success(`Successfully processed ${standards.length} standard items.`);
       await fetchAll();
     } catch (err) {
       console.error('Import failed:', err);
-      toastError("Failed to import standards. Please try manual entry.");
+      toastError("Failed to update standards.");
     } finally {
       setImporting(false);
     }
@@ -274,9 +283,9 @@ export default function InvestigationSetup() {
       {/* Add / Edit Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+              className="bg-white rounded-[2.5rem] w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
               <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-slate-900">
                   {editingItem ? 'Edit' : 'Add'} {activeTab === 'labs' ? 'Lab Test' : 'Imaging Procedure'}
@@ -285,97 +294,111 @@ export default function InvestigationSetup() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <form onSubmit={handleSave} className="p-8 space-y-5">
-                {[
-                  { label: 'Test / Procedure Name', key: 'name', placeholder: activeTab === 'labs' ? 'e.g. Full Blood Count (FBC)' : 'e.g. Chest X-Ray', required: true },
-                  { label: 'Code / Reference No.', key: 'code', placeholder: activeTab === 'labs' ? 'e.g. L001' : 'e.g. I001' },
-                  { label: 'Department', key: 'category', placeholder: activeTab === 'labs' ? 'e.g. Hematology' : 'e.g. Radiology' },
-                  { label: `Price (${currency})`, key: 'price', placeholder: 'e.g. 1200' },
-                ].map(f => (
-                  <div key={f.key} className="space-y-1.5">
-                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>
-                    <input
-                      required={f.required}
-                      value={form[f.key]}
-                      onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                      placeholder={f.placeholder}
-                      className="w-full bg-slate-50 border border-transparent focus:border-primary-200 rounded-xl py-3.5 px-5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-100 transition-all"
-                    />
-                  </div>
-                ))}
-
-                {activeTab === 'labs' && (
-                  <div className="space-y-4 pt-4 border-t border-slate-50">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                         <Activity className="h-3 w-3" /> Test Parameters / Fields
-                      </label>
-                      <button 
-                        type="button" 
-                        onClick={addField}
-                        className="text-[10px] font-bold text-primary-600 uppercase tracking-tight flex items-center gap-1 hover:text-primary-700 transition-colors"
-                      >
-                         <Plus className="h-3 w-3" /> Add Parameter
-                      </button>
+              <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-10 pt-8">
+                <div className="grid grid-cols-12 gap-10">
+                  {/* Left Side: Basic Info */}
+                  <div className="col-span-12 md:col-span-4 space-y-6">
+                    <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-5">
+                      {[
+                        { label: 'Test / Procedure Name', key: 'name', placeholder: activeTab === 'labs' ? 'e.g. Full Blood Count (FBC)' : 'e.g. Chest X-Ray', required: true },
+                        { label: 'Code / Reference No.', key: 'code', placeholder: activeTab === 'labs' ? 'e.g. L001' : 'e.g. I001' },
+                        { label: 'Department', key: 'category', placeholder: activeTab === 'labs' ? 'e.g. Hematology' : 'e.g. Radiology' },
+                        { label: `Price (${currency})`, key: 'price', placeholder: 'e.g. 1200' },
+                      ].map(f => (
+                        <div key={f.key} className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>
+                          <input
+                            required={f.required}
+                            value={form[f.key]}
+                            onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                            placeholder={f.placeholder}
+                            className="w-full bg-white border border-slate-200 focus:border-primary-300 rounded-xl py-3 px-4 text-sm font-medium outline-none focus:ring-4 focus:ring-primary-100/50 transition-all"
+                          />
+                        </div>
+                      ))}
                     </div>
 
-                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                       {form.fields?.length === 0 ? (
-                         <div className="py-8 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
-                           <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">No parameters defined yet</p>
-                         </div>
-                       ) : (
-                         form.fields.map((field, idx) => (
-                           <motion.div 
-                             initial={{ opacity: 0, x: -5 }} 
-                             animate={{ opacity: 1, x: 0 }}
-                             key={field.id} 
-                             className="p-4 bg-slate-50 rounded-2xl flex flex-col gap-3 group border border-transparent hover:border-slate-100 transition-all shadow-sm"
-                           >
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Parameter #{idx + 1}</span>
-                                <button type="button" onClick={() => removeField(field.id)} className="text-slate-300 hover:text-red-500 transition-colors">
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                              <div className="grid grid-cols-12 gap-2">
-                                <div className="col-span-12 md:col-span-5">
-                                  <input 
-                                    placeholder="Label (e.g. Hemoglobin)"
-                                    value={field.label}
-                                    onChange={e => updateField(field.id, 'label', e.target.value)}
-                                    className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-medium outline-none"
-                                  />
-                                </div>
-                                <div className="col-span-6 md:col-span-3">
-                                  <input 
-                                    placeholder="Unit (g/dL)"
-                                    value={field.unit}
-                                    onChange={e => updateField(field.id, 'unit', e.target.value)}
-                                    className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-medium outline-none"
-                                  />
-                                </div>
-                                <div className="col-span-6 md:col-span-4">
-                                  <input 
-                                    placeholder="Ref Range (13-17)"
-                                    value={field.ref}
-                                    onChange={e => updateField(field.id, 'ref', e.target.value)}
-                                    className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-medium outline-none"
-                                  />
-                                </div>
-                              </div>
-                           </motion.div>
-                         ))
-                       )}
-                    </div>
+                    <button type="submit" disabled={saving}
+                      className="w-full h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50">
+                      <Save className="h-4 w-4" />
+                      {saving ? 'Saving...' : editingItem ? 'Update Test' : 'Create Entry'}
+                    </button>
+                    <div className="h-4 md:hidden" /> {/* Spacing for mobile */}
                   </div>
-                )}
 
-                <button type="submit" disabled={saving}
-                  className="w-full h-14 bg-slate-900 text-white rounded-xl flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50">
-                  <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : editingItem ? 'Save Changes' : 'Add to Catalogue'}
-                </button>
+                  {/* Right Side: Parameters */}
+                  <div className="col-span-12 md:col-span-8 space-y-6">
+                    {activeTab === 'labs' ? (
+                      <div className="space-y-4 h-full flex flex-col">
+                        <div className="flex items-center justify-between px-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                             <Activity className="h-3 w-3" /> Test Parameters (Readings & Ranges)
+                          </label>
+                          <button 
+                            type="button" 
+                            onClick={addField}
+                            className="h-8 px-4 bg-primary-50 text-[10px] font-bold text-primary-600 uppercase tracking-tight flex items-center gap-1.5 hover:bg-primary-100 rounded-lg transition-all active:scale-95"
+                          >
+                             <Plus className="h-3.5 w-3.5" /> Add New Field
+                          </button>
+                        </div>
+    
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar content-start pb-4">
+                           {!form.fields || form.fields.length === 0 ? (
+                             <div className="col-span-2 py-16 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No reading parameters added</p>
+                               <p className="text-[10px] text-slate-300 mt-1 uppercase">Click "Add New Field" to start</p>
+                             </div>
+                           ) : (
+                             form.fields.map((field, idx) => (
+                               <motion.div 
+                                 initial={{ opacity: 0, x: -5 }} 
+                                 animate={{ opacity: 1, x: 0 }}
+                                 key={field.id} 
+                                 className="p-4 bg-white rounded-2xl flex flex-col gap-3 group border border-slate-100 hover:border-slate-200 transition-all shadow-sm hover:shadow-md"
+                               >
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">#0{idx + 1} Parameter</span>
+                                    <button type="button" onClick={() => removeField(field.id)} className="p-1.5 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-lg transition-colors">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    <input 
+                                      placeholder="Label (e.g. Hemoglobin)"
+                                      value={field.label}
+                                      onChange={e => updateField(field.id, 'label', e.target.value)}
+                                      className="w-full bg-slate-50 border border-transparent focus:border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                                    />
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <input 
+                                        placeholder="Unit (g/dL)"
+                                        value={field.unit}
+                                        onChange={e => updateField(field.id, 'unit', e.target.value)}
+                                        className="w-full bg-slate-50 border border-transparent focus:border-slate-200 rounded-xl px-3 py-2 text-[10px] font-bold outline-none"
+                                      />
+                                      <input 
+                                        placeholder="Ref (13-17)"
+                                        value={field.ref}
+                                        onChange={e => updateField(field.id, 'ref', e.target.value)}
+                                        className="w-full bg-slate-50 border border-transparent focus:border-slate-200 rounded-xl px-3 py-2 text-[10px] font-bold outline-none"
+                                      />
+                                    </div>
+                                  </div>
+                               </motion.div>
+                             ))
+                           )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50 rounded-[3rem] border border-slate-100 border-dashed">
+                        <Microscope className="h-12 w-12 text-slate-200 mb-4" />
+                        <h3 className="text-sm font-semibold text-slate-900">Imaging Configuration</h3>
+                        <p className="text-xs text-slate-500 mt-2 max-w-[240px]">Imaging procedures typically use the standard result reporting template. No custom fields are required.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </form>
             </motion.div>
           </div>

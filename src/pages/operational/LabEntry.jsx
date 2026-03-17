@@ -453,7 +453,7 @@ export default function LabEntry() {
         <LabReport 
           data={appointment} 
           facility={userData || {}} 
-          catalog={TEST_CATALOG} 
+          catalog={getMergedCatalog()} 
         />
       </div>
 
@@ -657,8 +657,8 @@ export default function LabEntry() {
                                       </button>
                                    </div>
                                    
-                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-8 gap-x-10">
-                                      {schema.fields.map(field => (
+                                   <div className="flex flex-col gap-6 max-w-4xl">
+                                      { (schema.fields || []).map(field => (
                                         <div key={field.id} className="space-y-2">
                                            <div className="flex items-center justify-between px-0.5">
                                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{field.label}</label>

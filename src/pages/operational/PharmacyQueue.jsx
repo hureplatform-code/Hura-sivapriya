@@ -17,7 +17,9 @@ import {
   User,
   ActivityIcon,
   ShoppingBag,
-  HeartPulse
+  HeartPulse,
+  RotateCcw,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -28,6 +30,8 @@ export default function PharmacyQueue() {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('Today');
+  const [statusFilter, setStatusFilter] = useState('Pending');
   
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [clinicalRecord, setClinicalRecord] = useState(null);
@@ -71,7 +75,6 @@ export default function PharmacyQueue() {
     try {
       await appointmentService.updateAppointmentStatus(selectedPatient.id, status);
       
-      // Log audit
       await auditService.logActivity({
         userId: userData?.uid,
         userName: userData?.name || 'Pharmacist',
@@ -95,183 +98,207 @@ export default function PharmacyQueue() {
     }
   };
 
-  const filteredQueue = queue.filter(apt => 
-    apt.patient?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    apt.patientId?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredQueue = queue.filter(apt => {
+    const searchLow = searchTerm.toLowerCase();
+    if (searchLow) {
+      return (
+        apt.patient?.toLowerCase().includes(searchLow) || 
+        apt.patientId?.toLowerCase().includes(searchLow) ||
+        apt.patientPhone?.includes(searchTerm)
+      );
+    }
+
+    const isPending = apt.status === 'awaiting-pharmacy' || apt.status === 'awaiting-billing';
+    const isCompleted = apt.status === 'completed' || apt.status === 'paid';
+    
+    if (statusFilter === 'Pending' && !isPending) return false;
+    if (statusFilter === 'Dispensed' && !isCompleted) return false;
+
+    return true;
+  });
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-1">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
-              <Pill className="h-8 w-8 text-primary-500" /> Pharmacy Queue
-            </h1>
-            <p className="text-slate-500 font-medium mt-1">Review prescriptions and dispense medication.</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Pharmacy Registry</h1>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Dispense medication & track pharmacological orders</p>
           </div>
-          <button 
-            onClick={fetchQueue}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
-          >
-            <Activity className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Queue
-          </button>
+          <div className="flex items-center gap-3">
+             <div className="flex bg-slate-100 p-1 rounded-xl">
+                {['Pending', 'Dispensed'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setStatusFilter(tab)}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
+                      statusFilter === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+             </div>
+             <button 
+               onClick={fetchQueue}
+               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-all active:scale-95 shadow-sm"
+             >
+               <RotateCcw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} /> Sync Queue
+             </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Pharmacy Queue List */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="relative">
-               <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-               <input 
-                 type="text"
-                 placeholder="Search waiting patients..."
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-                 className="w-full pl-16 pr-8 py-5 bg-white border-none shadow-sm focus:ring-2 focus:ring-primary-100 rounded-[2rem] text-sm font-medium transition-all outline-none"
-               />
-            </div>
+        <div className="bg-white border-b border-slate-100 p-1 flex flex-col sm:flex-row gap-2 items-center">
+           <div className="relative flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+              <input 
+                type="text"
+                placeholder="Search by Patient, ID or Phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-transparent focus:bg-white focus:border-blue-100 rounded-xl text-sm font-medium outline-none transition-all"
+              />
+           </div>
+        </div>
 
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left bg-slate-50/30">
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Identity & OP#</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Arrival</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prescribing Dr.</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="py-4 px-6 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
               {loading ? (
-                 <div className="text-center py-12 bg-white rounded-[2rem] border border-slate-100/50 shadow-sm border-dashed">
-                    <Activity className="h-8 w-8 text-slate-300 animate-spin mx-auto mb-3" />
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Loading Queue...</p>
-                 </div>
+                <tr>
+                  <td colSpan="5" className="py-20 text-center text-[10px] font-bold text-slate-300 uppercase tracking-widest animate-pulse">Synchronizing Queue...</td>
+                </tr>
               ) : filteredQueue.length === 0 ? (
-                 <div className="text-center py-12 bg-white rounded-[2rem] border border-slate-100/50 shadow-sm border-dashed">
-                    <CheckCircle2 className="h-10 w-10 text-emerald-300 mx-auto mb-4" />
-                    <p className="text-sm font-semibold text-slate-600">All caught up!</p>
-                    <p className="text-xs font-medium text-slate-400 mt-1">No patients are awaiting pharmacy.</p>
-                 </div>
+                <tr>
+                  <td colSpan="5" className="py-20 text-center text-slate-300">
+                    <CheckCircle2 className="h-10 w-10 mx-auto opacity-20 mb-3" />
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-40">All Caught Up</p>
+                  </td>
+                </tr>
               ) : (
-                 filteredQueue.map((apt) => (
-                    <motion.button
-                       key={apt.id}
-                       whileHover={{ x: 4 }}
-                       onClick={() => handleSelectPatient(apt)}
-                       className={`w-full text-left p-6 rounded-3xl border transition-all ${selectedPatient?.id === apt.id ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-200' : 'bg-white border-slate-100 hover:bg-slate-50 shadow-sm'}`}
-                    >
-                       <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4">
-                             <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${selectedPatient?.id === apt.id ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-600'}`}>
-                                <User className="h-6 w-6" />
-                             </div>
-                             <div>
-                                <p className={`font-medium text-base ${selectedPatient?.id === apt.id ? 'text-white' : 'text-slate-900'}`}>{apt.patient}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-[10px] font-semibold uppercase tracking-widest ${selectedPatient?.id === apt.id ? 'text-slate-400' : 'text-slate-500'}`}>{apt.patientId}</span>
-                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                    <span className="flex items-center gap-1 text-[10px] font-medium text-orange-500 uppercase tracking-widest"><Clock className="h-3 w-3" /> Waiting</span>
-                                </div>
-                             </div>
-                          </div>
-                       </div>
-                    </motion.button>
-                 ))
+                filteredQueue.map(apt => (
+                  <tr key={apt.id} onClick={() => handleSelectPatient(apt)} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
+                    <td className="py-5 px-6">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-900 text-sm">{apt.patient}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{apt.patientId}</span>
+                      </div>
+                    </td>
+                    <td className="py-5 px-6 font-bold text-slate-600 text-xs">
+                      {apt.date?.split('-').reverse().join('-')} <span className="text-[9px] text-slate-300 ml-1">{apt.time || 'W.IN'}</span>
+                    </td>
+                    <td className="py-5 px-6 font-semibold text-slate-600 text-xs text-primary-600">
+                      Dr. {apt.providerName || apt.doctor || 'N/A'}
+                    </td>
+                    <td className="py-5 px-6">
+                      <span className={`px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                        apt.status === 'awaiting-pharmacy' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 
+                        apt.status === 'paid' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                        'bg-slate-50 text-slate-500'
+                      }`}>
+                        {apt.status === 'awaiting-pharmacy' ? 'Awaiting' : apt.status}
+                      </span>
+                    </td>
+                    <td className="py-5 px-6 text-right">
+                      <button className="h-8 w-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-300 group-hover:text-primary-500 group-hover:border-primary-100 transition-all shadow-sm">
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
-            </div>
-          </div>
-
-          {/* Pharmacy Workspace */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm min-h-[600px] flex flex-col overflow-hidden">
-               {selectedPatient ? (
-                  <>
-                     <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                        <div>
-                           <h2 className="text-xl font-bold text-slate-900">{selectedPatient.patient}</h2>
-                           <p className="text-sm font-medium text-slate-500 mt-1">
-                              Consulted by Dr. {selectedPatient.providerName || 'Unknown'} • {selectedPatient.date}
-                           </p>
-                        </div>
-                        <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-primary-500">
-                           <FileText className="h-6 w-6" />
-                        </div>
-                     </div>
-                     <div className="flex-1 p-8 md:p-12 overflow-y-auto">
-                        {loadingRecord ? (
-                           <div className="h-full flex flex-col items-center justify-center space-y-4">
-                              <Activity className="h-8 w-8 text-primary-500 animate-spin" />
-                              <p className="text-sm font-medium text-slate-500 tracking-widest uppercase">Fetching Prescription...</p>
-                           </div>
-                        ) : clinicalRecord ? (
-                           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                               <div className="bg-amber-50 rounded-[2rem] p-8 border border-amber-100/50 relative overflow-hidden">
-                                  <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-amber-100/50 to-transparent pointer-events-none" />
-                                  <div className="flex items-center gap-3 mb-6">
-                                     <Pill className="h-6 w-6 text-amber-600" />
-                                     <h3 className="text-sm font-bold text-amber-900 uppercase tracking-widest">Doctor's Plan / Medication Orders</h3>
-                                  </div>
-                                  <div className="prose prose-amber prose-sm max-w-none">
-                                     {clinicalRecord.plan ? (
-                                        <p className="text-amber-900 leading-relaxed font-medium whitespace-pre-wrap text-base">
-                                           {clinicalRecord.plan}
-                                        </p>
-                                     ) : (
-                                        <p className="text-amber-600/60 font-medium italic">No specific medication plan was written by the doctor.</p>
-                                     )}
-                                  </div>
-                               </div>
-
-                               <div className="grid grid-cols-2 gap-6">
-                                  <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">
-                                     <div className="flex items-center gap-3 mb-4 text-slate-400">
-                                        <HeartPulse className="h-5 w-5" />
-                                        <h4 className="text-xs font-bold uppercase tracking-widest">Diagnosis / Assessment</h4>
-                                     </div>
-                                     <p className="text-slate-700 font-medium leading-relaxed">
-                                        {clinicalRecord.assessment || 'No specific assessment recorded.'}
-                                     </p>
-                                  </div>
-                                  <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">
-                                     <div className="flex items-center gap-3 mb-4 text-slate-400">
-                                        <Stethoscope className="h-5 w-5" />
-                                        <h4 className="text-xs font-bold uppercase tracking-widest">Vitals Summary (from Triage)</h4>
-                                     </div>
-                                     <p className="text-slate-700 font-medium leading-relaxed">
-                                        BP: {selectedPatient.vitals?.bloodPressure || 'N/A'}<br/>
-                                        Temp: {selectedPatient.vitals?.temperature || 'N/A'} °C<br/>
-                                        Weight: {selectedPatient.vitals?.weight || 'N/A'} kg
-                                     </p>
-                                  </div>
-                               </div>
-                           </motion.div>
-                        ) : (
-                           <div className="h-full flex flex-col items-center justify-center space-y-4">
-                              <FileText className="h-12 w-12 text-slate-200" />
-                              <p className="text-sm font-medium text-slate-500">No signed clinical record found for this session.</p>
-                           </div>
-                        )}
-                     </div>
-                     <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-end gap-4">
-                        <button 
-                          onClick={() => handleDispense('completed')}
-                          className="px-8 py-4 bg-emerald-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
-                        >
-                           Dispense & Discharge
-                        </button>
-                        <button 
-                          onClick={() => handleDispense('awaiting-billing')}
-                          className="px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
-                        >
-                           Dispense & Route to Billing
-                        </button>
-                     </div>
-                  </>
-               ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
-                     <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-300">
-                        <Pill className="h-10 w-10" />
-                     </div>
-                     <h3 className="text-xl font-medium text-slate-900">Pharmacy Workspace</h3>
-                     <p className="text-slate-500 font-medium max-w-sm">Select a patient from the queue to view their active prescriptions and dispense medications.</p>
-                  </div>
-               )}
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
       </div>
+
+      {/* Dispensing Modal */}
+      <AnimatePresence>
+        {selectedPatient && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-hidden">
+              <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">{selectedPatient.patient}</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Prescription Details & Dispensing Order</p>
+                </div>
+                <button onClick={() => setSelectedPatient(null)} className="p-3 hover:bg-white rounded-2xl text-slate-400 transition-all">
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="p-10 max-h-[70vh] overflow-y-auto">
+                {loadingRecord ? (
+                   <div className="py-20 text-center space-y-4">
+                      <Activity className="h-8 w-8 text-primary-500 animate-spin mx-auto" />
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Acquiring Clinical Record...</p>
+                   </div>
+                ) : clinicalRecord ? (
+                   <div className="space-y-8">
+                      <div className="bg-amber-50 rounded-[2rem] p-8 border border-amber-100/50">
+                        <div className="flex items-center gap-3 mb-6">
+                           <Pill className="h-6 w-6 text-amber-600" />
+                           <h3 className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Medication Orders</h3>
+                        </div>
+                        <p className="text-amber-900 leading-relaxed font-bold whitespace-pre-wrap text-base">
+                           {clinicalRecord.plan || "No specific medication orders recorded."}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="bg-slate-50 rounded-[2rem] p-6">
+                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Diagnosis</h4>
+                           <p className="text-xs font-bold text-slate-600 leading-relaxed">{clinicalRecord.assessment || 'N/A'}</p>
+                        </div>
+                        <div className="bg-slate-50 rounded-[2rem] p-6">
+                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Vitals Reference</h4>
+                           <div className="grid grid-cols-3 gap-2">
+                              {['temp', 'bp', 'weight'].map(k => (
+                                <div key={k} className="bg-white p-3 rounded-xl border border-slate-100 text-center">
+                                   <p className="text-[8px] font-bold text-slate-300 uppercase">{k}</p>
+                                   <p className="text-xs font-bold text-slate-700">{selectedPatient.vitals?.[k] || '—'}</p>
+                                </div>
+                              ))}
+                           </div>
+                        </div>
+                      </div>
+                   </div>
+                ) : (
+                  <div className="py-20 text-center opacity-40">
+                    <FileText className="h-10 w-10 mx-auto mb-4" />
+                    <p className="text-xs font-bold uppercase">No prescription found</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-end gap-4">
+                  <button 
+                    onClick={() => handleDispense('completed')}
+                    className="px-8 py-4 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
+                  >
+                     Dispense & Discharge
+                  </button>
+                  <button 
+                    onClick={() => handleDispense('awaiting-billing')}
+                    className="px-8 py-4 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                  >
+                     Dispense & Route to Billing
+                  </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

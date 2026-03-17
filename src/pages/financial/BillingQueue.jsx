@@ -15,7 +15,10 @@ import {
   FileText,
   DollarSign,
   Receipt,
-  RotateCcw
+  RotateCcw,
+  X,
+  ChevronRight,
+  Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PaymentCollectionModal from '../../components/modals/PaymentCollectionModal';
@@ -27,12 +30,9 @@ export default function BillingQueue() {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [clinicalRecord, setClinicalRecord] = useState(null);
-  const [loadingRecord, setLoadingRecord] = useState(false);
   const [activeTab, setActiveTab] = useState('Pending');
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   useEffect(() => {
     fetchQueue();
@@ -52,247 +52,160 @@ export default function BillingQueue() {
     }
   };
 
-  const handleSelectPatient = async (appointment) => {
-    setSelectedPatient(appointment);
-    setClinicalRecord(null);
-    setLoadingRecord(true);
-    try {
-      const record = await medicalRecordService.getRecordByAppointment(appointment.id);
-      setClinicalRecord(record);
-    } catch (err) {
-      console.error(err);
-      toastError('Failed to load patient records.');
-    } finally {
-      setLoadingRecord(false);
-    }
-  };
-
-  const handleDischarge = async () => {
-    if (!selectedPatient) return;
-    try {
-      await appointmentService.updateAppointmentStatus(selectedPatient.id, 'completed');
-      
-      // Log audit
-      await auditService.logActivity({
-        userId: userData?.uid,
-        userName: userData?.name || 'Cashier',
-        action: 'PAYMENT_COLLECTED_DISCHARGED',
-        module: 'FINANCIAL',
-        description: `Collected dues and discharged ${selectedPatient.patient}.`,
-        metadata: {
-          appointmentId: selectedPatient.id,
-          patientId: selectedPatient.patientId,
-          facilityId: userData?.facilityId
-        }
-      });
-      
-      success(`Payment settled. Patient successfully discharged.`);
-      setSelectedPatient(null);
-      setClinicalRecord(null);
-      fetchQueue();
-    } catch (err) {
-      console.error(err);
-      toastError('Failed to complete billing.');
-    }
-  };
-
-  const ArrayEmpty = queue.length === 0;
   const filteredQueue = queue.filter(apt => {
-    const matchesSearch = apt.patient?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         apt.patientId?.toLowerCase().includes(searchTerm.toLowerCase());
-    if (!matchesSearch) return false;
+    const searchLow = searchTerm.toLowerCase();
+    if (searchLow) {
+      return (
+        apt.patient?.toLowerCase().includes(searchLow) || 
+        apt.patientId?.toLowerCase().includes(searchLow)
+      );
+    }
 
     if (activeTab === 'Pending') {
       return apt.status === 'awaiting-billing';
     } else {
-      return apt.status === 'billed' || apt.status === 'paid';
+      return apt.status === 'billed' || apt.status === 'paid' || apt.status === 'completed';
     }
   });
 
+  const handleAction = (apt) => {
+    setSelectedPatient(apt);
+    setIsPaymentOpen(true);
+  };
+
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-1">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
-              <CreditCard className="h-8 w-8 text-emerald-500" /> Collection Queue
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
+              Collection Registry
             </h1>
-            <p className="text-slate-500 font-medium mt-1">Reconcile payments, issue receipts, and discharge patients.</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Reconcile payments & finalize patient accounts</p>
           </div>
-          <button 
-            onClick={fetchQueue}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
-          >
-            <RotateCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Sync Queue
-          </button>
+          <div className="flex items-center gap-3">
+             <div className="flex bg-slate-100 p-1 rounded-xl">
+                {['Pending', 'History'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
+                      activeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+             </div>
+             <button 
+               onClick={fetchQueue}
+               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-all active:scale-95 shadow-sm"
+             >
+               <RotateCcw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} /> Sync Queue
+             </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Billing Queue List */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="flex bg-slate-100 p-1 rounded-2xl">
-               {['Pending', 'History'].map(tab => (
-                 <button 
-                   key={tab}
-                   onClick={() => setActiveTab(tab)}
-                   className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                 >
-                   {tab}
-                 </button>
-               ))}
-            </div>
+        <div className="bg-white border-b border-slate-100 p-1 flex flex-col sm:flex-row gap-2 items-center">
+           <div className="relative flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+              <input 
+                type="text"
+                placeholder="Search by Patient Name or ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-transparent focus:bg-white focus:border-blue-100 rounded-xl text-sm font-medium outline-none transition-all"
+              />
+           </div>
+        </div>
 
-            <div className="relative">
-               <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-               <input 
-                 type="text"
-                 placeholder="Search by patient..."
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-                 className="w-full pl-16 pr-8 py-5 bg-white border-none shadow-sm focus:ring-2 focus:ring-emerald-100 rounded-[2rem] text-sm font-medium transition-all outline-none"
-               />
-            </div>
-
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left bg-slate-50/30">
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Patient & Account</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Arrival</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Consultant</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="py-4 px-6 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
               {loading ? (
-                 <div className="text-center py-12 bg-white rounded-[2rem] border border-slate-100/50 shadow-sm border-dashed">
-                    <Activity className="h-8 w-8 text-slate-300 animate-spin mx-auto mb-3" />
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Scanning Queue...</p>
-                 </div>
+                <tr>
+                   <td colSpan="5" className="py-20 text-center text-[10px] font-bold text-slate-300 uppercase tracking-widest animate-pulse">Syncing Collection Data...</td>
+                </tr>
               ) : filteredQueue.length === 0 ? (
-                 <div className="text-center py-12 bg-white rounded-[2rem] border border-slate-100/50 shadow-sm border-dashed">
-                    <CheckCircle2 className="h-10 w-10 text-emerald-300 mx-auto mb-4" />
-                    <p className="text-sm font-semibold text-slate-600">All cleared!</p>
-                    <p className="text-xs font-medium text-slate-400 mt-1">No patients are awaiting billing.</p>
-                 </div>
+                <tr>
+                  <td colSpan="5" className="py-20 text-center text-slate-300">
+                    <CheckCircle2 className="h-10 w-10 mx-auto opacity-20 mb-3" />
+                     <p className="text-xs font-bold uppercase tracking-widest opacity-40">Account List Clear</p>
+                  </td>
+                </tr>
               ) : (
-                 filteredQueue.map((apt) => (
-                    <motion.button
-                       key={apt.id}
-                       whileHover={{ x: 4 }}
-                       onClick={() => handleSelectPatient(apt)}
-                       className={`w-full text-left p-6 rounded-3xl border transition-all ${selectedPatient?.id === apt.id ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-200' : 'bg-white border-slate-100 hover:bg-slate-50 shadow-sm'}`}
-                    >
-                       <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4">
-                             <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${selectedPatient?.id === apt.id ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
-                                <User className="h-6 w-6" />
-                             </div>
-                             <div>
-                                <p className={`font-medium text-base ${selectedPatient?.id === apt.id ? 'text-white' : 'text-slate-900'}`}>{apt.patient}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-[10px] font-semibold uppercase tracking-widest ${selectedPatient?.id === apt.id ? 'text-slate-400' : 'text-slate-500'}`}>{apt.patientId}</span>
-                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                    {apt.status === 'awaiting-billing' ? (
-                                      <span className="flex items-center gap-1 text-[10px] font-medium text-orange-500 uppercase tracking-widest"><Clock className="h-3 w-3" /> Awaiting</span>
-                                    ) : (
-                                      <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-500 uppercase tracking-widest"><CheckCircle2 className="h-3 w-3" /> Finalized</span>
-                                    )}
-                                </div>
-                             </div>
-                          </div>
-                          <div className={`p-2 rounded-xl flex items-center justify-center ${selectedPatient?.id === apt.id ? 'bg-white/10 text-white' : 'bg-slate-50 text-slate-400'}`}>
-                             <DollarSign className="h-5 w-5" />
-                          </div>
-                       </div>
-                    </motion.button>
-                 ))
+                filteredQueue.map(apt => (
+                  <tr key={apt.id} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
+                    <td className="py-5 px-6">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-900 text-sm">{apt.patient}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{apt.patientId}</span>
+                      </div>
+                    </td>
+                    <td className="py-5 px-6 font-bold text-slate-600 text-xs">
+                       {apt.date} <span className="text-[9px] text-slate-300 ml-1">{apt.time || 'W.IN'}</span>
+                    </td>
+                    <td className="py-5 px-6 font-semibold text-slate-600 text-xs text-primary-600">
+                       Dr. {apt.providerName || apt.doctor || 'N/A'}
+                    </td>
+                    <td className="py-5 px-6">
+                      {apt.status === 'awaiting-billing' ? (
+                        <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-orange-50 text-orange-600 border border-orange-100 flex items-center gap-1.5 w-fit">
+                          <Clock className="h-2.5 w-2.5" /> Awaiting
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-1.5 w-fit">
+                          <CheckCircle2 className="h-2.5 w-2.5" /> Finalized
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-5 px-6 text-right">
+                      {activeTab === 'Pending' ? (
+                        <button 
+                          onClick={() => handleAction(apt)}
+                          className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2 float-right"
+                        >
+                          <DollarSign className="h-3 w-3" /> Collect & Clear
+                        </button>
+                      ) : (
+                        <div className="flex justify-end gap-2">
+                           <button className="h-8 w-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-100 transition-all shadow-sm shadow-slate-50">
+                              <Receipt className="h-4 w-4" />
+                           </button>
+                           <div className="h-8 w-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-200">
+                              <ChevronRight className="h-4 w-4" />
+                           </div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))
               )}
-            </div>
-          </div>
-
-          {/* Billing Workspace */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm min-h-[600px] flex flex-col overflow-hidden">
-               {selectedPatient ? (
-                  <>
-                     <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                        <div>
-                           <h2 className="text-xl font-bold text-slate-900">{selectedPatient.patient}</h2>
-                           <p className="text-sm font-medium text-slate-500 mt-1">
-                              Consulted by Dr. {selectedPatient.providerName || 'Unknown'} • {selectedPatient.date}
-                           </p>
-                        </div>
-                        <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-emerald-500">
-                           <Receipt className="h-6 w-6" />
-                        </div>
-                     </div>
-                     <div className="flex-1 p-8 md:p-12 overflow-y-auto">
-                           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                               
-                               <div className="bg-emerald-50 rounded-[2rem] p-8 border border-emerald-100/50 relative overflow-hidden">
-                                  <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-emerald-100/50 to-transparent pointer-events-none" />
-                                  <div className="flex items-center gap-3 mb-6">
-                                     <DollarSign className="h-6 w-6 text-emerald-600" />
-                                     <h3 className="text-sm font-bold text-emerald-900 uppercase tracking-widest">Generate Patient Invoice</h3>
-                                  </div>
-                                  <div className="prose prose-emerald prose-sm max-w-none">
-                                     <p className="text-emerald-900 font-medium leading-relaxed mb-6">
-                                        Use the main <span className="font-bold underline">Billing / Invoices</span> menu on the sidebar to create line items for this patient's consultation, pharmacy drugs, and lab testing. Once they have successfully paid, you may clear them from this queue.
-                                     </p>
-                                  </div>
-                               </div>
-
-                               {clinicalRecord && (
-                                  <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">
-                                    <div className="flex items-center gap-3 mb-4 text-slate-400">
-                                       <FileText className="h-5 w-5" />
-                                       <h4 className="text-xs font-bold uppercase tracking-widest">Clinical Note Reference</h4>
-                                    </div>
-                                    <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
-                                       <span className="font-semibold text-slate-900 text-sm">Doctor's Assessment:</span><br/>
-                                       {clinicalRecord.assessment || 'N/A'}
-                                    </p>
-                                    <div className="h-px bg-slate-200 my-4" />
-                                    <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
-                                       <span className="font-semibold text-slate-900 text-sm">Doctor's Orders (Plan):</span><br/>
-                                       {clinicalRecord.plan || 'N/A'}
-                                    </p>
-                                  </div>
-                               )}
-                           </motion.div>
-                     </div>
-                     <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-end gap-3 flex-wrap">
-                        {selectedPatient.status === 'awaiting-billing' ? (
-                          <button 
-                            onClick={() => setIsPaymentOpen(true)}
-                            className="px-8 py-4 bg-emerald-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 flex items-center gap-2"
-                          >
-                             <DollarSign className="h-4 w-4" /> Collect Dues & Discharge
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={() => window.print()}
-                            className="px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center gap-2"
-                          >
-                             <Receipt className="h-4 w-4" /> Print Statement
-                          </button>
-                        )}
-                     </div>
-                  </>
-               ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
-                     <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-300">
-                        <CreditCard className="h-10 w-10" />
-                     </div>
-                     <h3 className="text-xl font-medium text-slate-900">Billing Workspace</h3>
-                     <p className="text-slate-500 font-medium max-w-sm">Select a patient from the queue to review their clinical itinerary before finalizing their bill.</p>
-                  </div>
-               )}
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
-        <PaymentCollectionModal
-          isOpen={isPaymentOpen}
-          onClose={() => setIsPaymentOpen(false)}
-          appointment={selectedPatient}
-          type="investigation"
-          onSuccess={() => {
-            setIsPaymentOpen(false);
-            fetchQueue();
-          }}
-        />
       </div>
+
+      <PaymentCollectionModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        appointment={selectedPatient}
+        type="consultation"
+        onSuccess={() => {
+          setIsPaymentOpen(false);
+          fetchQueue();
+          success("Payment collected and patient cleared.");
+        }}
+      />
     </DashboardLayout>
   );
 }

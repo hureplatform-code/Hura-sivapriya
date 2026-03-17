@@ -581,41 +581,71 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   });
 
   const runAIPolish = async (textToProcess) => {
-    if (!textToProcess || textToProcess.length < 5) return;
-    setIsAnalyzing(true);
     try {
+      if (!textToProcess || textToProcess.length < 5) {
+        showNotification('error', "Transcript too short to process.");
+        return;
+      }
+      setIsAnalyzing(true);
+      
       const docRef = doc(db, 'platform_settings', 'main');
       const docSnap = await getDoc(docRef);
       const apiKey = docSnap.exists() ? (docSnap.data().geminiApiKey || '').trim() : '';
+      
       if (!apiKey) {
-        showNotification('success', "Transcript captured.");
+        showNotification('success', "Transcript captured (AI disabled - API Key missing).");
         setFormData(prev => ({ ...prev, subjective: textToProcess }));
         setIsAnalyzing(false);
         return;
       }
+
       const modelId = 'gemini-1.5-flash';
-      const prompt = `Format this clinical dictation into SOAP JSON: "${textToProcess}". Fields: subjective, objective, assessment, plan, nursing_orders, icd_suggestion.`;
+      const prompt = `You are a medical scribe. Convert this clinical dictation into a structured SOAP JSON object. 
+      Dictation: "${textToProcess}"
+      
+      Requirements:
+      - Use these fields: subjective, objective, assessment, plan, nursing_orders, icd_suggestion.
+      - Return ONLY the raw JSON object, no markdown, no preamble.
+      - If a field is not mentioned, return empty string.`;
+
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error?.message || "AI API Request Failed");
+      }
+
       const data = await response.json();
       if (data.candidates?.[0]) {
-        const text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-        const parsed = JSON.parse(text);
-        setFormData(prev => ({
-          ...prev,
-          subjective: parsed.subjective || prev.subjective,
-          objective: parsed.objective || prev.objective,
-          assessment: parsed.assessment || prev.assessment,
-          plan: parsed.plan || prev.plan,
-          nursingOrders: parsed.nursing_orders || prev.nursingOrders
-        }));
-        if (parsed.icd_suggestion) setIcdSuggestions([parsed.icd_suggestion]);
-        showNotification('success', "AI Note Polished!");
+        let text = data.candidates[0].content.parts[0].text;
+        // Clean markdown backticks if present
+        text = text.replace(/```json|```/g, '').trim();
+        
+        try {
+          const parsed = JSON.parse(text);
+          setFormData(prev => ({
+            ...prev,
+            subjective: parsed.subjective || prev.subjective,
+            objective: parsed.objective || prev.objective,
+            assessment: parsed.assessment || prev.assessment,
+            plan: parsed.plan || prev.plan,
+            nursingOrders: parsed.nursing_orders || prev.nursingOrders
+          }));
+          if (parsed.icd_suggestion) setIcdSuggestions([parsed.icd_suggestion]);
+          showNotification('success', "Medical note structured by AI!");
+        } catch (jsonErr) {
+          console.error("JSON Parse Error:", text);
+          throw new Error("AI output format error. Falling back to manual entry.");
+        }
       }
-    } catch (err) { console.error("AI fail", err); }
-    finally { setIsAnalyzing(false); }
+    } catch (err) { 
+      console.error("AI processing error:", err);
+      showNotification('error', err.message || "AI Analysis failed. Please check your data or API settings.");
+    } finally { setIsAnalyzing(false); }
   };
 
   useEffect(() => {
@@ -924,9 +954,6 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                      {selectedPatient && !loadingPatient ? (
                         <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm flex items-center gap-8 relative overflow-hidden h-full min-h-[180px]">
                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 blur-[80px] rounded-full -mr-32 -mt-32" />
-                           <div className="h-20 w-20 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 shadow-inner shrink-0 transition-transform hover:scale-105">
-                              <User className="h-10 w-10" />
-                           </div>
                            <div className="flex-1 space-y-4 relative z-10">
                               <div className="flex items-center justify-between">
                                  <div>
