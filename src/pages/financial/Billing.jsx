@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { 
   Receipt, 
@@ -44,6 +45,7 @@ const BILL_TYPES = [
 ];
 
 export default function Billing() {
+  const [searchParams] = useSearchParams();
   const { currency } = useCurrency();
   const [isCreating, setIsCreating] = useState(false);
   const [invoices, setInvoices] = useState([]);
@@ -51,7 +53,7 @@ export default function Billing() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastVisible, setLastVisible] = useState(null);
   const [hasMore, setHasMore] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('patient') || '');
   const [activeMenu, setActiveMenu] = useState(null);
   const { success, info } = useToast();
   const [billingStats, setBillingStats] = useState({

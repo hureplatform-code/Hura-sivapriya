@@ -36,6 +36,7 @@ import Expenses from './pages/financial/Expenses';
 import Inventory from './pages/operational/Inventory';
 import PharmacyQueue from './pages/operational/PharmacyQueue';
 import LaboratoryQueue from './pages/operational/LaboratoryQueue';
+import LabEntry from './pages/operational/LabEntry';
 import Ward from './pages/clinical/Ward';
 import InpatientChart from './pages/clinical/InpatientChart';
 import ChangePlan from './pages/subscription/ChangePlan';
@@ -106,6 +107,7 @@ function App() {
           <Route path="/clinical-forms" element={<PrivateRoute><ClinicalForms /></PrivateRoute>} />
           <Route path="/investigation" element={<PrivateRoute><Investigation /></PrivateRoute>} />
           <Route path="/lab/queue" element={<PrivateRoute><LaboratoryQueue /></PrivateRoute>} />
+          <Route path="/lab/entry/:appointmentId" element={<PrivateRoute><LabEntry /></PrivateRoute>} />
           <Route path="/ward" element={<PrivateRoute><Ward /></PrivateRoute>} />
           <Route path="/ward/chart/:wardId/:bedId" element={<PrivateRoute><InpatientChart /></PrivateRoute>} />
           <Route path="/waitlist-tv" element={<WaitlistTV />} />

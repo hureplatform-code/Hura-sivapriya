@@ -67,7 +67,15 @@ pharmacist
 ph@a.com
 1234567890
 
+pharmacist admin
+pa@a.com
+1234567890
+
 lab_tech
 lab@a.com
+1234567890
+
+lab admin
+ldu@a.com
 1234567890
 

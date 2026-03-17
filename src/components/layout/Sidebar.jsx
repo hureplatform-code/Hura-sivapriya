@@ -34,7 +34,7 @@ const getMenuItems = (role) => [
     icon: LayoutDashboard, 
     label: 'Dashboard', 
     path: '/',
-    roles: ['superadmin', 'doctor', 'clinic_owner', 'nurse', 'receptionist', 'pharmacist', 'lab_tech']
+    roles: ['superadmin', 'doctor', 'clinic_owner', 'nurse', 'receptionist', 'pharmacist', 'lab_tech', 'lab_admin', 'pharmacist_admin']
   },
 
   { 
@@ -60,17 +60,17 @@ const getMenuItems = (role) => [
     id: 'facility-config',
     icon: ShieldCheck,
     label: 'Configurations',
-    roles: ['superadmin', 'clinic_owner'],
+    roles: ['superadmin', 'clinic_owner', 'lab_admin', 'pharmacist_admin'],
     subItems: [
       { label: 'Practice Type', path: '/config/practice', roles: ['clinic_owner'] },
       { label: 'Specialty', path: '/config/specialty', roles: ['clinic_owner'] },
       { label: 'Clinical Note Setup', path: '/config/notes', roles: ['clinic_owner'] },
-      { label: 'Medicine Config', path: '/config/medicine', roles: ['superadmin', 'clinic_owner'] },
-      { label: 'Drug Catalog', path: '/config/catalog', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'Medicine Config', path: '/config/medicine', roles: ['superadmin', 'clinic_owner', 'pharmacist_admin'] },
+      { label: 'Drug Catalog', path: '/config/catalog', roles: ['superadmin', 'clinic_owner', 'pharmacist_admin'] },
       { label: 'Procedure Master', path: '/config/procedures', roles: ['superadmin', 'clinic_owner'] },
-      { label: 'Investigation Catalogue', path: '/config/investigations', roles: ['superadmin', 'clinic_owner'] },
+      { label: 'Investigation Catalogue', path: '/config/investigations', roles: ['superadmin', 'clinic_owner', 'lab_admin'] },
       { label: 'ICD-10 Catalogue', path: '/config/icd10', roles: ['superadmin', 'clinic_owner'] },
-      { label: 'Pharmacy Setup', path: '/config/pharmacy', roles: ['clinic_owner'] },
+      { label: 'Pharmacy Setup', path: '/config/pharmacy', roles: ['clinic_owner', 'pharmacist_admin'] },
       { label: 'SMS Notifications', path: '/config/sms', roles: ['superadmin', 'clinic_owner'] },
       { label: 'Global Platform Settings', path: '/superadmin/settings', roles: ['superadmin'] },
     ]
@@ -81,11 +81,11 @@ const getMenuItems = (role) => [
     label: 'Clinical Ops',
     roles: ['doctor', 'clinic_owner', 'nurse', 'receptionist', 'lab_tech'],
     subItems: [
-      { label: 'Appointments', path: '/appointments' },
+      { label: role === 'lab_tech' ? 'Lab Appointment' : 'Appointments', path: '/appointments' },
       { label: 'Clinical Notes', path: '/notes', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Nursing Orders', path: '/nursing/queue', roles: ['nurse', 'clinic_owner', 'doctor'] },
       { label: 'Clinical Forms', path: '/clinical-forms', roles: ['doctor', 'clinic_owner', 'nurse'] },
-      { label: 'Laboratory Queue', path: '/lab/queue', roles: ['lab_tech', 'clinic_owner'] },
+      { label: 'Laboratory Registry', path: '/lab/queue', roles: ['lab_tech', 'clinic_owner'] },
       { label: 'Diagnostics & Labs', path: '/investigation', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Ward / In-Patient', path: '/ward', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Waitlist TV', path: '/waitlist-tv', roles: ['doctor', 'nurse', 'receptionist', 'clinic_owner', 'admin'] },
@@ -104,11 +104,11 @@ const getMenuItems = (role) => [
   {
     id: 'financial',
     icon: CreditCard,
-    label: 'Financials',
-    roles: ['superadmin', 'clinic_owner', 'admin', 'receptionist'],
+    label: 'Financial Hub',
+    roles: ['superadmin', 'clinic_owner', 'admin', 'receptionist', 'lab_tech'],
     subItems: [
-      { label: 'Billing Queue', path: '/billing/queue', roles: ['clinic_owner', 'admin', 'receptionist'] },
-      { label: 'Billing / Invoices', path: '/billing', roles: ['clinic_owner', 'admin', 'receptionist'] },
+      { label: 'Collection Queue', path: '/billing/queue', roles: ['clinic_owner', 'admin', 'receptionist', 'lab_tech'] },
+      { label: 'Invoices & Records', path: '/billing', roles: ['clinic_owner', 'admin', 'receptionist', 'lab_tech'] },
       { label: 'General Ledger', path: '/accounting', roles: ['clinic_owner', 'admin'] },
       { label: 'Platform Revenue', path: '/accounting', roles: ['superadmin'] },
       { label: 'Expenses', path: '/expenses', roles: ['superadmin', 'clinic_owner', 'admin'] },
@@ -140,7 +140,7 @@ const getMenuItems = (role) => [
     icon: FileBarChart,
     label: 'Reports',
     path: '/master/reports',
-    roles: ['superadmin', 'clinic_owner', 'doctor', 'nurse', 'receptionist', 'pharmacist', 'lab_tech']
+    roles: ['superadmin', 'clinic_owner', 'doctor', 'nurse', 'receptionist', 'pharmacist', 'lab_tech', 'lab_admin', 'pharmacist_admin']
   },
   {
     id: 'subscription',

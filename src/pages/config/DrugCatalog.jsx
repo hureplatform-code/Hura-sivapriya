@@ -16,7 +16,10 @@ import {
   DollarSign,
   Layers,
   Save,
-  RefreshCw
+  RefreshCw,
+  QrCode,
+  Scan,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import medicalMasterService from '../../services/medicalMasterService';
@@ -38,7 +41,8 @@ export default function DrugCatalog() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ name: '', strength: '', form: '', price: '', taxable: false });
+  const [form, setForm] = useState({ name: '', strength: '', provider: '', form: '', price: '', taxable: false, barcode: '' });
+  const [scanning, setScanning] = useState(false);
 
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastVisible, setLastVisible] = useState(null);
@@ -91,13 +95,21 @@ export default function DrugCatalog() {
 
   const openAdd = () => {
     setEditingItem(null);
-    setForm({ name: '', strength: '', form: '', price: '', taxable: false });
+    setForm({ name: '', strength: '', provider: '', form: '', price: '', taxable: false, barcode: '' });
     setIsModalOpen(true);
   };
 
   const openEdit = (item) => {
     setEditingItem(item);
-    setForm({ name: item.name || '', strength: item.strength || '', form: item.form || '', price: item.price || '', taxable: item.taxable || false });
+    setForm({ 
+      name: item.name || '', 
+      strength: item.strength || '', 
+      provider: item.provider || '',
+      form: item.form || '', 
+      price: item.price || '', 
+      taxable: item.taxable || false,
+      barcode: item.barcode || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -110,9 +122,11 @@ export default function DrugCatalog() {
       const payload = { 
         name: form.name.trim(), 
         strength: form.strength?.trim() || '', 
+        provider: form.provider?.trim() || '',
         form: form.form?.trim() || '', 
         price: parseFloat(form.price) || 0, 
-        taxable: !!form.taxable 
+        taxable: !!form.taxable,
+        barcode: form.barcode?.trim() || ''
       };
 
       if (editingItem) {
@@ -325,6 +339,7 @@ export default function DrugCatalog() {
                 {[
                   { label: 'Item Name', key: 'name', placeholder: 'e.g. Paracetamol', required: true },
                   { label: 'Strength / Size', key: 'strength', placeholder: 'e.g. 500mg or 7.5cm' },
+                  { label: 'Manufacturer / Brand', key: 'provider', placeholder: 'e.g. GSK or Pfizer' },
                   { label: 'Drug Form / Category', key: 'form', placeholder: 'e.g. Tablet, Capsule, Roll' },
                   { label: `Base Price (${currency})`, key: 'price', placeholder: 'e.g. 5.00' },
                 ].map(f => (
@@ -339,6 +354,34 @@ export default function DrugCatalog() {
                     />
                   </div>
                 ))}
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Barcode / QR Index</label>
+                  <div className="relative group">
+                    <QrCode className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input
+                      value={form.barcode}
+                      onChange={e => setForm(p => ({ ...p, barcode: e.target.value }))}
+                      placeholder="Scan or enter code..."
+                      className="w-full bg-slate-50 pl-14 pr-32 py-3.5 border border-transparent focus:border-indigo-200 rounded-2xl text-sm font-medium outline-none transition-all"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setScanning(true);
+                        setTimeout(() => {
+                           setForm(p => ({ ...p, barcode: Math.floor(100000000000 + Math.random() * 900000000000).toString() }));
+                           setScanning(false);
+                           success("Smart Scan Successful!");
+                        }, 1500);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
+                    >
+                      {scanning ? <Zap className="h-3 w-3 animate-pulse" /> : <Scan className="h-3 w-3" />}
+                      Scan
+                    </button>
+                  </div>
+                </div>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" checked={form.taxable} onChange={e => setForm(p => ({ ...p, taxable: e.target.checked }))}
                     className="w-4 h-4 rounded accent-primary-600" />

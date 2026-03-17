@@ -302,13 +302,13 @@ export default function Dashboard() {
                           <p className="font-bold text-slate-900 text-lg leading-tight">{apt.patient}</p>
                           <div className="flex flex-wrap items-center gap-3 mt-1.5">
                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-100">
-                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">OP#</span>
-                               <span className="text-[10px] font-bold text-slate-700">{apt.id?.slice(-8) || 'NEW-CASE'}</span>
+                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PATIENT ID</span>
+                               <span className="text-[10px] font-bold text-slate-700">{apt.patientId || 'NEW'}</span>
                             </div>
-                            {apt.phoneNumber && (
+                            {(apt.patientPhone || apt.phoneNumber || apt.mobile) && (
                               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-100">
                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">MOB</span>
-                                 <span className="text-[10px] font-bold text-slate-700">{apt.phoneNumber}</span>
+                                 <span className="text-[10px] font-bold text-slate-700">{apt.patientPhone || apt.phoneNumber || apt.mobile}</span>
                               </div>
                             )}
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em]">{apt.type}</span>

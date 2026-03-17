@@ -113,14 +113,49 @@ const appointmentService = {
     const q = [where('status', '==', 'awaiting-lab')];
     if (facilityId) q.push(where('facilityId', '==', facilityId));
     const results = await firestoreService.getAll(this.collection, q);
-    return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
+    return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(a.time || '00:00'));
+  },
+
+  async getLaboratoryData(facilityId) {
+    if (!facilityId) return [];
+    
+    // Fetch pending lab requests
+    const qPending = [where('status', '==', 'awaiting-lab'), where('facilityId', '==', facilityId)];
+    
+    // Fetch completed lab requests (including those sent to billing or finalized)
+    const qProcessed = [where('status', 'in', ['completed', 'awaiting-billing', 'billed', 'paid']), where('facilityId', '==', facilityId), limit(300)];
+    
+    // Fetch patients who were returned to clinical queue after lab (status 'arrived')
+    const qReturned = [where('status', 'in', ['arrived', 'calling', 'in-session', 'triage']), where('facilityId', '==', facilityId), limit(300)];
+    
+    const [pending, processed, returned] = await Promise.all([
+      firestoreService.getAll(this.collection, qPending),
+      firestoreService.getAll(this.collection, qProcessed),
+      firestoreService.getAll(this.collection, qReturned)
+    ]);
+    
+    // Combine and Filter returned to only include those that HAVE lab data
+    const validReturned = returned.filter(a => a.labResults || a.structuredResults?.length > 0 || a.labCompletedAt);
+
+    const all = [...pending, ...processed, ...validReturned];
+
+    // Sort by date (desc) and then time (desc) to ensure newest is always first
+    return all.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      if (dateB - dateA !== 0) return dateB - dateA;
+      
+      const timeA = a.time || '00:00';
+      const timeB = b.time || '00:00';
+      return timeB.localeCompare(timeA);
+    });
   },
 
   async getBillingQueue(facilityId) {
-    const q = [where('status', '==', 'awaiting-billing')];
+    const q = [where('status', 'in', ['awaiting-billing', 'billed', 'paid'])];
     if (facilityId) q.push(where('facilityId', '==', facilityId));
     const results = await firestoreService.getAll(this.collection, q);
-    return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
+    return results.sort((a, b) => new Date(b.date) - new Date(a.date) || (b.time || '00:00').localeCompare(a.time || '00:00'));
   },
 
   async getNursingQueue(facilityId) {

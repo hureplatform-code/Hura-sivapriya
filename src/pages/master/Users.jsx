@@ -24,6 +24,7 @@ import facilityService from '../../services/facilityService';
 import auditService from '../../services/auditService';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { APP_CONFIG } from '../../config';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -271,9 +272,9 @@ export default function Users() {
                 className="px-4 py-3 bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl text-sm transition-all outline-none text-slate-600 font-medium"
               >
                 <option value="all">All Roles</option>
-                <option value="superadmin">Superadmin</option>
-                <option value="clinic_owner">Clinic Owner</option>
-                <option value="doctor">Doctor</option>
+                {APP_CONFIG.ROLES.filter(r => r.id !== 'superadmin').map(role => (
+                  <option key={role.id} value={role.id}>{role.name}</option>
+                ))}
               </select>
               <button className="p-3 bg-slate-50 text-slate-600 rounded-2xl hover:bg-slate-100 transition-colors">
                 <Filter className="h-5 w-5" />

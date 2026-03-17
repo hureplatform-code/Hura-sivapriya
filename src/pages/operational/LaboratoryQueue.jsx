@@ -1,32 +1,42 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
-import auditService from '../../services/auditService';
 import { 
-  Activity, 
   Search, 
   CheckCircle2, 
-  Clock, 
-  User,
-  Beaker,
-  TestTube2,
-  Stethoscope,
-  Microscope
+  ArrowRight,
+  ChevronDown,
+  RotateCcw,
+  Phone,
+  Printer,
+  CreditCard,
+  Plus,
+  Play
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LabReport, PrintStyles } from '../../components/printing/PrintTemplates';
+import { TEST_CATALOG } from './LabEntry';
+import PaymentCollectionModal from '../../components/modals/PaymentCollectionModal';
+import AppointmentModal from '../../components/modals/AppointmentModal';
 
 export default function LaboratoryQueue() {
+  const navigate = useNavigate();
   const { userData } = useAuth();
   const { success, error: toastError } = useToast();
   
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [labResults, setLabResults] = useState('');
+  const [dateFilter, setDateFilter] = useState('Today');
+  const [customDates, setCustomDates] = useState({ start: '', end: '' });
+  const [statusFilter, setStatusFilter] = useState('Pending');
+  const [printApt, setPrintApt] = useState(null);
+  const [selectedApt, setSelectedApt] = useState(null);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isApptModalOpen, setIsApptModalOpen] = useState(false);
 
   useEffect(() => {
     fetchQueue();
@@ -36,286 +46,323 @@ export default function LaboratoryQueue() {
     if (!userData?.facilityId) return;
     try {
       setLoading(true);
-      const data = await appointmentService.getLaboratoryQueue(userData.facilityId);
+      const data = await appointmentService.getLaboratoryData(userData.facilityId);
       setQueue(data);
     } catch (err) {
       console.error(err);
-      toastError('Failed to load lab queue.');
+      toastError('Failed to load laboratory queue.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectPatient = (appointment) => {
-    setSelectedPatient(appointment);
-    setLabResults(appointment.labResults || '');
-  };
-
-  const handleReturnToDoctor = async () => {
-    if (!selectedPatient) return;
-    try {
-      // Returning patient to Arrived status pushes them back to the doctor's active queue
-      // We also save the results to the appointment so the doctor can see them immediately
-      await appointmentService.updateAppointment(selectedPatient.id, { 
-        status: 'arrived',
-        labResults: labResults,
-        labCompletedAt: new Date().toISOString()
-      });
-      
-      // Log audit
-      await auditService.logActivity({
-        userId: userData?.uid,
-        userName: userData?.name || 'Lab Tech',
-        action: 'LAB_RESULTS_SENT',
-        module: 'LABORATORY',
-        description: `Lab tests concluded with results. Returned ${selectedPatient.patient} back to the Doctor.`,
-        metadata: {
-          appointmentId: selectedPatient.id,
-          patientId: selectedPatient.patientId,
-          facilityId: userData?.facilityId,
-          resultsPreview: labResults.substring(0, 100)
-        }
-      });
-      
-      success(`Results complete. Sent back to Doctor.`);
-      setSelectedPatient(null);
-      setLabResults('');
-      fetchQueue();
-    } catch (err) {
-      console.error(err);
-      toastError('Failed to route patient.');
+  const isDateInRange = (dateStr) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (dateFilter) {
+      case 'All': return true;
+      case 'Today':
+        return date >= today;
+      case 'Yesterday':
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return date >= yesterday && date < today;
+      case 'This Week':
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        return date >= startOfWeek;
+      case 'Last Week':
+        const lastWeekStart = new Date(today);
+        lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
+        const lastWeekEnd = new Date(today);
+        lastWeekEnd.setDate(today.getDate() - today.getDay());
+        return date >= lastWeekStart && date < lastWeekEnd;
+      case 'This Month':
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      case 'Last Month':
+        const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+        const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+        return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
+      case 'This Year':
+        return date.getFullYear() === now.getFullYear();
+      case 'Last Year':
+        return date.getFullYear() === now.getFullYear() - 1;
+      case 'Custom':
+        if (!customDates.start || !customDates.end) return true;
+        const start = new Date(customDates.start);
+        const end = new Date(customDates.end);
+        end.setHours(23, 59, 59, 999);
+        return date >= start && date <= end;
+      default: return true;
     }
   };
 
-  const handleRouteToBilling = async () => {
-    if (!selectedPatient) return;
-    try {
-      await appointmentService.updateAppointmentStatus(selectedPatient.id, 'awaiting-billing');
-      
-      // Log audit
-      await auditService.logActivity({
-        userId: userData?.uid,
-        userName: userData?.name || 'Lab Tech',
-        action: 'LAB_ROUTED_BILLING',
-        module: 'LABORATORY',
-        description: `Routed ${selectedPatient.patient} to Billing after lab work.`,
-        metadata: {
-          appointmentId: selectedPatient.id,
-          patientId: selectedPatient.patientId,
-          facilityId: userData?.facilityId
-        }
-      });
-      
-      success(`Patient safely routed to Billing.`);
-      setSelectedPatient(null);
-      fetchQueue();
-    } catch (err) {
-      console.error(err);
-      toastError('Failed to route patient.');
+  const filteredQueue = queue.filter(apt => {
+    const searchLow = searchTerm.trim().toLowerCase();
+    
+    // OMNI-SEARCH LOGIC: If user is typing, bypass Status Tab and Date filters
+    if (searchLow !== '') {
+      return (
+        apt.patient?.toLowerCase().includes(searchLow) || 
+        apt.patientId?.toLowerCase().includes(searchLow) ||
+        apt.patientPhone?.includes(searchTerm) ||
+        apt.phoneNumber?.includes(searchTerm)
+      );
     }
-  };
 
-  const handleDischarge = async () => {
-    if (!selectedPatient) return;
-    try {
-      await appointmentService.updateAppointmentStatus(selectedPatient.id, 'completed');
-      
-      // Log audit
-      await auditService.logActivity({
-        userId: userData?.uid,
-        userName: userData?.name || 'Lab Tech',
-        action: 'LAB_DISCHARGED_PATIENT',
-        module: 'LABORATORY',
-        description: `Discharged ${selectedPatient.patient} directly from the lab.`,
-        metadata: {
-          appointmentId: selectedPatient.id,
-          patientId: selectedPatient.patientId,
-          facilityId: userData?.facilityId
-        }
-      });
-      
-      success(`Patient successfully discharged.`);
-      setSelectedPatient(null);
-      fetchQueue();
-    } catch (err) {
-      console.error(err);
-      toastError('Failed to discharge patient.');
-    }
-  };
+    // REGULAR BROADCAST/TAB LOGIC (When not searching)
+    const isPending = apt.status === 'awaiting-lab';
+    const isCompleted = ['completed', 'arrived', 'awaiting-billing', 'billed', 'paid'].includes(apt.status) || apt.labCompletedAt;
+    
+    const matchesStatus = statusFilter === 'Pending' ? isPending : isCompleted;
+    if (!matchesStatus) return false;
 
-  const filteredQueue = queue.filter(apt => 
-    apt.patient?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    apt.patientId?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    const matchesDate = isDateInRange(apt.date);
+    
+    return matchesDate;
+  });
+
+  const handlePrint = (apt) => {
+    setPrintApt(apt);
+    // Give react time to render the hidden print content
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <PrintStyles />
+      {/* Hidden Print Container */}
+      <div className="print-only">
+        {printApt && (
+          <LabReport 
+            data={printApt} 
+            facility={userData || {}} 
+            catalog={TEST_CATALOG} 
+          />
+        )}
+      </div>
+
+      <div className="space-y-6 no-print">
+        {/* Simplified Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-1">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
-              <Microscope className="h-8 w-8 text-blue-500" /> Laboratory Queue
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Laboratory Registry
             </h1>
-            <p className="text-slate-500 font-medium mt-1">Receive arriving patients, run diagnostics, and route them back.</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Manage diagnostics & high-precision reporting</p>
           </div>
-          <button 
-            onClick={fetchQueue}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
-          >
-            <Activity className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Queue
-          </button>
+          <div className="flex items-center gap-3">
+             <div className="flex bg-slate-100 p-1 rounded-xl">
+                {['Pending', 'Completed'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setStatusFilter(tab)}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
+                      statusFilter === tab 
+                        ? 'bg-white text-slate-900 shadow-sm' 
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+             </div>
+             <button 
+               onClick={fetchQueue}
+               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-all active:scale-95 shadow-sm"
+             >
+               <RotateCcw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} /> Sync Queue
+             </button>
+             <button 
+               onClick={() => setIsApptModalOpen(true)}
+               className="flex items-center gap-2 px-5 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95"
+             >
+               <Plus className="h-3 w-3" /> New Walk-in Lab
+             </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Lab Queue List */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="relative">
-               <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-               <input 
-                 type="text"
-                 placeholder="Search lab patients..."
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-                 className="w-full pl-16 pr-8 py-5 bg-white border-none shadow-sm focus:ring-2 focus:ring-blue-100 rounded-[2rem] text-sm font-medium transition-all outline-none"
-               />
-            </div>
+        {/* Hyper-Minimal Filters */}
+        <div className="bg-white border-b border-slate-100 p-1 flex flex-col sm:flex-row gap-2 items-center">
+           <div className="relative flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+              <input 
+                type="text"
+                placeholder="Search by Patient, ID or Phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-transparent focus:bg-white focus:border-blue-100 rounded-xl text-sm font-medium outline-none transition-all"
+              />
+           </div>
+           
+           <div className="flex gap-2 items-center w-full sm:w-auto">
+             <div className="relative w-full sm:w-auto">
+               <select 
+                 value={dateFilter}
+                 onChange={(e) => setDateFilter(e.target.value)}
+                 className="w-full pl-4 pr-10 py-3 bg-slate-50/50 border border-transparent focus:bg-white focus:border-blue-100 rounded-xl text-xs font-bold uppercase tracking-wider appearance-none outline-none cursor-pointer"
+               >
+                 {['Today', 'Yesterday', 'This Week', 'Last Week', 'This Month', 'Last Month', 'This Year', 'Last Year', 'Custom', 'All'].map(f => (
+                   <option key={f} value={f}>{f}</option>
+                 ))}
+               </select>
+               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+             </div>
 
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-              {loading ? (
-                 <div className="text-center py-12 bg-white rounded-[2rem] border border-slate-100/50 shadow-sm border-dashed">
-                    <Activity className="h-8 w-8 text-slate-300 animate-spin mx-auto mb-3" />
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Scanning Lab Queue...</p>
-                 </div>
-              ) : filteredQueue.length === 0 ? (
-                 <div className="text-center py-12 bg-white rounded-[2rem] border border-slate-100/50 shadow-sm border-dashed">
-                    <CheckCircle2 className="h-10 w-10 text-blue-300 mx-auto mb-4" />
-                    <p className="text-sm font-semibold text-slate-600">All caught up!</p>
-                    <p className="text-xs font-medium text-slate-400 mt-1">No patients are currently awaiting labs.</p>
-                 </div>
-              ) : (
-                 filteredQueue.map((apt) => (
-                    <motion.button
-                       key={apt.id}
-                       whileHover={{ x: 4 }}
-                       onClick={() => handleSelectPatient(apt)}
-                       className={`w-full text-left p-6 rounded-3xl border transition-all ${selectedPatient?.id === apt.id ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-200' : 'bg-white border-slate-100 hover:bg-slate-50 shadow-sm'}`}
-                    >
-                       <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4">
-                             <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${selectedPatient?.id === apt.id ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600'}`}>
-                                <User className="h-6 w-6" />
-                             </div>
-                             <div>
-                                <p className={`font-medium text-base ${selectedPatient?.id === apt.id ? 'text-white' : 'text-slate-900'}`}>{apt.patient}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-[10px] font-semibold uppercase tracking-widest ${selectedPatient?.id === apt.id ? 'text-slate-400' : 'text-slate-500'}`}>{apt.patientId}</span>
-                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                    <span className="flex items-center gap-1 text-[10px] font-medium text-orange-500 uppercase tracking-widest"><Clock className="h-3 w-3" /> Waiting</span>
-                                </div>
-                             </div>
-                          </div>
-                       </div>
-                    </motion.button>
-                 ))
-              )}
-            </div>
-          </div>
-
-          {/* Laboratory Workspace */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm min-h-[600px] flex flex-col overflow-hidden">
-               {selectedPatient ? (
-                  <>
-                     <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                        <div>
-                           <h2 className="text-xl font-bold text-slate-900">{selectedPatient.patient}</h2>
-                           <p className="text-sm font-medium text-slate-500 mt-1">
-                              Consulted by Dr. {selectedPatient.providerName || 'Unknown'} • {selectedPatient.date}
-                           </p>
-                        </div>
-                        <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-blue-500">
-                           <Beaker className="h-6 w-6" />
-                        </div>
-                     </div>
-                     <div className="flex-1 p-8 md:p-12 overflow-y-auto">
-                           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                               <div className="bg-blue-50 rounded-[2rem] p-8 border border-blue-100/50 relative overflow-hidden">
-                                  <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-blue-100/50 to-transparent pointer-events-none" />
-                                  <div className="flex items-center gap-3 mb-6">
-                                     <TestTube2 className="h-6 w-6 text-blue-600" />
-                                     <h3 className="text-sm font-bold text-blue-900 uppercase tracking-widest">Proceed to Investigation Details</h3>
-                                  </div>
-                                  <div className="prose prose-blue prose-sm max-w-none">
-                                     <p className="text-blue-900 font-medium leading-relaxed">
-                                        Check the primary <span className="font-bold underline">Investigation Requests</span> tab to fill out all the specific diagnostic results and upload report documents for this patient.
-                                     </p>
-                                  </div>
-                               </div>
-
-                               <div className="bg-slate-50 rounded-[2rem] p-8 border border-white flex flex-col gap-6">
-                                  <div className="flex items-center justify-between">
-                                     <div className="flex items-center gap-3">
-                                        <Microscope className="h-5 w-5 text-blue-500" />
-                                        <h4 className="text-xs font-bold uppercase tracking-widest text-slate-800">Laboratory Results & Findings</h4>
-                                     </div>
-                                  </div>
-                                  <textarea 
-                                    className="w-full h-48 p-8 bg-white border border-slate-100 rounded-[2.5rem] text-sm font-medium outline-none focus:ring-4 focus:ring-blue-50 placeholder:text-slate-300 resize-none shadow-inner"
-                                    placeholder="Annotate test results here (e.g. Hb: 13.5g/dL, WBC: 7.2x10^9/L)..."
-                                    value={labResults}
-                                    onChange={(e) => setLabResults(e.target.value)}
-                                  />
-                               </div>
-
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                  <div className="bg-slate-50/50 rounded-[2rem] p-8 border border-slate-100">
-                                     <div className="flex items-center gap-3 mb-4 text-slate-400">
-                                        <Stethoscope className="h-5 w-5" />
-                                        <h4 className="text-xs font-bold uppercase tracking-widest">Patient Vitals</h4>
-                                     </div>
-                                     <p className="text-xs text-slate-600 font-medium leading-loose">
-                                        BP: {selectedPatient.vitals?.bloodPressure || 'N/A'}<br/>
-                                        Temp: {selectedPatient.vitals?.temperature || 'N/A'} °C<br/>
-                                        Weight: {selectedPatient.vitals?.weight || 'N/A'} kg
-                                     </p>
-                                  </div>
-                               </div>
-                           </motion.div>
-                     </div>
-                     <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-end gap-3 flex-wrap">
-                        <button 
-                          onClick={handleDischarge}
-                          className="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
-                        >
-                           Discharge
-                        </button>
-                        <button 
-                          onClick={handleRouteToBilling}
-                          className="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
-                        >
-                           Route to Billing
-                        </button>
-                        <button 
-                          onClick={handleReturnToDoctor}
-                          className="px-8 py-4 bg-blue-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
-                        >
-                           Results Ready (Return to Doctor)
-                        </button>
-                     </div>
-                  </>
-               ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
-                     <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-300">
-                        <Beaker className="h-10 w-10" />
-                     </div>
-                     <h3 className="text-xl font-medium text-slate-900">Lab Workspace</h3>
-                     <p className="text-slate-500 font-medium max-w-sm">Select a patient from the waiting queue to review requested tests, process samples, and route them back.</p>
-                  </div>
+             <AnimatePresence>
+               {dateFilter === 'Custom' && (
+                 <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="flex items-center gap-1">
+                   <input 
+                     type="date"
+                     value={customDates.start}
+                     onChange={(e) => setCustomDates(prev => ({ ...prev, start: e.target.value }))}
+                     className="px-2 py-3 bg-slate-50/50 border border-transparent rounded-xl text-[10px] font-bold outline-none focus:bg-white focus:border-blue-100"
+                   />
+                   <input 
+                     type="date"
+                     value={customDates.end}
+                     onChange={(e) => setCustomDates(prev => ({ ...prev, end: e.target.value }))}
+                     className="px-2 py-3 bg-slate-50/50 border border-transparent rounded-xl text-[10px] font-bold outline-none focus:bg-white focus:border-blue-100"
+                   />
+                 </motion.div>
                )}
-            </div>
+             </AnimatePresence>
+           </div>
+        </div>
+
+        {/* Data Table */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left bg-slate-50/30">
+                  <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Identity & OP#</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Contact</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap text-center">Arrival</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Attending Dr.</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Status</th>
+                  <th className="py-4 px-6 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Entry</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="py-32 text-center">
+                       <div className="flex flex-col items-center gap-4">
+                          <div className="h-8 w-8 border-2 border-slate-100 border-t-blue-500 rounded-full animate-spin" />
+                          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.25em]">Synchronizing Registry</p>
+                       </div>
+                    </td>
+                  </tr>
+                ) : filteredQueue.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="py-32 text-center text-slate-300">
+                       <CheckCircle2 className="h-10 w-10 mx-auto opacity-20 mb-3" />
+                       <p className="text-xs font-bold uppercase tracking-widest opacity-40">No records found</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredQueue.map((apt) => (
+                    <motion.tr 
+                      key={apt.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="group border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-all cursor-pointer"
+                      onClick={() => navigate(`/lab/entry/${apt.id}`)}
+                    >
+                      <td className="py-5 px-6">
+                        <div className="flex flex-col">
+                           <span className="font-bold text-slate-900 text-sm leading-tight">{apt.patient}</span>
+                           <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{apt.patientId || 'OP-NEW'}</span>
+                        </div>
+                      </td>
+                      <td className="py-5 px-6">
+                        <div className="flex items-center gap-2 text-slate-500">
+                           <Phone className="h-3 w-3 opacity-30" />
+                           <span className="text-[11px] font-semibold tabular-nums tracking-tight">{apt.patientPhone || apt.phoneNumber || '---'}</span>
+                        </div>
+                      </td>
+                      <td className="py-5 px-6 text-center">
+                        <span className="text-[11px] font-bold text-slate-700 tabular-nums">{apt.date?.split('-').reverse().join('-')}</span>
+                        <span className="text-[8px] font-black text-slate-300 ml-2 uppercase">{apt.time || 'W.IN'}</span>
+                      </td>
+                      <td className="py-5 px-6">
+                        <span className="text-xs font-bold text-slate-600">Dr. {apt.provider || apt.doctor || 'N/A'}</span>
+                      </td>
+                      <td className="py-5 px-6">
+                        {(() => {
+                          const s = apt.status;
+                          if (s === 'awaiting-lab') return <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-orange-50 text-orange-600 border border-orange-100">Pending</span>;
+                          if (s === 'awaiting-billing') return <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-violet-50 text-violet-600 border border-violet-100 flex items-center gap-1.5 w-fit"><CreditCard className="h-2.5 w-2.5" /> Billing</span>;
+                          if (s === 'billed') return <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-100">Billed</span>;
+                          if (s === 'paid') return <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-1.5 w-fit"><CheckCircle2 className="h-2.5 w-2.5" /> Paid</span>;
+                          if (s === 'completed') return <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100">Finalized</span>;
+                          if (s === 'arrived') return <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-100">Clinical Queue</span>;
+                          return <span className="px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-100">{s}</span>;
+                        })()}
+                      </td>
+                      <td className="py-5 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {(['completed', 'arrived', 'awaiting-billing', 'billed', 'paid'].includes(apt.status) || apt.labCompletedAt) && (
+                            <div 
+                              onClick={(e) => { e.stopPropagation(); handlePrint(apt); }}
+                              title="Print Report"
+                              className="h-8 w-8 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-100 transition-all shadow-sm active:scale-90"
+                            >
+                               <Printer className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {apt.status === 'awaiting-lab' && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setSelectedApt(apt); setIsPaymentOpen(true); }}
+                              className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2"
+                            >
+                               <Play className="h-3 w-3" /> Start & Collect
+                            </button>
+                          )}
+                          <div className="h-8 w-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-300 group-hover:text-blue-500 group-hover:border-blue-100 transition-all shadow-sm active:scale-90">
+                            <ArrowRight className="h-4 w-4" />
+                          </div>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+      <PaymentCollectionModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        appointment={selectedApt}
+        type="investigation"
+        onSuccess={() => {
+          // If it was awaiting-lab, it stays awaiting-lab but now has an invoice
+          // Or we move it to a status that indicates payment is done if we have one.
+          // For now, let's just keep it in queue but show it's ready.
+          setIsPaymentOpen(false);
+          fetchQueue();
+          navigate(`/lab/entry/${selectedApt.id}`);
+        }}
+      />
+
+      <AppointmentModal 
+        isOpen={isApptModalOpen}
+        onClose={() => setIsApptModalOpen(false)}
+        onSave={async (data) => {
+          const newApt = await appointmentService.bookAppointment({ ...data, status: 'awaiting-lab' });
+          setIsApptModalOpen(false);
+          setSelectedApt(newApt);
+          setIsPaymentOpen(true);
+        }}
+      />
     </DashboardLayout>
   );
 }

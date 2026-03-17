@@ -385,6 +385,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                              className="block w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none appearance-none transition-all"
                           >
                             <option>Consultation</option>
+                            <option>Laboratory</option>
                             <option>Follow-up</option>
                             <option>Emergency</option>
                             <option>Specialist Review</option>

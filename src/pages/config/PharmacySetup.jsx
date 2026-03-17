@@ -111,7 +111,7 @@ export default function PharmacySetup() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-sm font-medium transition-all border-2 ${activeTab === tab.id ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white text-slate-500 border-transparent hover:border-slate-100 hover:bg-slate-50'}`}
+                className={`w-full flex items-center gap-3 px-6 py-4 rounded-xl text-sm font-medium transition-all border-2 ${activeTab === tab.id ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white text-slate-500 border-transparent hover:border-slate-100 hover:bg-slate-50'}`}
               >
                 <tab.icon className={`h-5 w-5 ${activeTab === tab.id ? 'text-primary-400' : 'text-slate-400'}`} />
                 {tab.label}
@@ -119,7 +119,7 @@ export default function PharmacySetup() {
             ))}
           </div>
 
-          <div className="flex-1 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+          <div className="flex-1 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-6">
             <div className="flex items-center justify-between mb-4">
                <h3 className="font-medium text-slate-900 tracking-tight text-lg">{currentTabLabel} Repository</h3>
                <div className="flex items-center gap-4">
@@ -273,7 +273,7 @@ export default function PharmacySetup() {
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl text-center"
+              className="w-full max-w-sm bg-white rounded-2xl p-8 shadow-2xl text-center"
             >
               <div className="h-20 w-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
                 <Trash2 className="h-10 w-10" />
@@ -285,13 +285,13 @@ export default function PharmacySetup() {
               <div className="flex gap-4">
                 <button 
                   onClick={() => setDeleteConfirmation(null)}
-                  className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
+                  className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleDelete}
-                  className="flex-1 py-4 bg-red-500 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100"
+                  className="flex-1 py-4 bg-red-500 text-white font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-xl shadow-red-100"
                 >
                   Delete Now
                 </button>
@@ -408,7 +408,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100"
+        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100"
       >
         <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
           <div>
@@ -424,11 +424,11 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
           {renderFields()}
           
           <div className="flex gap-4 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-50 text-slate-500 font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all">Cancel</button>
             <button 
               disabled={isSubmitting}
               type="submit" 
-              className="flex-1 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+              className="flex-1 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
             >
               {isSubmitting ? 'Syncing...' : (initialData ? 'Update Master' : 'Save Master')}
             </button>

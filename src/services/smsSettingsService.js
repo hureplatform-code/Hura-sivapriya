@@ -299,6 +299,48 @@ const smsSettingsService = {
   },
 
   /**
+   * Send Lab Completion SMS
+   */
+  async sendLabCompletionSms(facilityId, appointment, isDoctorRoute = true) {
+    if (!facilityId || !appointment.phoneNumber) return { success: false, error: "Missing data" };
+
+    try {
+      const wallet = await this.getWallet(facilityId);
+      if (!wallet || wallet.balance <= 0) return { success: false, error: "Insufficient balance" };
+
+      const facSnap = await getDoc(doc(db, 'facility_profile', facilityId));
+      const clinicName = facSnap.exists() ? facSnap.data().name : 'Hura Clinic';
+
+      const message = isDoctorRoute 
+        ? `Dear ${appointment.patient}, your lab investigation at ${clinicName} is complete. Please return to the doctor's cabin for review.`
+        : `Dear ${appointment.patient}, your lab investigation at ${clinicName} is complete. Your results are ready for collection.`;
+
+      const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'huraplatform';
+      let functionUrl = `https://us-central1-${projectId}.cloudfunctions.net/sendManualSms`;
+
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          facilityId, 
+          to: appointment.phoneNumber, 
+          message,
+          metadata: {
+            patientId: appointment.patientId,
+            appointmentId: appointment.id,
+            type: 'LAB_COMPLETION'
+          }
+        })
+      });
+
+      return res.ok ? { success: true } : { success: false, error: "Transport failed" };
+    } catch (error) {
+      console.error('Lab SMS Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
    * Get the global Africa's Talking provider balance (Superadmin only)
    */
   async getAtBalance() {

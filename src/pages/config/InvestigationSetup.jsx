@@ -8,8 +8,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import medicalMasterService from '../../services/medicalMasterService';
+import { LAB_STANDARDS, IMAGING_STANDARDS } from '../../constants/investigationStandards';
+import { useToast } from '../../contexts/ToastContext';
+import { Sparkles, Loader2, Database } from 'lucide-react';
 
-const EMPTY_FORM = { name: '', category: '', code: '', price: '' };
+const EMPTY_FORM = { name: '', category: '', code: '', price: '', fields: [] };
 
 export default function InvestigationSetup() {
   const { currency } = useCurrency();
@@ -22,7 +25,9 @@ export default function InvestigationSetup() {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const { success, error: toastError } = useToast();
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -55,7 +60,13 @@ export default function InvestigationSetup() {
 
   const openEdit = (item) => {
     setEditingItem(item);
-    setForm({ name: item.name || '', category: item.category || '', code: item.code || '', price: item.price || '' });
+    setForm({ 
+      name: item.name || '', 
+      category: item.category || '', 
+      code: item.code || '', 
+      price: item.price || '',
+      fields: item.fields || []
+    });
     setIsModalOpen(true);
   };
 
@@ -65,7 +76,13 @@ export default function InvestigationSetup() {
     try {
       setSaving(true);
       const type = activeTab; // 'labs' or 'imaging'
-      const payload = { name: form.name, category: form.category, code: form.code, price: form.price };
+      const payload = { 
+        name: form.name, 
+        category: form.category, 
+        code: form.code, 
+        price: form.price,
+        fields: form.fields || []
+      };
 
       if (editingItem) {
         await medicalMasterService.update(type, editingItem.id, payload);
@@ -96,6 +113,52 @@ export default function InvestigationSetup() {
     }
   };
 
+  const handleImportStandards = async () => {
+    try {
+      setImporting(true);
+      const standards = activeTab === 'labs' ? LAB_STANDARDS : IMAGING_STANDARDS;
+      
+      const promises = standards.map(item => 
+        medicalMasterService.create(activeTab, {
+          name: item.name,
+          category: item.category,
+          code: item.code,
+          price: item.price
+        })
+      );
+
+      await Promise.all(promises);
+      success(`Successfully imported ${standards.length} standard ${activeTab === 'labs' ? 'tests' : 'procedures'}.`);
+      await fetchAll();
+    } catch (err) {
+      console.error('Import failed:', err);
+      toastError("Failed to import standards. Please try manual entry.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const addField = () => {
+    setForm(prev => ({
+      ...prev,
+      fields: [...(prev.fields || []), { id: Date.now().toString(), label: '', unit: '', ref: '' }]
+    }));
+  };
+
+  const removeField = (id) => {
+    setForm(prev => ({
+      ...prev,
+      fields: prev.fields.filter(f => f.id !== id)
+    }));
+  };
+
+  const updateField = (id, key, value) => {
+    setForm(prev => ({
+      ...prev,
+      fields: prev.fields.map(f => f.id === id ? { ...f, [key]: value } : f)
+    }));
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8 pb-12">
@@ -106,16 +169,16 @@ export default function InvestigationSetup() {
             <p className="text-slate-500 mt-1">Configure laboratory tests, imaging procedures, and their pricing.</p>
           </div>
           <button onClick={openAdd}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg active:scale-95">
+            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-all shadow-lg active:scale-95">
             <Plus className="h-5 w-5" /> Add Investigation
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm w-fit">
+        <div className="flex bg-white p-1.5 rounded-xl border border-slate-100 shadow-sm w-fit">
           {[{ key: 'labs', label: 'Laboratory' }, { key: 'imaging', label: 'Imaging' }].map(tab => (
             <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSearchTerm(''); }}
-              className={`px-8 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === tab.key ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+              className={`px-8 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === tab.key ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
               {tab.label}
             </button>
           ))}
@@ -137,12 +200,26 @@ export default function InvestigationSetup() {
           {loading ? (
             <div className="py-16 text-center text-slate-400 font-medium">Loading catalogue...</div>
           ) : currentList.length === 0 ? (
-            <div className="py-16 text-center">
-              {activeTab === 'labs' ? <FlaskConical className="h-12 w-12 mx-auto mb-4 text-slate-200" /> : <Microscope className="h-12 w-12 mx-auto mb-4 text-slate-200" />}
-              <p className="text-slate-400 font-medium">No {activeTab === 'labs' ? 'laboratory' : 'imaging'} items yet.</p>
-              <button onClick={openAdd} className="mt-4 px-6 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-2xl hover:bg-primary-700 transition-all">
-                Add First Item
-              </button>
+            <div className="py-20 text-center flex flex-col items-center max-w-md mx-auto">
+              <div className="h-20 w-20 bg-primary-50 text-primary-600 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl shadow-primary-50/50">
+                {activeTab === 'labs' ? <FlaskConical className="h-10 w-10" /> : <Microscope className="h-10 w-10" />}
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">No {activeTab === 'labs' ? 'laboratory' : 'imaging'} items found</h3>
+              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Your database for this department is currently empty. You can add items manually or import our standard medical portfolio to get started instantly.</p>
+              
+              <div className="flex flex-col w-full gap-3">
+                <button 
+                  onClick={handleImportStandards} 
+                  disabled={importing}
+                  className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-slate-900 text-white text-xs font-bold uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 disabled:opacity-50"
+                >
+                  {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-emerald-400" />}
+                  {importing ? 'Processing Database...' : 'Import Standard Portfolio'}
+                </button>
+                <button onClick={openAdd} className="w-full px-8 py-4 bg-white border border-slate-100 text-slate-900 text-xs font-bold uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all">
+                  Manual Entry
+                </button>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -198,7 +275,7 @@ export default function InvestigationSetup() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden">
+              className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
               <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-slate-900">
                   {editingItem ? 'Edit' : 'Add'} {activeTab === 'labs' ? 'Lab Test' : 'Imaging Procedure'}
@@ -221,14 +298,82 @@ export default function InvestigationSetup() {
                       value={form[f.key]}
                       onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                       placeholder={f.placeholder}
-                      className="w-full bg-slate-50 border border-transparent focus:border-primary-200 rounded-2xl py-3.5 px-5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-100 transition-all"
+                      className="w-full bg-slate-50 border border-transparent focus:border-primary-200 rounded-xl py-3.5 px-5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-100 transition-all"
                     />
                   </div>
                 ))}
+
+                {activeTab === 'labs' && (
+                  <div className="space-y-4 pt-4 border-t border-slate-50">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                         <Activity className="h-3 w-3" /> Test Parameters / Fields
+                      </label>
+                      <button 
+                        type="button" 
+                        onClick={addField}
+                        className="text-[10px] font-bold text-primary-600 uppercase tracking-tight flex items-center gap-1 hover:text-primary-700 transition-colors"
+                      >
+                         <Plus className="h-3 w-3" /> Add Parameter
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                       {form.fields?.length === 0 ? (
+                         <div className="py-8 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
+                           <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">No parameters defined yet</p>
+                         </div>
+                       ) : (
+                         form.fields.map((field, idx) => (
+                           <motion.div 
+                             initial={{ opacity: 0, x: -5 }} 
+                             animate={{ opacity: 1, x: 0 }}
+                             key={field.id} 
+                             className="p-4 bg-slate-50 rounded-2xl flex flex-col gap-3 group border border-transparent hover:border-slate-100 transition-all shadow-sm"
+                           >
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Parameter #{idx + 1}</span>
+                                <button type="button" onClick={() => removeField(field.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-12 gap-2">
+                                <div className="col-span-12 md:col-span-5">
+                                  <input 
+                                    placeholder="Label (e.g. Hemoglobin)"
+                                    value={field.label}
+                                    onChange={e => updateField(field.id, 'label', e.target.value)}
+                                    className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-medium outline-none"
+                                  />
+                                </div>
+                                <div className="col-span-6 md:col-span-3">
+                                  <input 
+                                    placeholder="Unit (g/dL)"
+                                    value={field.unit}
+                                    onChange={e => updateField(field.id, 'unit', e.target.value)}
+                                    className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-medium outline-none"
+                                  />
+                                </div>
+                                <div className="col-span-6 md:col-span-4">
+                                  <input 
+                                    placeholder="Ref Range (13-17)"
+                                    value={field.ref}
+                                    onChange={e => updateField(field.id, 'ref', e.target.value)}
+                                    className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-medium outline-none"
+                                  />
+                                </div>
+                              </div>
+                           </motion.div>
+                         ))
+                       )}
+                    </div>
+                  </div>
+                )}
+
                 <button type="submit" disabled={saving}
-                  className="w-full h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50">
+                  className="w-full h-14 bg-slate-900 text-white rounded-xl flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50">
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : editingItem ? 'Update' : 'Add to Catalogue'}
+                  {saving ? 'Saving...' : editingItem ? 'Save Changes' : 'Add to Catalogue'}
                 </button>
               </form>
             </motion.div>
@@ -239,7 +384,7 @@ export default function InvestigationSetup() {
         {deleteConfirm && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl text-center">
+              className="w-full max-w-sm bg-white rounded-2xl p-8 shadow-2xl text-center">
               <div className="h-20 w-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
                 <Trash2 className="h-10 w-10" />
               </div>
@@ -247,11 +392,11 @@ export default function InvestigationSetup() {
               <p className="text-sm text-slate-500 mb-8">Delete <strong>{deleteConfirm.name}</strong>? This cannot be undone.</p>
               <div className="flex gap-4">
                 <button onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 py-4 bg-slate-50 text-slate-600 font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all">
+                  className="flex-1 py-4 bg-slate-50 text-slate-600 font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all">
                   Cancel
                 </button>
                 <button onClick={handleDelete}
-                  className="flex-1 py-4 bg-red-500 text-white font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-xl shadow-red-100">
+                  className="flex-1 py-4 bg-red-500 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-xl shadow-red-100">
                   Delete
                 </button>
               </div>

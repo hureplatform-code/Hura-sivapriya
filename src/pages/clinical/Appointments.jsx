@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppointmentModal from '../../components/modals/AppointmentModal';
+import PaymentCollectionModal from '../../components/modals/PaymentCollectionModal';
 import appointmentService from '../../services/appointmentService';
 import AppointmentSummaryModal from '../../components/modals/AppointmentSummaryModal';
 import medicalRecordService from '../../services/medicalRecordService';
@@ -44,6 +45,7 @@ export default function Appointments() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isTriageOpen, setIsTriageOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [triageApt, setTriageApt] = useState(null);
   const { userData } = useAuth();
   const [activeMenu, setActiveMenu] = useState(null);
@@ -495,12 +497,12 @@ export default function Appointments() {
                       </span>
 
                       <div className="flex items-center gap-2">
-                        {apt.status === 'scheduled' && userData?.role === 'receptionist' && (
+                        {apt.status === 'scheduled' && (userData?.role === 'receptionist' || userData?.role === 'clinic_owner') && (
                           <button 
-                            onClick={() => handleStatusUpdate(apt.id, 'arrived', 'Patient Checked In.')}
-                            className="px-4 py-2 bg-slate-900 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200"
+                            onClick={() => { setSelectedApt(apt); setIsPaymentOpen(true); }}
+                            className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-200 flex items-center gap-2"
                           >
-                            CHECK IN
+                            <CreditCard className="h-3 w-3" /> COLLECT & CHECK IN
                           </button>
                         )}
 
@@ -662,6 +664,16 @@ export default function Appointments() {
           />
         )}
       </AnimatePresence>
+      <PaymentCollectionModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        appointment={selectedApt}
+        type="consultation"
+        onSuccess={() => {
+          handleStatusUpdate(selectedApt.id, 'arrived', 'Payment collected and patient checked in.');
+          setIsPaymentOpen(false);
+        }}
+      />
     </DashboardLayout>
   );
 }

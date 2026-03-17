@@ -14,9 +14,11 @@ import {
   CreditCard,
   FileText,
   DollarSign,
-  Receipt
+  Receipt,
+  RotateCcw
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import PaymentCollectionModal from '../../components/modals/PaymentCollectionModal';
 
 export default function BillingQueue() {
   const { userData } = useAuth();
@@ -29,6 +31,8 @@ export default function BillingQueue() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [clinicalRecord, setClinicalRecord] = useState(null);
   const [loadingRecord, setLoadingRecord] = useState(false);
+  const [activeTab, setActiveTab] = useState('Pending');
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
   useEffect(() => {
     fetchQueue();
@@ -93,10 +97,17 @@ export default function BillingQueue() {
   };
 
   const ArrayEmpty = queue.length === 0;
-  const filteredQueue = queue.filter(apt => 
-    apt.patient?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    apt.patientId?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredQueue = queue.filter(apt => {
+    const matchesSearch = apt.patient?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         apt.patientId?.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (activeTab === 'Pending') {
+      return apt.status === 'awaiting-billing';
+    } else {
+      return apt.status === 'billed' || apt.status === 'paid';
+    }
+  });
 
   return (
     <DashboardLayout>
@@ -104,21 +115,33 @@ export default function BillingQueue() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
-              <CreditCard className="h-8 w-8 text-emerald-500" /> Billing Queue
+              <CreditCard className="h-8 w-8 text-emerald-500" /> Collection Queue
             </h1>
-            <p className="text-slate-500 font-medium mt-1">Settle invoices, collect payments, and finalize documentation.</p>
+            <p className="text-slate-500 font-medium mt-1">Reconcile payments, issue receipts, and discharge patients.</p>
           </div>
           <button 
             onClick={fetchQueue}
             className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
           >
-            <Activity className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Queue
+            <RotateCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Sync Queue
           </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Billing Queue List */}
           <div className="lg:col-span-1 space-y-6">
+            <div className="flex bg-slate-100 p-1 rounded-2xl">
+               {['Pending', 'History'].map(tab => (
+                 <button 
+                   key={tab}
+                   onClick={() => setActiveTab(tab)}
+                   className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                 >
+                   {tab}
+                 </button>
+               ))}
+            </div>
+
             <div className="relative">
                <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                <input 
@@ -160,7 +183,11 @@ export default function BillingQueue() {
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className={`text-[10px] font-semibold uppercase tracking-widest ${selectedPatient?.id === apt.id ? 'text-slate-400' : 'text-slate-500'}`}>{apt.patientId}</span>
                                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                    <span className="flex items-center gap-1 text-[10px] font-medium text-orange-500 uppercase tracking-widest"><Clock className="h-3 w-3" /> Waiting</span>
+                                    {apt.status === 'awaiting-billing' ? (
+                                      <span className="flex items-center gap-1 text-[10px] font-medium text-orange-500 uppercase tracking-widest"><Clock className="h-3 w-3" /> Awaiting</span>
+                                    ) : (
+                                      <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-500 uppercase tracking-widest"><CheckCircle2 className="h-3 w-3" /> Finalized</span>
+                                    )}
                                 </div>
                              </div>
                           </div>
@@ -226,12 +253,21 @@ export default function BillingQueue() {
                            </motion.div>
                      </div>
                      <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-end gap-3 flex-wrap">
-                        <button 
-                          onClick={handleDischarge}
-                          className="px-8 py-4 bg-emerald-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
-                        >
-                           Mark as Settled & Discharge
-                        </button>
+                        {selectedPatient.status === 'awaiting-billing' ? (
+                          <button 
+                            onClick={() => setIsPaymentOpen(true)}
+                            className="px-8 py-4 bg-emerald-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 flex items-center gap-2"
+                          >
+                             <DollarSign className="h-4 w-4" /> Collect Dues & Discharge
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => window.print()}
+                            className="px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center gap-2"
+                          >
+                             <Receipt className="h-4 w-4" /> Print Statement
+                          </button>
+                        )}
                      </div>
                   </>
                ) : (
@@ -246,6 +282,16 @@ export default function BillingQueue() {
             </div>
           </div>
         </div>
+        <PaymentCollectionModal
+          isOpen={isPaymentOpen}
+          onClose={() => setIsPaymentOpen(false)}
+          appointment={selectedPatient}
+          type="investigation"
+          onSuccess={() => {
+            setIsPaymentOpen(false);
+            fetchQueue();
+          }}
+        />
       </div>
     </DashboardLayout>
   );

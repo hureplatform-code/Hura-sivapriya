@@ -44,6 +44,21 @@ const notificationService = {
 
   async markAsRead(id) {
     return await firestoreService.update(this.collection, id, { read: true });
+  },
+
+  /**
+   * Simulates sending an SMS (Placeholder for future SMS Gateway Integration)
+   */
+  async sendSMS(phoneNumber, message, facilityId) {
+    console.log(`[SMS SIMULATION] To: ${phoneNumber}, Message: ${message}`);
+    // You can also log this to a 'sms_logs' collection if needed
+    return await firestoreService.create('sms_logs', {
+      to: phoneNumber,
+      message,
+      facilityId,
+      status: 'simulated_sent',
+      createdAt: serverTimestamp()
+    });
   }
 };
 

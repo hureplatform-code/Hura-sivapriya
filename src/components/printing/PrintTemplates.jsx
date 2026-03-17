@@ -5,7 +5,8 @@ import {
   FileText, 
   Activity, 
   Heart, 
-  ShieldCheck 
+  ShieldCheck,
+  Sparkles 
 } from 'lucide-react';
 
 export const PrintStyles = () => (
@@ -184,5 +185,151 @@ export const ClinicalSummary = ({ data, facility = {} }) => (
           <p className="text-[8px] font-semibold uppercase mt-1">Authentic Record</p>
        </div>
     </div>
+  </div>
+);
+
+export const LabReport = ({ data, facility = {}, catalog = {} }) => (
+  <div className="flex flex-col gap-12">
+    <PrintStyles />
+    <style>{`
+      @media print {
+        .page-break {
+          page-break-after: always;
+          height: 0;
+          border: none;
+        }
+      }
+    `}</style>
+
+    {data.structuredResults?.map((test, idx) => {
+      const schema = catalog[test.type];
+      return (
+        <div key={idx} className={`${idx < data.structuredResults.length - 1 ? 'page-break' : ''} max-w-4xl mx-auto p-8 bg-white text-slate-900 border border-slate-100 shadow-sm print-shadow min-h-[200mm] flex flex-col justify-between`}>
+          <div>
+            <div className="grid grid-cols-3 gap-8 mb-6 border-b-2 border-slate-900 pb-6">
+              <div className="col-span-2 space-y-3 border-r border-slate-50 pr-8">
+                <div>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1.5">Subject Information</p>
+                   <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">{data.patient}</h2>
+                   <p className="text-xs font-bold text-slate-500 mt-2">ID: {data.patientId || 'OP-NEW'} • {data.gender || 'M/F'} • {data.age || 'N/A'}</p>
+                </div>
+                <div className="flex items-start gap-8 pt-1">
+                   <div>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Attending Clinician</p>
+                      <p className="font-bold text-[10px] uppercase">Dr. {data.provider || data.doctor || 'N/A'}</p>
+                   </div>
+                   <div>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Date</p>
+                      <p className="font-bold text-[10px] uppercase">{new Date(data.date).toLocaleDateString()}</p>
+                   </div>
+                </div>
+              </div>
+              <div className="flex flex-col justify-center pl-4">
+                 <div className="flex items-center justify-between mb-2">
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">Baseline Vitals</p>
+                    <p className="text-[8px] font-black text-slate-900 uppercase">REF: {data.id?.substring(0, 8).toUpperCase()}</p>
+                 </div>
+                 <div className="flex justify-around items-center bg-slate-50 py-3 rounded-2xl border border-slate-100">
+                    <div className="text-center">
+                       <p className="text-[11px] font-black text-slate-900 leading-none">{data.vitals?.temperature || '---'} °C</p>
+                       <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1">Temp</p>
+                    </div>
+                    <div className="h-4 w-[1px] bg-slate-200" />
+                    <div className="text-center">
+                       <p className="text-[11px] font-black text-slate-900 leading-none">{data.vitals?.bloodPressure || '---'}</p>
+                       <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1">BP</p>
+                    </div>
+                 </div>
+                 <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest mt-2 text-right">
+                    Report {idx + 1}/{data.structuredResults.length} • {new Date(data.labCompletedAt || data.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                 </p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                   <div className="h-2 w-2 bg-slate-900 rounded-lg" />
+                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900">{test.name}</h3>
+                   <div className="flex-1 h-[1px] bg-slate-100" />
+                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">{schema?.category || 'Clinical investigation'}</span>
+                </div>
+                
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left border-b border-slate-900/10 text-slate-400">
+                      <th className="py-2 text-[9px] font-bold uppercase tracking-[0.1em]">Investigation Parameter</th>
+                      <th className="py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-center">Result</th>
+                      <th className="py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-center">Ref. Range</th>
+                      <th className="py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-right pr-4">Units</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {schema?.fields.map(field => {
+                      const val = parseFloat(test.values?.[field.id]);
+                      const refParts = field.ref.split('-');
+                      let isAbnormal = false;
+                      if (refParts.length === 2 && !isNaN(val)) {
+                        const min = parseFloat(refParts[0]);
+                        const max = parseFloat(refParts[1]);
+                        if (val < min || val > max) isAbnormal = true;
+                      }
+                      return (
+                        <tr key={field.id} className={isAbnormal ? 'bg-red-50/20' : ''}>
+                          <td className="py-2.5 text-[12px] font-bold text-slate-700">{field.label}</td>
+                          <td className={`py-4 text-[14px] font-black text-center ${isAbnormal ? 'text-red-600' : 'text-slate-900'}`}>
+                            {test.values?.[field.id] || '---'} {isAbnormal && <span className="text-[10px] ml-1">(!H/L)</span>}
+                          </td>
+                          <td className="py-4 text-[11px] font-bold text-slate-400 text-center">{field.ref}</td>
+                          <td className="py-4 text-[11px] font-bold text-slate-500 text-right uppercase px-4">{field.unit}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {test.remarks && (
+                <div className="bg-slate-50 p-8 rounded-[2rem] space-y-4 border border-slate-100 mt-12 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-4 opacity-5">
+                      <Sparkles className="h-12 w-12" />
+                   </div>
+                   <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                     <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                     Authorized Clinical Interpretation
+                   </h4>
+                   <p className="text-[13px] font-medium leading-relaxed text-slate-600 italic">
+                      {test.remarks}
+                   </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-8 flex justify-between items-end border-t-2 border-slate-100 italic mt-auto">
+             <div className="flex flex-col gap-6">
+                <div className="space-y-4">
+                   <div className="h-14 w-64 border-b-2 border-slate-900 flex items-center px-4">
+                      <p className="text-xs font-black text-slate-900 tracking-tighter uppercase italic">{data.labTechnicianName || 'LABORATORY TECHNICIAN'}</p>
+                   </div>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] px-4">Verified Match Digital Signature</p>
+                </div>
+                <div className="text-[9px] font-medium text-slate-300 max-w-sm leading-relaxed uppercase px-4 not-italic">
+                   Disclaimer: This report is for clinical correlation by the attending physician. 
+                   Laboratory findings should be interpreted alongside physical symptoms.
+                </div>
+             </div>
+             <div className="text-right space-y-2 pb-2">
+                <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] leading-none px-1">Authenticated Diagnostics Archive</p>
+                <div className="flex items-center justify-end gap-2">
+                   <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                   <p className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">HURA CARE PLATFORM v2.0</p>
+                </div>
+             </div>
+          </div>
+        </div>
+      );
+    })}
+
   </div>
 );
