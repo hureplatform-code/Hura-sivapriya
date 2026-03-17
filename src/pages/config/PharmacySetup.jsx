@@ -459,7 +459,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Standard Dosage</label>
                   <input 
                     placeholder="e.g. 500"
-                    value={formData.dosage || ''}
+                    value={formData.dosage ?? ''}
                     onChange={e => setFormData({...formData, dosage: e.target.value})}
                     className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
                   />
@@ -467,7 +467,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
                 <div className="w-24 space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Unit</label>
                   <select 
-                    value={formData.unit || ''}
+                    value={formData.unit ?? ''}
                     onChange={e => setFormData({...formData, unit: e.target.value})}
                     className="w-full px-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none appearance-none shadow-inner cursor-pointer"
                   >
@@ -482,7 +482,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Product ID / Code</label>
                   <input 
                     placeholder="e.g. PH-001"
-                    value={formData.code || ''}
+                    value={formData.code ?? ''}
                     onChange={e => setFormData({...formData, code: e.target.value})}
                     className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
                   />
@@ -491,7 +491,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Therapeutic Classification</label>
                   <input 
                     placeholder="e.g. Analgesic"
-                    value={formData.classification || ''}
+                    value={formData.classification ?? ''}
                     onChange={e => setFormData({...formData, classification: e.target.value})}
                     className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner uppercase tracking-wider text-[11px]"
                   />
@@ -504,7 +504,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
                   <input 
                     type="number"
                     placeholder="e.g. 500"
-                    value={formData.availableStock || ''}
+                    value={formData.availableStock ?? ''}
                     onChange={e => setFormData({...formData, availableStock: Number(e.target.value)})}
                     className="w-full px-5 py-4 bg-white border-2 border-transparent focus:border-blue-500 rounded-xl text-sm font-bold transition-all outline-none shadow-sm"
                   />
@@ -514,7 +514,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
                   <input 
                     type="number"
                     placeholder="10"
-                    value={formData.reorderLevel || ''}
+                    value={formData.reorderLevel ?? ''}
                     onChange={e => setFormData({...formData, reorderLevel: Number(e.target.value)})}
                     className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
                   />
@@ -628,7 +628,7 @@ function TextField({ label, value, onChange, required, type = "text", placeholde
         required={required}
         type={type}
         placeholder={placeholder}
-        value={value || ''}
+        value={value ?? ''}
         onChange={e => onChange(e.target.value)}
         className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-xl text-sm font-medium transition-all outline-none"
       />
@@ -641,7 +641,7 @@ function SelectField({ label, options, value, onChange, className = "" }) {
     <div className={`space-y-1.5 ${className}`}>
       {label && <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1">{label}</label>}
       <select 
-        value={value || ''}
+        value={value ?? ''}
         onChange={e => onChange(e.target.value)}
         className="w-full px-4 py-3.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-100 rounded-xl text-sm font-medium transition-all outline-none appearance-none"
       >

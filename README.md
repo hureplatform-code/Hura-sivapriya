@@ -43,8 +43,11 @@ npm run build
 
 
 - **URL**: https://hura-sivapriya.vercel.app/setup-superadmin
+
+
 ## Login
-admin
+- **URL**: https://hura-sivapriya.vercel.app/
+Super admin
 jebin@justrise.bh
 1234567890
 

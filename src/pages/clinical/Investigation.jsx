@@ -417,8 +417,13 @@ function InvestigationModal({ onClose, onSave }) {
   }, []);
 
   const fetchPatients = async () => {
-    const data = await patientService.getAllPatients();
-    setPatients(data);
+    try {
+      const data = await patientService.getAllPatients();
+      setPatients(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching patients for investigation:', error);
+      setPatients([]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -468,7 +473,9 @@ function InvestigationModal({ onClose, onSave }) {
               className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-xl text-sm font-medium transition-all outline-none"
             >
               <option value="">Select Patient Profile...</option>
-              {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {patients && patients.length > 0 ? patients.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              )) : <option disabled>No patients found</option>}
             </select>
           </div>
 

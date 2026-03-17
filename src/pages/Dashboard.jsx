@@ -21,7 +21,10 @@ import {
   Volume2,
   Play,
   ArrowRight,
-  Thermometer
+  Thermometer,
+  Package,
+  Box,
+  ShoppingCart
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -33,6 +36,8 @@ import auditService from '../services/auditService';
 import patientService from '../services/patientService';
 import medicalRecordService from '../services/medicalRecordService';
 import facilityService from '../services/facilityService';
+import inventoryService from '../services/inventoryService';
+import medicalMasterService from '../services/medicalMasterService';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_CONFIG } from '../config';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -47,6 +52,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState([]);
   const [arrears, setArrears] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { success } = useToast();
@@ -140,6 +146,38 @@ export default function Dashboard() {
         ]);
         const labQueue = appointments.filter(a => a.status === 'awaiting-lab').slice(0, 4);
         setArrears(labQueue);
+      } else if (role === 'pharmacist' || role === 'pharmacist_admin') {
+        const [inventory, pharmaMaster, nonPharmaMaster] = await Promise.all([
+          inventoryService.getInventory(userData?.facilityId),
+          medicalMasterService.getAll('pharma'),
+          medicalMasterService.getAll('nonPharma')
+        ]);
+
+        const allItems = [...inventory, ...pharmaMaster, ...nonPharmaMaster];
+
+        const lowStock = allItems.filter(i => {
+          const s = i.availableStock ?? i.availableLevel ?? i.stock ?? i.quantity ?? 0;
+          const stockNum = typeof s === 'string' ? parseFloat(s) : s;
+          const threshold = i.reorderLevel || 10;
+          return stockNum <= threshold && stockNum > 0;
+        });
+        const outOfStock = allItems.filter(i => {
+          const s = i.availableStock ?? i.availableLevel ?? i.stock ?? i.quantity ?? 0;
+          const stockNum = typeof s === 'string' ? parseFloat(s) : s;
+          return stockNum <= 0;
+        });
+        
+        const awaitingPharmacy = appointments.filter(a => a.status === 'awaiting-pharmacy').length;
+
+        setStats([
+          { label: 'Awaiting Pharmacy', value: awaitingPharmacy.toString() + ' Patients', icon: ClipboardList, color: 'text-orange-600', bg: 'bg-orange-50', path: '/pharmacy/queue' },
+          { label: 'Out of Stock', value: outOfStock.length.toString() + ' Items', icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/config/pharmacy' },
+          { label: 'Low Stock Alerts', value: lowStock.length.toString() + ' Items', icon: Package, color: 'text-amber-600', bg: 'bg-amber-50', path: '/config/pharmacy' },
+          { label: 'Inventory Health', value: allItems.length > 0 ? (((allItems.length - outOfStock.length) / allItems.length) * 100).toFixed(0) + '%' : '100%', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/config/pharmacy' },
+        ]);
+
+        setLowStockItems([...outOfStock, ...lowStock].slice(0, 4));
+        setArrears(appointments.filter(a => a.status === 'awaiting-pharmacy').slice(0, 4));
       } else {
         const arrearsRate = billingStats.revenue > 0 
           ? ((billingStats.outstanding / (billingStats.revenue + billingStats.outstanding)) * 100).toFixed(1) + '%' 
@@ -228,7 +266,7 @@ export default function Dashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
            <div>
              <h1 className="text-2xl font-semibold text-slate-900 tracking-tight capitalize">
-               {role === 'doctor' ? 'Clinical Overview' : role === 'lab_tech' ? 'Laboratory Command' : 'Administrative Dashboard'}
+               {role === 'doctor' ? 'Clinical Overview' : role === 'lab_tech' ? 'Laboratory Command' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'Pharmacy Operations' : 'Administrative Dashboard'}
              </h1>
              <p className="text-slate-500 mt-1">
                Welcome back, <span className="font-medium text-slate-900">{userData?.name || 'Jon Day'}</span>. Here's your {role} focus for today.
@@ -277,25 +315,25 @@ export default function Dashboard() {
           <div className={`bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col ${role === 'lab_tech' ? 'lg:col-span-2' : ''}`}>
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">
-              {role === 'doctor' ? 'Clinical Schedule' : role === 'lab_tech' ? 'Lab Intake Queue' : 'Financial Arrears'}
+              {role === 'doctor' ? 'Clinical Schedule' : role === 'lab_tech' ? 'Lab Intake Queue' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'Pharmacy Queue' : 'Financial Arrears'}
             </h3>
             <div className="h-10 w-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400">
-              {role === 'doctor' ? <Calendar className="h-5 w-5" /> : role === 'lab_tech' ? <Activity className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
+              {role === 'doctor' ? <Calendar className="h-5 w-5" /> : role === 'lab_tech' ? <Activity className="h-5 w-5" /> : (role === 'pharmacist' || role === 'pharmacist_admin') ? <ClipboardList className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
             </div>
           </div>
           
           <div className="flex-1 space-y-4">
-            {(role === 'doctor' || role === 'nurse' || role === 'receptionist' || role === 'lab_tech') ? (
+            {(role === 'doctor' || role === 'nurse' || role === 'receptionist' || role === 'lab_tech' || role === 'pharmacist' || role === 'pharmacist_admin') ? (
               arrears.length > 0 ? (
                 <div className={role === 'lab_tech' ? "space-y-4" : "space-y-4"}>
                   {arrears.map((apt, i) => (
                     <div 
                       key={i} 
-                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-[2rem] group transition-all cursor-pointer border-2 ${role === 'lab_tech' ? 'bg-white border-slate-100 hover:border-orange-200 hover:shadow-xl' : 'bg-slate-50 border-transparent hover:bg-white hover:border-primary-100'}`}
-                      onClick={() => role === 'lab_tech' && navigate('/lab/queue')}
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-[2rem] group transition-all cursor-pointer border-2 ${role === 'lab_tech' ? 'bg-white border-slate-100 hover:border-orange-200 hover:shadow-xl' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'bg-white border-slate-100 hover:border-amber-200 hover:shadow-xl' : 'bg-slate-50 border-transparent hover:bg-white hover:border-primary-100'}`}
+                      onClick={() => (role === 'lab_tech' || role === 'pharmacist' || role === 'pharmacist_admin') && navigate(role === 'lab_tech' ? '/lab/queue' : '/pharmacy/queue')}
                     >
                       <div className="flex items-center gap-6">
-                        <div className={`h-16 w-16 rounded-2xl flex items-center justify-center border shadow-sm ${role === 'lab_tech' ? 'bg-orange-50 border-orange-100 text-orange-600' : 'bg-primary-50 border-primary-100 text-primary-600'}`}>
+                        <div className={`h-16 w-16 rounded-2xl flex items-center justify-center border shadow-sm ${role === 'lab_tech' ? 'bg-orange-50 border-orange-100 text-orange-600' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-primary-50 border-primary-100 text-primary-600'}`}>
                            <span className="text-lg font-black tracking-tighter">T-{apt.tokenNumber || '0'}</span>
                         </div>
                         <div>
@@ -347,6 +385,7 @@ export default function Dashboard() {
                             apt.status === 'calling' ? 'bg-amber-50 text-amber-600 animate-pulse' :
                             apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
                             apt.status === 'awaiting-lab' ? 'bg-orange-50 text-orange-600' :
+                            apt.status === 'awaiting-pharmacy' ? 'bg-amber-50 text-amber-600' :
                             'bg-slate-50 text-slate-500'}`}>
                           {apt.status}
                         </span>
@@ -386,14 +425,14 @@ export default function Dashboard() {
           </div>
 
           <button 
-            onClick={() => navigate((role === 'doctor' || role === 'nurse' || role === 'receptionist') ? '/appointments' : role === 'lab_tech' ? '/lab/queue' : '/billing')}
+            onClick={() => navigate((role === 'doctor' || role === 'nurse' || role === 'receptionist') ? '/appointments' : role === 'lab_tech' ? '/lab/queue' : (role === 'pharmacist' || role === 'pharmacist_admin') ? '/pharmacy/queue' : '/billing')}
             className="w-full mt-8 py-4 bg-slate-50 text-slate-900 font-bold text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-slate-100 transition-all border border-slate-100"
           >
-            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? 'Manage Calendar' : role === 'lab_tech' ? 'View Lab Queue' : 'View All Invoices'}
+            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? 'Manage Calendar' : role === 'lab_tech' ? 'View Lab Queue' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'Manage Pharmacy Queue' : 'View All Invoices'}
           </button>
         </div>
 
-          {role !== 'lab_tech' && (
+          {role !== 'lab_tech' && role !== 'pharmacist' && role !== 'pharmacist_admin' && (
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">Recent Activity Log</h3>
@@ -436,6 +475,54 @@ export default function Dashboard() {
                 className="w-full mt-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
               >
                  Audit Full Ledger
+              </button>
+            </div>
+          )}
+
+          {(role === 'pharmacist' || role === 'pharmacist_admin') && (
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">Stock Alert Console</h3>
+                <div className="h-10 w-10 flex items-center justify-center bg-red-50 rounded-xl text-red-500">
+                  <AlertCircle className="h-5 w-5" />
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-6">
+                {lowStockItems.length > 0 ? lowStockItems.map((item, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => navigate('/config/pharmacy')}
+                    className="flex items-center justify-between p-5 bg-slate-50 rounded-[1.5rem] group hover:bg-white border-2 border-transparent hover:border-red-100 transition-all cursor-pointer active:scale-[0.98]"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shadow-sm ${ (item.availableStock ?? item.stock ?? 0) <= 0 ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
+                        <Package className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm leading-tight">{item.brandName || item.name}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.genericName || 'Medical Component'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                       <p className={`text-xs font-black tracking-tighter ${ (item.availableStock ?? item.availableLevel ?? item.stock ?? 0) <= 0 ? 'text-red-600' : 'text-orange-600'}`}>
+                          {(item.availableStock ?? item.availableLevel ?? item.stock ?? 0) <= 0 ? 'OUT OF STOCK' : `${item.availableStock ?? item.availableLevel ?? item.stock} UNITS LEFT`}
+                       </p>
+                       <p className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">Threshold: {item.reorderLevel || 10}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 italic text-sm">
+                     <p>All stock levels are optimal. Zero alerts today.</p>
+                  </div>
+                )}
+              </div>
+
+              <button 
+                onClick={() => navigate('/config/pharmacy')}
+                className="w-full mt-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
+              >
+                 Manage Inventory Master
               </button>
             </div>
           )}

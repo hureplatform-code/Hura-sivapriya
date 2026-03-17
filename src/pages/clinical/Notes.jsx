@@ -1609,149 +1609,168 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                     </div>
                   ) : (
                     <div className="w-full">
-                       <div className="hidden md:grid grid-cols-12 gap-4 px-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                          <div className="col-span-3">Medicine</div>
-                          <div className="col-span-2">Route</div>
-                          <div className="col-span-1">Dose</div>
-                          <div className="col-span-2">Freq</div>
-                          <div className="col-span-1">Days</div><div className="col-span-2">Instructions</div>
-                          <div className="col-span-1 text-right"></div>
-                       </div>
-                       <div className="space-y-3">
-                          {formData.prescriptions.map((p, idx) => (
-                             <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-center bg-slate-50/50 hover:bg-slate-50 transition-all p-3 md:p-4 rounded-xl border border-slate-100 group">
-                                <div className="md:col-span-3 relative">
-                                   <input 
-                                      placeholder="Search medicine..." 
-                                      value={p.medicine}
-                                      autoComplete="off"
-                                      onChange={(e) => {
-                                         const term = e.target.value;
-                                         const newP = [...formData.prescriptions];
-                                         newP[idx].medicine = term;
-                                         setFormData({...formData, prescriptions: newP});
-                                         handleSearchMaster('pharma', term, idx, 'prescription');
-                                      }}
-                                      onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
-                                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm"
-                                   />
-                                   {searchContext.type === 'medicine' && searchContext.index === idx && medicineSuggestions.length > 0 && (
-                                       <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 z-[100] overflow-hidden max-h-60 overflow-y-auto p-1 shadow-blue-500/10">
-                                          {medicineSuggestions.map((m) => (
-                                             <button 
-                                                key={m.id}
-                                                onMouseDown={(e) => {
-                                                   e.preventDefault();
-                                                   const newP = [...formData.prescriptions];
-                                                   newP[idx].medicine = m.brandName || m.name;
-                                                   if (m.dosage) newP[idx].dosage = m.dosage;
-                                                   setFormData({...formData, prescriptions: newP});
-                                                   setMedicineSuggestions([]);
-                                                   setSearchContext({type: null, index: null});
-                                                }}
-                                                className="w-full text-left px-4 py-3 text-[10px] font-bold text-slate-600 hover:bg-blue-50/50 rounded-lg border-b border-slate-50 last:border-0 flex items-center justify-between group/item"
-                                             >
-                                                <div className="flex flex-col gap-0.5">
-                                                   <span className="text-slate-900">{m.brandName || m.name}</span>
-                                                   {m.genericName && <span className="text-[8px] text-slate-400 font-medium italic">({m.genericName})</span>}
-                                                 </div>
-                                                 <div className="flex items-center gap-2">
-                                                    {(() => {
-                                                       const stockFields = [
-                                                          m.availableStock, m.stock, m.quantity, m.availableLevel, 
-                                                          m.currentStock, m.current_stock, m.qty, m.inventory, 
-                                                          m.totalStock, m.availableBalance, m.Units, m.units, m.total_qty, m.stock_level
-                                                       ];
-                                                       const s = Math.max(...stockFields.map(val => {
-                                                          if (val === undefined || val === null || val === '') return 0;
-                                                          const num = typeof val === 'string' ? parseFloat(val.replace(/[^\d.-]/g, '')) : val;
-                                                          return isNaN(num) ? 0 : num;
-                                                       }));
-                                                       return (
-                                                          <div className="flex flex-col items-end gap-0.5">
-                                                             <span className={`px-2 py-0.5 rounded-[4px] text-[8px] font-black tracking-widest ${s > 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-50 text-red-600"}`}>
-                                                                {s > 0 ? `Stock: ${s}` : 'NOT IN STOCK'}
+                        <div className="space-y-6">
+                           {formData.prescriptions.map((p, idx) => (
+                              <div key={idx} className="bg-slate-50/50 hover:bg-white transition-all p-6 rounded-2xl border border-slate-100 group space-y-6 shadow-sm hover:shadow-md">
+                                 {/* Row 1: Identification & Route */}
+                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+                                    <div className="md:col-span-6 relative">
+                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Medication</label>
+                                       <input 
+                                          placeholder="Search medicine brand or generic..." 
+                                          value={p.medicine}
+                                          autoComplete="off"
+                                          onChange={(e) => {
+                                             const term = e.target.value;
+                                             const newP = [...formData.prescriptions];
+                                             newP[idx].medicine = term;
+                                             setFormData({...formData, prescriptions: newP});
+                                             handleSearchMaster('pharma', term, idx, 'prescription');
+                                          }}
+                                          onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm transition-all"
+                                        />
+                                        {searchContext.type === 'medicine' && searchContext.index === idx && medicineSuggestions.length > 0 && (
+                                           <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[350px] overflow-y-auto">
+                                              <div className="p-2 space-y-0.5">
+                                                 {medicineSuggestions.map((m) => (
+                                                    m && (
+                                                    <button 
+                                                       key={m.id}
+                                                       onMouseDown={(e) => {
+                                                          e.preventDefault();
+                                                          const newP = [...formData.prescriptions];
+                                                          newP[idx].medicine = m.brandName || m.name;
+                                                          if (m.dosage) newP[idx].dosage = m.dosage;
+                                                          setFormData({...formData, prescriptions: newP});
+                                                          setMedicineSuggestions([]);
+                                                          setSearchContext({type: null, index: null});
+                                                       }}
+                                                       className="w-full text-left px-4 py-3.5 hover:bg-slate-50 transition-all rounded-xl flex items-center justify-between group/item"
+                                                    >
+                                                       <div className="flex items-center gap-2 overflow-hidden mr-4">
+                                                          <span className="text-sm font-bold text-slate-900 truncate">
+                                                             {m.brandName || m.name}
+                                                             {m.dosage && <span className="text-slate-400 font-medium italic ml-1.5 text-xs">({m.dosage}{m.unit || 'mg'})</span>}
+                                                          </span>
+                                                       </div>
+                                                       {(() => {
+                                                          const stockFields = [
+                                                             m.availableStock, m.stock, m.quantity, m.availableLevel, 
+                                                             m.currentStock, m.current_stock, m.qty, m.inventory, 
+                                                             m.totalStock, m.availableBalance, m.Units, m.units, m.total_qty, m.stock_level
+                                                          ];
+                                                          const s = Math.max(...stockFields.map(val => {
+                                                             if (val === undefined || val === null || val === '') return 0;
+                                                             const num = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : parseFloat(val);
+                                                             return isNaN(num) ? 0 : num;
+                                                          }));
+                                                          return (
+                                                             <span className={`text-[10px] font-black uppercase tracking-tight shrink-0 ${
+                                                                s > 0 ? (s <= (m.reorderLevel || 10) ? 'text-amber-500' : 'text-emerald-500') : 'text-red-500'
+                                                             }`}>
+                                                                {s > 0 ? `${s} Left` : 'Out of Stock'}
                                                              </span>
-                                                             <span className="text-[6px] text-slate-400 uppercase font-black tracking-wider">
-                                                                {m._source || 'Master Records'} {s > 0 && '• Unified'}
-                                                             </span>
-                                                          </div>
-                                                       );
-                                                    })()}
-                                                    <div className="flex flex-col items-end gap-0.5 min-w-[30px]">
-                                                       <span className="text-[8px] font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded-md border border-slate-200 shadow-sm">{m.dosage || "Std"}</span>
-                                                       {m.code && <span className="text-[7px] font-black text-blue-500 uppercase tracking-tighter">#{m.code}</span>}
-                                                    </div>
-                                                 </div>
-                                             </button>
-                                          ))}
-                                       </div>
-                                   )}
-                                </div>
-                                <div className="md:col-span-2">
-                                   <select 
-                                      value={p.route}
-                                      onChange={(e) => {
-                                         const newP = [...formData.prescriptions];
-                                         newP[idx].route = e.target.value;
-                                         setFormData({...formData, prescriptions: newP});
-                                      }}
-                                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm appearance-none cursor-pointer"
-                                   >
-                                      <option>Oral</option>
-                                      <option>IV</option>
-                                      <option>IM</option>
-                                      <option>SC</option>
-                                      <option>Topical</option>
-                                   </select>
-                                </div>
-                                <div className="md:col-span-1">
-                                   <input placeholder="Dosage" value={p.dosage} onChange={(e) => {
-                                      const newP = [...formData.prescriptions];
-                                      newP[idx].dosage = e.target.value;
-                                      setFormData({...formData, prescriptions: newP});
-                                   }} className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm" />
-                                </div>
-                                <div className="md:col-span-2">
-                                   <input placeholder="Freq (1-0-1)" value={p.frequency} onChange={(e) => {
-                                      const newP = [...formData.prescriptions];
-                                      newP[idx].frequency = e.target.value;
-                                      setFormData({...formData, prescriptions: newP});
-                                   }} className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm" />
-                                </div>
-                                <div className="md:col-span-1">
-                                   <input placeholder="Days" value={p.duration} onChange={(e) => {
-                                      const newP = [...formData.prescriptions];
-                                      newP[idx].duration = e.target.value;
-                                      setFormData({...formData, prescriptions: newP});
-                                   }} className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm" />
+                                                          );
+                                                       })()}
+                                                    </button>
+                                                    )
+                                                 ))}
+                                              </div>
+                                           </div>
+                                        )}
+                                    </div>
+                                    <div className="md:col-span-3">
+                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Route</label>
+                                       <select 
+                                          value={p.route}
+                                          onChange={(e) => {
+                                             const newP = [...formData.prescriptions];
+                                             newP[idx].route = e.target.value;
+                                             setFormData({...formData, prescriptions: newP});
+                                          }}
+                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm appearance-none cursor-pointer hover:bg-slate-50 transition-colors"
+                                       >
+                                          <option>Oral</option>
+                                          <option>IV</option>
+                                          <option>IM</option>
+                                          <option>SC</option>
+                                          <option>Topical</option>
+                                          <option>Inhaled</option>
+                                       </select>
+                                    </div>
+                                    <div className="md:col-span-3">
+                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Dosage</label>
+                                       <input 
+                                          placeholder="e.g. 500mg" 
+                                          value={p.dosage} 
+                                          onChange={(e) => {
+                                             const newP = [...formData.prescriptions];
+                                             newP[idx].dosage = e.target.value;
+                                             setFormData({...formData, prescriptions: newP});
+                                          }} 
+                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm transition-all" 
+                                       />
+                                    </div>
                                  </div>
-                                 <div className="md:col-span-2">
-                                    <textarea 
-                                       placeholder="Instructions..." 
-                                       value={p.instructions || ""}
-                                       rows={1}
-                                       onChange={(e) => {
-                                          const newP = [...formData.prescriptions];
-                                          newP[idx].instructions = e.target.value;
-                                          setFormData({...formData, prescriptions: newP});
-                                          e.target.style.height = "auto";
-                                          e.target.style.height = e.target.scrollHeight + "px";
-                                       }}
-                                       className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 w-full outline-none focus:border-blue-500 shadow-sm resize-none min-h-[38px] transition-all"
-                                    />
+
+                                 {/* Row 2: Timing & Clinical Instructions */}
+                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end border-t border-slate-100/50 pt-5">
+                                    <div className="md:col-span-3">
+                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Frequency</label>
+                                       <input 
+                                          placeholder="e.g. 1-0-1" 
+                                          value={p.frequency} 
+                                          onChange={(e) => {
+                                             const newP = [...formData.prescriptions];
+                                             newP[idx].frequency = e.target.value;
+                                             setFormData({...formData, prescriptions: newP});
+                                          }} 
+                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm transition-all" 
+                                       />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Days</label>
+                                       <input 
+                                          placeholder="e.g. 5" 
+                                          value={p.duration} 
+                                          onChange={(e) => {
+                                             const newP = [...formData.prescriptions];
+                                             newP[idx].duration = e.target.value;
+                                             setFormData({...formData, prescriptions: newP});
+                                          }} 
+                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm transition-all text-center" 
+                                       />
+                                    </div>
+                                    <div className="md:col-span-6 relative">
+                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Clinical Instructions</label>
+                                       <textarea 
+                                          placeholder="Special administration instructions..." 
+                                          value={p.instructions || ""}
+                                          rows={1}
+                                          onChange={(e) => {
+                                             const newP = [...formData.prescriptions];
+                                             newP[idx].instructions = e.target.value;
+                                             setFormData({...formData, prescriptions: newP});
+                                             e.target.style.height = "auto";
+                                             e.target.style.height = e.target.scrollHeight + "px";
+                                          }}
+                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-600 w-full outline-none focus:border-blue-500 shadow-sm resize-none min-h-[44px] transition-all"
+                                       />
+                                    </div>
+                                    <div className="md:col-span-1 flex justify-end pb-1.5">
+                                       <button 
+                                          onClick={() => setFormData({ ...formData, prescriptions: formData.prescriptions.filter((_, i) => i !== idx) })}
+                                          className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all rounded-xl"
+                                          title="Remove Medication"
+                                       >
+                                          <X className="h-5 w-5" />
+                                       </button>
+                                    </div>
                                  </div>
-                                 <div className="md:col-span-1 text-right">
-                                   <button 
-                                      onClick={() => setFormData({ ...formData, prescriptions: formData.prescriptions.filter((_, i) => i !== idx) })}
-                                      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all"
-                                   >
-                                      <X className="h-4 w-4" />
-                                   </button>
-                                </div>
-                             </div>
-                          ))}
-                       </div>
+                              </div>
+                           ))}
+                        </div>
                     </div>
                   )}
                </div>
@@ -1777,98 +1796,120 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                   </button>
                </div>
 
-               <div className="w-full">
-                  <div className="hidden md:grid grid-cols-12 gap-4 px-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                     <div className="col-span-4">Investigation Type</div>
-                     <div className="col-span-2">Priority</div>
-                     <div className="col-span-5">Clinical Instructions</div>
-                     <div className="col-span-1 text-right"></div>
-                  </div>
-                  <div className="space-y-3">
-                     {(formData.labRequests || []).map((r, idx) => (
-                        <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-center bg-slate-50/50 hover:bg-slate-50 transition-all p-3 md:p-4 rounded-xl border border-slate-100 group">
-                           <div className="md:col-span-3 relative">
-                              <div className="relative h-full flex items-center">
-                                 <input 
-                                    placeholder="Search Investigation..." 
-                                    value={r.test}
-                                    onChange={(e) => {
-                                       const term = e.target.value;
-                                       const newR = [...formData.labRequests];
-                                       newR[idx].test = term;
-                                       setFormData({...formData, labRequests: newR});
-                                       handleSearchMaster('labs', term, idx, 'labs');
-                                    }}
-                                    onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
-                                    className="bg-white border-none rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:ring-2 focus:ring-primary-500/20"
-                                 />
-                                 {searchContext.type === 'lab' && searchContext.index === idx && labSuggestions.length > 0 && (
-                                    <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] overflow-hidden max-h-60 overflow-y-auto p-1">
-                                       {labSuggestions.map((m) => (
-                                          <button 
-                                             key={m.id}
-                                             onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                const newR = [...formData.labRequests];
-                                                newR[idx].test = m.testName || m.name;
-                                                setFormData({...formData, labRequests: newR});
-                                                setLabSuggestions([]);
-                                                setSearchContext({type: null, index: null});
-                                             }}
-                                             className="w-full text-left px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg border-b border-slate-50 last:border-0 flex items-center justify-between"
-                                          >
-                                             <span>{m.testName || m.name}</span>
-                                             <span className="text-[8px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">{m.department || 'General'}</span>
-                                          </button>
-                                       ))}
-                                    </div>
-                                 )}
-                              </div>
-                           </div>
-                           <div className="md:col-span-2">
-                           <select 
-                              value={r.priority}
-                              onChange={(e) => {
-                                 const newR = [...formData.labRequests];
-                                 newR[idx].priority = e.target.value;
-                                 setFormData({...formData, labRequests: newR});
-                              }}
-                              className="bg-white border-none rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 w-full outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer appearance-none"
-                           >
-                              <option value="routine">Routine</option>
-                              <option value="urgent">Urgent</option>
-                              <option value="stat">STAT</option>
-                           </select>
-                        </div>
-                        <div className="md:col-span-5">
-                           <textarea 
-                              placeholder="Clinical instructions..." 
-                              value={r.instructions}
-                              rows={1}
-                              onChange={(e) => {
-                                 const newR = [...formData.labRequests];
-                                 newR[idx].instructions = e.target.value;
-                                 setFormData({...formData, labRequests: newR});
-                                 // Auto resize
-                                 e.target.style.height = 'auto';
-                                 e.target.style.height = e.target.scrollHeight + 'px';
-                              }}
-                              className="bg-white border-none rounded-lg px-3 py-2.5 text-xs font-medium text-slate-700 w-full outline-none focus:ring-2 focus:ring-primary-500/20 resize-none min-h-[38px] transition-all"
-                           />
-                        </div>
-                        <div className="md:col-span-1 text-right">
-                           <button 
-                              onClick={() => setFormData({ ...formData, labRequests: formData.labRequests.filter((_, i) => i !== idx) })}
-                              className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all"
-                           >
-                              <Trash2 className="h-4 w-4" />
-                           </button>
-                        </div>
-                     </div>
-                  ))}
-               </div>
+                <div className="w-full">
+                   <div className="space-y-6">
+                      {(formData.labRequests || []).map((r, idx) => (
+                         <div key={idx} className="bg-slate-50/50 hover:bg-white transition-all p-6 rounded-2xl border border-slate-100 group space-y-6 shadow-sm hover:shadow-md">
+                            {/* Row 1: Investigation & Priority */}
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+                               <div className="md:col-span-8 relative">
+                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Investigation</label>
+                                  <input 
+                                     placeholder="Search test, radiology or pathology..." 
+                                     value={r.test}
+                                     autoComplete="off"
+                                     onChange={(e) => {
+                                        const term = e.target.value;
+                                        const newR = [...formData.labRequests];
+                                        newR[idx].test = term;
+                                        setFormData({...formData, labRequests: newR});
+                                        handleSearchMaster('labs', term, idx, 'labs');
+                                     }}
+                                     onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                     className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-emerald-500 shadow-sm transition-all"
+                                  />
+                                  {searchContext.type === 'lab' && searchContext.index === idx && labSuggestions.length > 0 && (
+                                     <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[350px] overflow-y-auto">
+                                        <div className="p-2 space-y-0.5">
+                                           {labSuggestions.map((m) => (
+                                              <button 
+                                                 key={m.id}
+                                                 onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    const newR = [...formData.labRequests];
+                                                    newR[idx].test = m.testName || m.name;
+                                                    setFormData({...formData, labRequests: newR});
+                                                    setLabSuggestions([]);
+                                                    setSearchContext({type: null, index: null});
+                                                 }}
+                                                 className="w-full text-left px-5 py-5 hover:bg-emerald-50/30 transition-all rounded-2xl flex items-center justify-between group/item border border-transparent hover:border-emerald-100"
+                                              >
+                                                 <div className="flex items-center gap-5">
+                                                    <div className="h-12 w-12 bg-slate-100/50 rounded-xl flex items-center justify-center text-slate-400 group-hover/item:bg-white group-hover/item:text-emerald-600 transition-all shadow-inner shrink-0">
+                                                       <ActivityIcon className="h-6 w-6" />
+                                                    </div>
+                                                    <div className="flex flex-col gap-1 overflow-hidden">
+                                                       <span className="text-base font-bold text-slate-900 truncate group-hover/item:text-emerald-900 transition-colors tracking-tight">
+                                                          {m.testName || m.name}
+                                                       </span>
+                                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                          <div className="h-1.5 w-1.5 rounded-full bg-slate-200" />
+                                                          Investigation Profile
+                                                       </span>
+                                                    </div>
+                                                 </div>
+                                                 <div className="shrink-0 ml-4">
+                                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.1em] bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 shadow-sm group-hover/item:bg-emerald-100 transition-all">
+                                                       {m.department || 'General'}
+                                                    </span>
+                                                 </div>
+                                              </button>
+                                           ))}
+                                        </div>
+                                     </div>
+                                  )}
+                               </div>
+                               <div className="md:col-span-4">
+                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Priority</label>
+                                  <select 
+                                     value={r.priority}
+                                     onChange={(e) => {
+                                        const newR = [...formData.labRequests];
+                                        newR[idx].priority = e.target.value;
+                                        setFormData({...formData, labRequests: newR});
+                                     }}
+                                     className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 w-full outline-none focus:border-emerald-500 shadow-sm appearance-none cursor-pointer hover:bg-slate-50 transition-colors"
+                                  >
+                                     <option value="routine">Routine</option>
+                                     <option value="urgent">Urgent</option>
+                                     <option value="stat">STAT</option>
+                                  </select>
+                               </div>
+                            </div>
+
+                            {/* Row 2: Instructions */}
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end border-t border-slate-100/50 pt-5">
+                               <div className="md:col-span-11 relative">
+                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Clinical Instructions</label>
+                                  <textarea 
+                                     placeholder="Reason for test or specific sample instructions..." 
+                                     value={r.instructions}
+                                     rows={1}
+                                     onChange={(e) => {
+                                        const newR = [...formData.labRequests];
+                                        newR[idx].instructions = e.target.value;
+                                        setFormData({...formData, labRequests: newR});
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                     }}
+                                     className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-600 w-full outline-none focus:border-emerald-500 shadow-sm resize-none min-h-[44px] transition-all"
+                                  />
+                               </div>
+                               <div className="md:col-span-1 flex justify-end pb-1.5">
+                                  <button 
+                                     onClick={() => setFormData({ ...formData, labRequests: formData.labRequests.filter((_, i) => i !== idx) })}
+                                     className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all rounded-xl"
+                                     title="Remove Test"
+                                  >
+                                     <Trash2 className="h-5 w-5" />
+                                  </button>
+                               </div>
+                            </div>
+                         </div>
+                      ))}
+                   </div>
+                </div>
             </div>
-         </div>
 
             {/* Specialized Modules - Sections */}
             <div className="space-y-10 pt-8">
@@ -2128,6 +2169,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             )}
           </AnimatePresence>
         </div>
+        
 
       <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-white z-10">
           <div className="flex items-center gap-4 text-slate-400 text-xs font-semibold uppercase tracking-widest">
