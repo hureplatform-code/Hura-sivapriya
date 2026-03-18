@@ -230,7 +230,7 @@ export default function PharmacyQueue() {
         {selectedPatient && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-100">
+              className="bg-white rounded-[2rem] w-full max-w-4xl shadow-2xl overflow-hidden border border-slate-100">
               <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 bg-primary-100 rounded-xl flex items-center justify-center text-primary-700 font-bold shadow-inner">
@@ -272,6 +272,7 @@ export default function PharmacyQueue() {
                                    <tr className="text-left bg-slate-50/30">
                                       <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Medicine & Form</th>
                                       <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Frequency</th>
+                                      <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Food Instructions</th>
                                       <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
                                       <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Route</th>
                                       <th className="py-4 px-6 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Status</th>
@@ -292,7 +293,12 @@ export default function PharmacyQueue() {
                                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{p.dosage} {p.form || '-'}</span>
                                                   </div>
                                                </td>
-                                               <td className="py-5 px-6 text-xs font-black text-slate-600 uppercase tracking-widest">{p.frequency}</td>
+                                               <td className="py-5 px-6 text-xs font-black text-slate-600 uppercase tracking-widest">{p.frequency || 'N/A'}</td>
+                                               <td className="py-5 px-6">
+                                                  <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-extrabold uppercase tracking-tight border border-amber-100/30">
+                                                     {p.instructions || 'Standard'}
+                                                  </span>
+                                               </td>
                                                <td className="py-5 px-6 text-xs font-bold text-slate-600">{p.duration} {p.durationType || 'Days'}</td>
                                                <td className="py-5 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.route || 'Oral'}</td>
                                                <td className="py-5 px-6 text-right">
@@ -304,7 +310,7 @@ export default function PharmacyQueue() {
                                       
                                       return (
                                          <tr>
-                                            <td colSpan="5" className="py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest italic">
+                                            <td colSpan="6" className="py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest italic">
                                                No structured prescriptions detected for this session.
                                             </td>
                                          </tr>
@@ -337,26 +343,6 @@ export default function PharmacyQueue() {
                           <p className="text-amber-900 leading-relaxed font-bold whitespace-pre-wrap text-xs italic opacity-80">
                              {clinicalRecord.plan || "No additional clinical directions recorded."}
                           </p>
-                       </div>
-
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Diagnosis</h4>
-                             <p className="text-xs font-bold text-slate-600 leading-relaxed">{clinicalRecord.assessment || 'N/A'}</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                             <div className="flex items-center justify-between mb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                <span>Pulse Registry</span>
-                             </div>
-                             <div className="grid grid-cols-3 gap-2">
-                                {['temp', 'bp', 'weight'].map(k => (
-                                  <div key={k} className="bg-white p-2 rounded-lg border border-slate-100 text-center">
-                                     <p className="text-[8px] font-bold text-slate-300 uppercase leading-none mb-1">{k}</p>
-                                     <p className="text-[10px] font-black text-slate-700">{selectedPatient.vitals?.[k] || '—'}</p>
-                                  </div>
-                                ))}
-                             </div>
-                          </div>
                        </div>
                    </div>
                 ) : (

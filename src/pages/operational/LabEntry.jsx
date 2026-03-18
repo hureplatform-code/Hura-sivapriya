@@ -279,8 +279,9 @@ export default function LabEntry() {
   };
 
   const getMergedCatalog = () => {
-    // Return ONLY what was configured in the Master Data for this clinic
-    return dynamicCatalog;
+    // Merge hardcoded system defaults with clinic-specific configurations from Firestore
+    // Clinic-specific tests (dynamicCatalog) take priority if there's a key collision
+    return { ...TEST_CATALOG, ...dynamicCatalog };
   };
 
   const fetchAppointment = async () => {
@@ -412,31 +413,58 @@ export default function LabEntry() {
 
   const analyzeTestWithAI = (testId) => {
     const entry = structuredResults.find(t => t.id === testId);
+    if (!entry) return;
+    
     const catalog = getMergedCatalog();
-    const schema = catalog[entry.type];
-    if (!entry || !schema) return;
+    let schema = catalog[entry.type];
+    
+    // Smart Fallback: Resolve schema by name if the type is generic/missing
+    if (!schema) {
+       const testName = (entry.name || '').toLowerCase().trim();
+       schema = Object.values(catalog).find(s => s.name.toLowerCase().trim() === testName);
+    }
+    
+    if (!schema) {
+       toastError("Cannot perform AI analysis: test schema not found.");
+       return;
+    }
 
     // SIMULATED AI LOGIC: Analyzes values against reference ranges
     let analysis = `Diagnostic interpretation for ${schema.name}: `;
     const abnormals = [];
 
-    schema.fields.forEach(field => {
+    (schema.fields || []).forEach(field => {
       const val = parseFloat(entry.values[field.id]);
       if (isNaN(val)) return;
 
-      const refParts = field.ref.split('-');
-      if (refParts.length === 2) {
-        const min = parseFloat(refParts[0]);
-        const max = parseFloat(refParts[1]);
-        if (val < min) abnormals.push(`${field.label} is slightly below reference range.`);
-        if (val > max) abnormals.push(`${field.label} shows elevation above baseline.`);
+      const refStr = (field.ref || '').toString();
+      
+      // Handle standard range "Min - Max"
+      if (refStr.includes('-')) {
+        const parts = refStr.split('-');
+        const min = parseFloat(parts[0]);
+        const max = parseFloat(parts[1]);
+        if (!isNaN(min) && val < min) abnormals.push(`${field.label} (${val}) is below reference (${min}-${max}).`);
+        if (!isNaN(max) && val > max) abnormals.push(`${field.label} (${val}) is above reference (${min}-${max}).`);
+      } 
+      // Handle threshold "< Max"
+      else if (refStr.startsWith('<')) {
+        const max = parseFloat(refStr.replace('<', '').trim());
+        if (!isNaN(max) && val >= max) abnormals.push(`${field.label} (${val}) exceeds threshold (${refStr}).`);
+      }
+      // Handle threshold "> Min"
+      else if (refStr.startsWith('>')) {
+        const min = parseFloat(refStr.replace('>', '').trim());
+        if (!isNaN(min) && val <= min) abnormals.push(`${field.label} (${val}) is below threshold (${refStr}).`);
       }
     });
 
     if (abnormals.length > 0) {
       analysis += abnormals.join(' ') + " Clinical correlation recommended.";
-    } else {
+    } else if (Object.keys(entry.values).length > 0) {
       analysis += "Parameters observed are within standard biological reference intervals. No immediate abnormalities detected.";
+    } else {
+      analysis = "Incomplete data. Please ensure result values are entered before generating an interpretation.";
     }
 
     updateTestRemark(testId, analysis);
@@ -731,7 +759,14 @@ export default function LabEntry() {
                                const catalog = getMergedCatalog(); 
                                let schema = catalog[entry.type];
                                
-                               // Vitrual schema for DOCTOR_REQUESTED tests that aren't in the official catalog
+                               // Smart Fallback: If tech has a standard name but it was saved as generic, try name-based matching
+                               if (!schema) {
+                                  const testName = (entry.name || '').toLowerCase().trim();
+                                  const match = Object.values(catalog).find(s => s.name.toLowerCase().trim() === testName);
+                                  if (match) schema = match;
+                               }
+
+                               // Virtual schema for DOCTOR_REQUESTED tests that aren't in the official catalog
                                if (!schema && (entry.type === 'DOCTOR_REQUESTED' || entry.isPreloaded)) {
                                   schema = {
                                      name: entry.name || 'Requested Investigation',
