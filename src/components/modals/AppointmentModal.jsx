@@ -14,6 +14,7 @@ import {
 import QuickPatientModal from './QuickPatientModal';
 import patientService from '../../services/patientService';
 import userService from '../../services/userService';
+import facilityService from '../../services/facilityService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
@@ -30,6 +31,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [doctors, setDoctors] = useState([]);
+  const [facilityProfile, setFacilityProfile] = useState(null);
   const [lastVisitMap, setLastVisitMap] = useState({});
 
   const formatLastVisitRelative = (lastDate) => {
@@ -63,7 +65,8 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
     })(),
     time: '09:00',
     notes: '',
-    priority: 'Normal'
+    priority: 'Normal',
+    consultationFee: 1000
   });
 
   useEffect(() => {
@@ -72,28 +75,41 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
       setSearchQuery('');
       setSelectedPatient(null);
       setShowResults(false);
-      setFormData({
-        patientId: '',
-        patientName: '',
-        provider: doctors[0]?.name || '', 
-        type: 'Consultation',
-        date: initialDate || (() => {
-          const now = new Date();
-          const y = now.getFullYear();
-          const m = String(now.getMonth() + 1).padStart(2, '0');
-          const d = String(now.getDate()).padStart(2, '0');
-          return `${y}-${m}-${d}`;
-        })(),
-        time: (() => {
-          const now = new Date();
-          const h = String(now.getHours()).padStart(2, '0');
-          const m = String(now.getMinutes()).padStart(2, '0');
-          return `${h}:${m}`;
-        })(),
-        notes: '',
-        priority: 'Normal'
-      });
+      
+      const loadInitialData = async () => {
+        try {
+          const profileData = await facilityService.getProfile(userData.facilityId);
+          if (profileData) setFacilityProfile(profileData);
+          
+          setFormData(prev => ({
+            ...prev,
+            patientId: '',
+            patientName: '',
+            provider: doctors[0]?.name || '', 
+            type: 'Consultation',
+            date: initialDate || (() => {
+              const now = new Date();
+              const y = now.getFullYear();
+              const m = String(now.getMonth() + 1).padStart(2, '0');
+              const d = String(now.getDate()).padStart(2, '0');
+              return `${y}-${m}-${d}`;
+            })(),
+            time: (() => {
+              const now = new Date();
+              const h = String(now.getHours()).padStart(2, '0');
+              const m = String(now.getMinutes()).padStart(2, '0');
+              return `${h}:${m}`;
+            })(),
+            notes: '',
+            priority: 'Normal',
+            consultationFee: profileData?.consultationFee || 1000
+          }));
+        } catch (err) {
+          console.error("Error loading profile:", err);
+        }
+      };
 
+      loadInitialData();
       fetchPatients();
       fetchDoctors();
     }
@@ -205,7 +221,8 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
         patientPhone: sanitizedPhone,
         status: 'scheduled',
         bookingType: isSameDay ? 'SD' : 'ADV',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        consultationFee: parseFloat(formData.consultationFee) // Ensure it's a number
       };
       
       if (onSave) {
@@ -241,7 +258,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white"
+              className="relative bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white"
             >
               {success ? (
                 <div className="p-12 text-center flex flex-col items-center gap-4">
@@ -425,15 +442,27 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Notes / Reason for visit</label>
-                        <textarea 
-                          rows="3" 
-                          value={formData.notes}
-                          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                          className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all resize-none shadow-inner" 
-                          placeholder="Enter any specific clinical notes..." 
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Consultation Fee ({userData?.currency || 'KSH'})</label>
+                          <input 
+                            type="number" 
+                            value={formData.consultationFee}
+                            onChange={(e) => setFormData(prev => ({ ...prev, consultationFee: e.target.value }))}
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-bold shadow-inner outline-none transition-all" 
+                            placeholder="Enter fee amount..." 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Notes / Reason for visit</label>
+                          <textarea 
+                            rows="1" 
+                            value={formData.notes}
+                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all resize-none shadow-inner" 
+                            placeholder="Reason for visit..." 
+                          />
+                        </div>
                       </div>
                     </div>
 

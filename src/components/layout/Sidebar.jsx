@@ -202,9 +202,14 @@ export default function Sidebar({ isOpen, onClose }) {
        });
     }
 
-    // Auto-expand Clinical Ops for Doctor role
-    if (role === 'doctor' || role === 'clinic_owner') {
-      setExpandedItems(prev => ({ ...prev, clinical: true }));
+    // Auto-expand relevant sections for key roles
+    if (role === 'doctor' || role === 'clinic_owner' || role === 'receptionist' || role === 'nurse' || role === 'lab_tech' || role === 'pharmacist' || role === 'lab_admin' || role === 'pharmacist_admin') {
+      setExpandedItems(prev => ({ 
+        ...prev, 
+        clinical: (role === 'doctor' || role === 'clinic_owner' || role === 'receptionist' || role === 'nurse' || role === 'lab_tech' || role === 'lab_admin'),
+        pharmacy: (role === 'pharmacist' || role === 'clinic_owner' || role === 'pharmacist_admin'),
+        financial: (role === 'receptionist' || role === 'clinic_owner') ? true : prev.financial 
+      }));
     }
 
     if (role === 'superadmin') {

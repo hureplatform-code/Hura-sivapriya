@@ -110,12 +110,12 @@ export default function LaboratoryQueue() {
         apt.patientId?.toLowerCase().includes(searchLow) ||
         apt.patientPhone?.includes(searchTerm) ||
         apt.phoneNumber?.includes(searchTerm)
-      );
+      ) && apt.status !== 'cancelled';
     }
 
     // REGULAR BROADCAST/TAB LOGIC (When not searching)
     const isPending = apt.status === 'awaiting-lab';
-    const isCompleted = ['completed', 'arrived', 'awaiting-billing', 'billed', 'paid'].includes(apt.status) || apt.labCompletedAt;
+    const isCompleted = (['completed', 'arrived', 'awaiting-billing', 'billed', 'paid'].includes(apt.status) || apt.labCompletedAt) && apt.status !== 'cancelled';
     
     const matchesStatus = statusFilter === 'Pending' ? isPending : isCompleted;
     if (!matchesStatus) return false;
@@ -292,7 +292,7 @@ export default function LaboratoryQueue() {
                         <span className="text-[8px] font-black text-slate-300 ml-2 uppercase">{apt.time || 'W.IN'}</span>
                       </td>
                       <td className="py-5 px-6">
-                        <span className="text-xs font-bold text-slate-600">Dr. {apt.provider || apt.doctor || 'N/A'}</span>
+                        <span className="text-xs font-bold text-slate-600">Dr. {apt.providerName || apt.provider || apt.doctor || 'N/A'}</span>
                       </td>
                       <td className="py-5 px-6">
                         {(() => {
@@ -319,10 +319,10 @@ export default function LaboratoryQueue() {
                           )}
                           {apt.status === 'awaiting-lab' && (
                             <button 
-                              onClick={(e) => { e.stopPropagation(); setSelectedApt(apt); setIsPaymentOpen(true); }}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/lab/entry/${apt.id}`); }}
                               className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2"
                             >
-                               <Play className="h-3 w-3" /> Start & Collect
+                               <Play className="h-3 w-3" /> START LAB
                             </button>
                           )}
                           <div className="h-8 w-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-300 group-hover:text-blue-500 group-hover:border-blue-100 transition-all shadow-sm active:scale-90">

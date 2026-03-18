@@ -123,8 +123,9 @@ export default function NursingQueue() {
   };
 
   const filteredQueue = queue.filter(apt => 
-    apt.patient?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    apt.patientId?.toLowerCase().includes(searchTerm.toLowerCase())
+    (apt.patient?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    apt.patientId?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    apt.status !== 'cancelled'
   );
 
   return (
@@ -209,7 +210,7 @@ export default function NursingQueue() {
                         <div>
                            <h2 className="text-xl font-bold text-slate-900">{selectedPatient.patient}</h2>
                            <p className="text-sm font-medium text-slate-500 mt-1">
-                              Sent by Dr. {selectedPatient.providerName || 'Unknown'} • {selectedPatient.date}
+                              Sent by Dr. {selectedPatient.providerName || selectedPatient.provider || selectedPatient.doctor || 'Unknown'} • {selectedPatient.date}
                            </p>
                         </div>
                         <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-blue-500">

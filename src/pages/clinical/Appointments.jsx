@@ -25,7 +25,9 @@ import {
   ArrowUpRight,
   Volume2,
   Play,
-  Beaker
+  Beaker,
+  CreditCard,
+  RotateCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppointmentModal from '../../components/modals/AppointmentModal';
@@ -87,9 +89,12 @@ export default function Appointments() {
   });
 
   const fetchAppointments = async () => {
-    if (!userData?.facilityId && userData?.role !== 'superadmin') return;
+    setLoading(true);
+    if (!userData?.facilityId && userData?.role !== 'superadmin') {
+      setLoading(false);
+      return;
+    }
     try {
-      setLoading(true);
       const data = await appointmentService.getAllAppointments(userData?.facilityId);
       const sortedData = (data || []).sort((a, b) => {
         const dateA = a.date || a.app_date || '';
@@ -132,9 +137,9 @@ export default function Appointments() {
   });
 
   const stats = {
-    total: dailyAppointments.length,
+    total: dailyAppointments.filter(a => ['doctor', 'nurse', 'lab_tech', 'pharmacist', 'lab_admin', 'pharmacist_admin'].includes(userData?.role) ? a.status !== 'cancelled' : true).length,
     completed: dailyAppointments.filter(a => a.status === 'completed').length,
-    noShows: dailyAppointments.filter(a => a.status === 'cancelled' || a.status === 'no-show').length
+    noShows: ['doctor', 'nurse', 'lab_tech', 'pharmacist', 'lab_admin', 'pharmacist_admin'].includes(userData?.role) ? 0 : dailyAppointments.filter(a => a.status === 'cancelled' || a.status === 'no-show').length
   };
 
   const handleCallIn = async (appointmentId) => {
@@ -299,7 +304,8 @@ export default function Appointments() {
       // Support both new "date" and legacy "app_date"
       const aptDate = apt.date || apt.app_date;
       const matchesDate = aptDate === selectedDate;
-      return matchesSearch && matchesStatus && matchesSpecialty && matchesDate;
+      const hideCancelledForClinical = ['doctor', 'nurse', 'lab_tech', 'pharmacist', 'lab_admin', 'pharmacist_admin'].includes(userData?.role) && apt.status === 'cancelled';
+      return matchesSearch && matchesStatus && matchesSpecialty && matchesDate && !hideCancelledForClinical;
     })
     .sort((a, b) => {
       // Prioritize Arrived/Triage/In-Session status first
@@ -315,7 +321,16 @@ export default function Appointments() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Appointments</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Appointments</h1>
+              <button 
+                onClick={fetchAppointments}
+                className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all active:scale-95"
+                title="Refresh Queue"
+              >
+                <RotateCcw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
             <p className="text-slate-500 mt-1">Manage patient bookings, scheduling, and clinical arrivals.</p>
           </div>
           {userData?.role !== 'doctor' && userData?.role !== 'nurse' && (
@@ -456,7 +471,7 @@ export default function Appointments() {
                         </div>
                       </div>
                       <div className="text-left min-w-0">
-                        <h3 className="font-semibold text-slate-900 flex items-center gap-2 text-base truncate">
+                        <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-base truncate">
                           {apt.patient}
                           <span className={`h-2 w-2 rounded-full shrink-0 ${apt.priority === 'High' ? 'bg-red-500 animate-pulse' : apt.priority === 'Normal' ? 'bg-blue-500' : 'bg-slate-300'}`} />
                           {apt.labResults && (
@@ -470,10 +485,20 @@ export default function Appointments() {
                              {apt.bookingType || 'ADV'}
                           </span>
                         </h3>
-                        <p className="text-sm text-slate-500 font-medium flex items-center gap-2 mt-1">
-                          <User className="h-4 w-4 text-slate-400" />
-                          {apt.provider || apt.doctor} • <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] text-slate-600 font-bold uppercase">{apt.type}</span>
-                        </p>
+                        <div className="flex flex-wrap items-center gap-4 mt-1">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="text-slate-300">ID:</span> {apt.patientId || 'NEW'}
+                          </p>
+                          {(apt.patientPhone || apt.mobile || apt.phoneNumber) && (
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                              <span className="text-slate-300">MOB:</span> {apt.patientPhone || apt.mobile || apt.phoneNumber}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-primary-600 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                             <User className="h-3 w-3 text-slate-300" /> {apt.provider || apt.doctor}
+                          </p>
+                          <span className="px-1.5 py-0.5 bg-slate-50 border border-slate-100 rounded text-[9px] text-slate-500 font-bold uppercase tracking-widest">{apt.type}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -506,14 +531,42 @@ export default function Appointments() {
                           </button>
                         )}
 
-                        {(apt.status === 'arrived' || apt.status === 'triage') && userData?.role === 'doctor' && (
+                        {apt.status === 'awaiting-lab' && (userData?.role === 'lab_tech' || userData?.role === 'clinic_owner') && (
                           <button 
-                            onClick={() => handleCallIn(apt.id)}
-                            className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 flex items-center gap-2"
+                            onClick={() => navigate('/lab/queue')}
+                            className="px-4 py-2 bg-orange-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-orange-700 transition-all shadow-lg shadow-orange-100 flex items-center gap-2"
                           >
-                            <Volume2 className="h-3.5 w-3.5" />
-                            CALL IN
+                             <Thermometer className="h-3.5 w-3.5" /> PROCESS LAB
                           </button>
+                        )}
+
+                        {apt.status === 'awaiting-pharmacy' && (userData?.role === 'pharmacist' || userData?.role === 'clinic_owner') && (
+                          <button 
+                            onClick={() => navigate('/pharmacy/queue')}
+                            className="px-4 py-2 bg-indigo-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
+                          >
+                             <Zap className="h-3.5 w-3.5" /> DISPENSE MEDS
+                          </button>
+                        )}
+
+                        {(apt.status === 'arrived' || apt.status === 'triage') && userData?.role === 'doctor' && (
+                          apt.labResultsReady ? (
+                            <button 
+                              onClick={() => handleStartConsultation(apt)}
+                              className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50 flex items-center gap-2"
+                            >
+                              <Beaker className="h-3.5 w-3.5" />
+                              REPORT READY
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => handleCallIn(apt.id)}
+                              className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 flex items-center gap-2"
+                            >
+                              <Volume2 className="h-3.5 w-3.5" />
+                              CALL IN
+                            </button>
+                          )
                         )}
                         
                         {apt.status === 'arrived' && ['nurse'].includes(userData?.role) && (
@@ -717,7 +770,7 @@ function TriageModal({ appointment, onClose, onSave }) {
       <motion.div
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-white"
+        className="w-full max-w-3xl bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-white"
       >
         <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-4">

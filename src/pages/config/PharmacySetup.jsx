@@ -107,9 +107,9 @@ export default function PharmacySetup() {
   const getColumns = () => {
     switch(activeTab) {
       case 'pharma':
-        return ['Medicine / Code', 'Form', 'Stock', 'Classification'];
+        return ['Medicine / Code', 'Form', 'Stock', 'Price', 'Classification'];
       case 'nonPharma':
-        return ['Item / Code', 'Unit', 'Stock', 'Re-order'];
+        return ['Item / Code', 'Unit', 'Stock', 'Price', 'Re-order'];
       case 'categories':
         return ['Name', 'Category Type', 'Code', 'Status'];
       case 'icd':
@@ -236,6 +236,12 @@ export default function PharmacySetup() {
                              })()}
                           </td>
                           <td className="py-4 px-4 text-xs font-medium text-slate-500">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-slate-900">{currency} {item.price || 0}</span>
+                              <span className="text-[9px] text-slate-400 font-medium uppercase tracking-tighter">Selling Price</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 text-xs font-medium text-slate-500">
                              <span className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-[9px] font-bold uppercase tracking-widest text-slate-400">
                                 {item.classification || 'General'}
                              </span>
@@ -263,6 +269,9 @@ export default function PharmacySetup() {
                                    </span>
                                 );
                              })()}
+                           </td>
+                           <td className="py-4 px-4 text-sm font-bold text-slate-900">
+                             {currency} {item.price || 0}
                            </td>
                           <td className="py-4 px-4 text-xs font-bold text-amber-600">
                              {item.reorderLevel || 'Not Set'}
@@ -393,6 +402,7 @@ export default function PharmacySetup() {
 }
 
 function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
+  const { currency } = useCurrency();
   const [formData, setFormData] = useState(initialData || {});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -499,7 +509,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
             </div>
 
             <div className="grid grid-cols-2 gap-5">
-               <div className="space-y-1.5 p-3 bg-blue-50/50 rounded-2xl border border-blue-100">
+                <div className="space-y-1.5 p-3 bg-blue-50/50 rounded-2xl border border-blue-100">
                   <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Current Stock Level (Units)</label>
                   <input 
                     type="number"
@@ -509,6 +519,19 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
                     className="w-full px-5 py-4 bg-white border-2 border-transparent focus:border-blue-500 rounded-xl text-sm font-bold transition-all outline-none shadow-sm"
                   />
                </div>
+               <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Selling Price ({currency})</label>
+                  <input 
+                    type="number"
+                    placeholder="0.00"
+                    value={formData.price ?? ''}
+                    onChange={e => setFormData({...formData, price: Number(e.target.value)})}
+                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500/20 focus:border-2 rounded-2xl text-sm font-bold transition-all outline-none shadow-inner"
+                  />
+               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Low Stock Alert Level</label>
                   <input 
@@ -531,7 +554,10 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <SelectField label="Unit" options={['Box', 'Piece', 'Pair', 'Pack', 'Roll']} value={formData.unit} onChange={val => setFormData({...formData, unit: val})} />
+              <TextField label="Selling Price" value={formData.price} onChange={val => setFormData({...formData, price: Number(val)})} type="number" />
               <TextField label="Current Stock" value={formData.availableLevel} onChange={val => setFormData({...formData, availableLevel: Number(val)})} type="number" />
+            </div>
+            <div className="grid grid-cols-1">
               <TextField label="Low Stock Level" value={formData.reorderLevel} onChange={val => setFormData({...formData, reorderLevel: Number(val)})} type="number" />
             </div>
           </>
@@ -589,7 +615,7 @@ function PharmacyMasterModal({ type, onClose, onSave, initialData }) {
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100"
+        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100"
       >
         <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
           <div>

@@ -11,6 +11,7 @@ import { useCurrency } from '../../contexts/CurrencyContext';
 import medicalMasterService from '../../services/medicalMasterService';
 import { LAB_STANDARDS, IMAGING_STANDARDS } from '../../constants/investigationStandards';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const EMPTY_FORM = { name: '', category: '', code: '', price: '', fields: [] };
 
@@ -28,6 +29,7 @@ export default function InvestigationSetup() {
   const [importing, setImporting] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const { success, error: toastError } = useToast();
+  const { userData } = useAuth();
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -35,8 +37,8 @@ export default function InvestigationSetup() {
     try {
       setLoading(true);
       const [labData, imgData] = await Promise.all([
-        medicalMasterService.getAll('labs'),
-        medicalMasterService.getAll('imaging'),
+        medicalMasterService.getAll('labs', null, null, null, userData?.facilityId),
+        medicalMasterService.getAll('imaging', null, null, null, userData?.facilityId),
       ]);
       setLabs(labData);
       setImaging(imgData);
@@ -81,7 +83,8 @@ export default function InvestigationSetup() {
         category: form.category, 
         code: form.code, 
         price: form.price,
-        fields: form.fields || []
+        fields: form.fields || [],
+        facilityId: userData?.facilityId
       };
 
       if (editingItem) {
@@ -125,7 +128,8 @@ export default function InvestigationSetup() {
           category: item.category,
           code: item.code,
           price: item.price || 0,
-          fields: item.fields || []
+          fields: item.fields || [],
+          facilityId: userData?.facilityId
         };
         
         // Find if code already exists

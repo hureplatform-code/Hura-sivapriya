@@ -31,25 +31,22 @@ const medicalMasterService = {
         constraints.push(orderBy(sortField));
       }
 
-      // If facilityId is provided, we want to fetch global codes (null/missing) AND facility-specific ones
-      // Since 'or' queries are complex with ordering/pagination, we can use 'where' if we strictly follow one path,
-      // but for masters, usually we want ALL global + ONE facility.
-      // Easiest is to fetch all where facilityId == null (global) and where facilityId == facilityId (local)
-      
       const qConstraints = [...constraints];
       if (limitNum !== null) qConstraints.push(limit(limitNum));
       if (lastDoc) qConstraints.push(startAfter(lastDoc));
 
-      // Strategy: Most codes are global. We'll fetch everything and filter in-memory if it's small,
-      // but if big, we need real queries.
-      // For now, let's implement a robust query that handles the facility filter if provided.
-      
-      let q;
-      q = query(collection(db, col), ...qConstraints);
+      // Fetch all matches and filter for facility context
+      // Note: Real world would use OR queries, but for small-medium masters, in-memory filtering is safer for index management
+      const q = query(collection(db, col), ...qConstraints);
       const snap = await getDocs(q);
       
       const lastVisible = snap.docs[snap.docs.length - 1];
-      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Multi-tenancy filter
+      if (facilityId) {
+        items = items.filter(item => !item.facilityId || item.facilityId === facilityId);
+      }
 
       if (limitNum === null) return items;
       return { items, lastDoc: lastVisible };

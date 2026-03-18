@@ -7,7 +7,7 @@ import {
   RefreshCw, Eye, Mic, List, Info, ClipboardCheck, ClipboardList, Thermometer, 
   Droplet, Plus, BrainCircuit, Heart, Ear, Stethoscope, 
   ChevronRight, History, Smile, Baby, Scissors, Wind, Zap, Brain, Clock, 
-  MoreVertical, X, Droplets, ShieldCheck, ShoppingBag, Trash2
+  MoreVertical, X, Droplets, ShieldCheck, ShoppingBag, Trash2, FlaskConical, Pill, Sparkles
 } from 'lucide-react';
 
 import auditService from '../../services/auditService';
@@ -551,13 +551,13 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   const [transcriptReviewed, setTranscriptReviewed] = useState(false);
   const [icdSuggestions, setIcdSuggestions] = useState([]);
   const [existingRecordId, setExistingRecordId] = useState(null);
-  const [showRouting, setShowRouting] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(initialPatientName ? { name: initialPatientName, id: initialPatientId } : null);
   const [loadingPatient, setLoadingPatient] = useState(false);
   const [medicineSuggestions, setMedicineSuggestions] = useState([]);
   const [labSuggestions, setLabSuggestions] = useState([]);
   const [searchContext, setSearchContext] = useState({ type: null, index: null });
   const [viewingHistoryPatient, setViewingHistoryPatient] = useState(null);
+  const [associatedApt, setAssociatedApt] = useState(null);
   
   const transcriptRef = React.useRef('');
   const userStopRef = React.useRef(false);
@@ -734,9 +734,27 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 
   const loadExistingDraft = async () => {
     try {
+      if (appointmentId) {
+        const appointment = await appointmentService.getAppointmentById(appointmentId);
+        if (appointment) setAssociatedApt(appointment);
+      }
+      
       const draft = await medicalRecordService.getRecordByAppointment(appointmentId);
       if (draft) {
         setExistingRecordId(draft.id);
+        
+        // SYNC PAYMENT STATUS: Use the appointment (source of truth for billing) to update the draft's list
+        const latestApt = appointment || associatedApt;
+        const syncedLabs = (draft.labRequests || []).map(r => {
+           const aptMatch = (latestApt?.labRequests || []).find(al => (al.test || al.testName) === (r.test || r.name));
+           return aptMatch ? { ...r, isPaid: aptMatch.isPaid } : r;
+        });
+
+        const syncedPrescriptions = (draft.prescriptions || []).map(p => {
+           const aptMatch = (latestApt?.prescriptions || []).find(ap => ap.medicine === p.medicine);
+           return aptMatch ? { ...p, isPaid: aptMatch.isPaid, isDispensed: aptMatch.isDispensed } : p;
+        });
+
         setFormData({
           subjective: draft.subjective || '',
           objective: draft.objective || '',
@@ -748,17 +766,15 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             temp: '', hr: '', rr: '', bp_sys: '', bp_dia: '', spo2: '', weight: '', height: '', bmi: ''
           },
           specialtyData: draft.specialtyData || {},
-          labRequests: draft.labRequests || [],
-          prescriptions: draft.prescriptions || []
+          labRequests: syncedLabs,
+          prescriptions: syncedPrescriptions
         });
         if (draft.specialties?.length > 0) setActiveSpecialties(draft.specialties);
         if (draft.patientId) setPatientId(draft.patientId);
       } else if (appointmentId) {
-        // Fallback: If no clinical draft exists, fetch appointment to get patientId and initial data
         const appointment = await appointmentService.getAppointmentById(appointmentId);
         if (appointment && appointment.patientId) {
           setPatientId(appointment.patientId);
-          // Auto-populate from appointment data (manual entry reduction)
           setFormData(prev => ({
             ...prev,
             subjective: appointment.reason || appointment.complaint || prev.subjective,
@@ -834,12 +850,54 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 
       if (existingRecordId) await medicalRecordService.updateRecord(existingRecordId, recordData, { id: userData?.uid, name: userData?.name });
       else await medicalRecordService.createRecord(recordData, { id: userData?.uid, name: userData?.name });
-      if (status === 'signed') setShowRouting(true);
+      
+      // SYNC TO APPOINTMENT: Critical for Lab/Pharmacy to see these requests
+      if (appointmentId) {
+        await appointmentService.updateAppointment(appointmentId, {
+          labRequests: formData.labRequests || [],
+          prescriptions: formData.prescriptions || [],
+          diagnosis: formData.diagnosis || '',
+          vitals: formData.vitals || {}
+        });
+      }
+
+      if (status === 'signed') handleAutoRoute();
       else showNotification('success', 'Draft saved.');
     } catch (err) { 
       showNotification('error', 'Save failed.'); 
       console.error(err); 
     }
+  };
+
+  const handleAutoRoute = async () => {
+    let nextStatus = 'completed';
+    
+    // Smart Routing Logic: Only route to departments if there are UNPAID/UNPROCESSED items
+    const hasUnpaidMeds = formData.prescriptions?.some(p => !p.isPaid && !p.isDispensed);
+    const hasUnpaidLabs = formData.labRequests?.some(l => !l.isPaid);
+
+    if (hasUnpaidMeds) {
+      nextStatus = 'awaiting-pharmacy';
+    } else if (hasUnpaidLabs) {
+      nextStatus = 'awaiting-lab';
+    } else if (formData.nursingOrders?.trim()) {
+      nextStatus = 'awaiting-nurse';
+    }
+    
+    try {
+      if (appointmentId) {
+        await appointmentService.updateAppointmentStatus(appointmentId, nextStatus);
+        
+        const destination = nextStatus === 'completed' ? 'Discharge' : nextStatus.replace('awaiting-', '').toUpperCase();
+        showNotification('success', `Consultation signed. Patient routed to ${destination}.`);
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification('error', 'Routing failed.');
+    }
+    
+    // Always call onSave to close editor and refresh
+    if (onSave) onSave();
   };
 
   const handleRoute = async (routeTo) => {
@@ -907,8 +965,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
        return;
     }
     try {
-      if (section === 'prescription') {
-        setSearchContext({ type: 'medicine', index });
+    if (section === 'prescription') {
+      setSearchContext({ type: 'prescription', index });
         // Search both Master Catalogue and Inventory
         const [masterResults, invResults] = await Promise.all([
           medicalMasterService.search('pharma', term, userData?.facilityId),
@@ -1403,7 +1461,55 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
              </div>
           )}
 
-          {/* SOAP SECTION - Enhanced Visibility Card Layout */}
+           {associatedApt?.structuredResults?.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 bg-white border border-emerald-100 rounded-3xl overflow-hidden shadow-sm"
+              >
+                  <div className="bg-emerald-50 px-8 py-4 flex items-center justify-between border-b border-emerald-100">
+                     <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
+                           <FlaskConical className="h-5 w-5" />
+                        </div>
+                        <div>
+                           <h3 className="text-xs font-black text-emerald-900 uppercase tracking-widest leading-none">Flash Lab Results</h3>
+                           <p className="text-[10px] font-bold text-emerald-600/70 mt-1 uppercase tracking-wider">Reported {associatedApt.labCompletedAt ? new Date(associatedApt.labCompletedAt).toLocaleTimeString() : 'Recently'}</p>
+                        </div>
+                     </div>
+                     <span className="px-3 py-1 bg-white/50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-200">Finalized Findings</span>
+                  </div>
+                  
+                  <div className="p-8 grid grid-cols-1 gap-12">
+                     {associatedApt.structuredResults.map((res, idx) => (
+                        <div key={idx} className="space-y-4">
+                           <div className="flex items-center gap-2 mb-2">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                              <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">{res.name}</h4>
+                           </div>
+                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {Object.entries(res.values || {}).map(([key, val]) => (
+                                 <div key={key} className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase truncate mb-1">{key}</p>
+                                    <p className="text-base font-black text-slate-900 tabular-nums leading-none">{val}</p>
+                                 </div>
+                              ))}
+                           </div>
+                           {res.remarks && (
+                              <div className="bg-emerald-50/30 p-4 rounded-xl border border-dashed border-emerald-100/50">
+                                 <p className="text-[8px] font-bold text-emerald-800 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                    <Sparkles className="h-3 w-3" /> Tech Observation
+                                 </p>
+                                 <p className="text-xs font-bold text-emerald-900/70 leading-relaxed italic">"{res.remarks}"</p>
+                              </div>
+                           )}
+                        </div>
+                     ))}
+                  </div>
+              </motion.div>
+           )}
+
+           {/* SOAP SECTION - Enhanced Visibility Card Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
                {/* Subjective */}
                <div className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:border-blue-200 flex flex-col gap-6">
@@ -1610,166 +1716,153 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                   ) : (
                     <div className="w-full">
                         <div className="space-y-6">
-                           {formData.prescriptions.map((p, idx) => (
-                              <div key={idx} className="bg-slate-50/50 hover:bg-white transition-all p-6 rounded-2xl border border-slate-100 group space-y-6 shadow-sm hover:shadow-md">
-                                 {/* Row 1: Identification & Route */}
-                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
-                                    <div className="md:col-span-6 relative">
-                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Medication</label>
-                                       <input 
-                                          placeholder="Search medicine brand or generic..." 
-                                          value={p.medicine}
-                                          autoComplete="off"
-                                          onChange={(e) => {
-                                             const term = e.target.value;
-                                             const newP = [...formData.prescriptions];
-                                             newP[idx].medicine = term;
-                                             setFormData({...formData, prescriptions: newP});
-                                             handleSearchMaster('pharma', term, idx, 'prescription');
-                                          }}
-                                          onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
-                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm transition-all"
-                                        />
-                                        {searchContext.type === 'medicine' && searchContext.index === idx && medicineSuggestions.length > 0 && (
-                                           <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[350px] overflow-y-auto">
-                                              <div className="p-2 space-y-0.5">
-                                                 {medicineSuggestions.map((m) => (
-                                                    m && (
-                                                    <button 
-                                                       key={m.id}
-                                                       onMouseDown={(e) => {
-                                                          e.preventDefault();
-                                                          const newP = [...formData.prescriptions];
-                                                          newP[idx].medicine = m.brandName || m.name;
-                                                          if (m.dosage) newP[idx].dosage = m.dosage;
-                                                          setFormData({...formData, prescriptions: newP});
-                                                          setMedicineSuggestions([]);
-                                                          setSearchContext({type: null, index: null});
-                                                       }}
-                                                       className="w-full text-left px-4 py-3.5 hover:bg-slate-50 transition-all rounded-xl flex items-center justify-between group/item"
-                                                    >
-                                                       <div className="flex items-center gap-2 overflow-hidden mr-4">
-                                                          <span className="text-sm font-bold text-slate-900 truncate">
-                                                             {m.brandName || m.name}
-                                                             {m.dosage && <span className="text-slate-400 font-medium italic ml-1.5 text-xs">({m.dosage}{m.unit || 'mg'})</span>}
-                                                          </span>
-                                                       </div>
-                                                       {(() => {
-                                                          const stockFields = [
-                                                             m.availableStock, m.stock, m.quantity, m.availableLevel, 
-                                                             m.currentStock, m.current_stock, m.qty, m.inventory, 
-                                                             m.totalStock, m.availableBalance, m.Units, m.units, m.total_qty, m.stock_level
-                                                          ];
-                                                          const s = Math.max(...stockFields.map(val => {
-                                                             if (val === undefined || val === null || val === '') return 0;
-                                                             const num = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : parseFloat(val);
-                                                             return isNaN(num) ? 0 : num;
-                                                          }));
-                                                          return (
-                                                             <span className={`text-[10px] font-black uppercase tracking-tight shrink-0 ${
-                                                                s > 0 ? (s <= (m.reorderLevel || 10) ? 'text-amber-500' : 'text-emerald-500') : 'text-red-500'
-                                                             }`}>
-                                                                {s > 0 ? `${s} Left` : 'Out of Stock'}
-                                                             </span>
-                                                          );
-                                                       })()}
-                                                    </button>
-                                                    )
-                                                 ))}
-                                              </div>
-                                           </div>
-                                        )}
-                                    </div>
-                                    <div className="md:col-span-3">
-                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Route</label>
-                                       <select 
-                                          value={p.route}
-                                          onChange={(e) => {
-                                             const newP = [...formData.prescriptions];
-                                             newP[idx].route = e.target.value;
-                                             setFormData({...formData, prescriptions: newP});
-                                          }}
-                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm appearance-none cursor-pointer hover:bg-slate-50 transition-colors"
-                                       >
-                                          <option>Oral</option>
-                                          <option>IV</option>
-                                          <option>IM</option>
-                                          <option>SC</option>
-                                          <option>Topical</option>
-                                          <option>Inhaled</option>
-                                       </select>
-                                    </div>
-                                    <div className="md:col-span-3">
-                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Dosage</label>
-                                       <input 
-                                          placeholder="e.g. 500mg" 
-                                          value={p.dosage} 
-                                          onChange={(e) => {
-                                             const newP = [...formData.prescriptions];
-                                             newP[idx].dosage = e.target.value;
-                                             setFormData({...formData, prescriptions: newP});
-                                          }} 
-                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm transition-all" 
-                                       />
-                                    </div>
-                                 </div>
+                           {(formData.prescriptions || []).map((p, idx) => (
+                          <div key={idx} className={`bg-slate-50/50 hover:bg-white transition-all p-8 rounded-2xl border border-slate-100 group space-y-6 shadow-sm hover:shadow-md ${p.isPaid ? 'opacity-90 grayscale-[0.5]' : ''}`}>
+                             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                                <div className="flex items-center gap-3">
+                                   <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold ${p.isPaid ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white shadow-lg shadow-blue-100'}`}>
+                                      {p.isPaid ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
+                                   </div>
+                                   <div>
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Medication Segment</p>
+                                      {p.isPaid && <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-tighter bg-emerald-50 px-2 py-0.5 rounded">Paid & Locked</span>}
+                                   </div>
+                                </div>
+                             </div>
+                             
+                             <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+                                <div className="md:col-span-12 relative">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Search Medicine</label>
+                                   <div className="relative">
+                                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                      <input 
+                                         placeholder="Type brand or generic name..." 
+                                         value={p.medicine}
+                                         readOnly={p.isPaid}
+                                         autoComplete="off"
+                                         onChange={(e) => {
+                                            if (p.isPaid) return;
+                                            const term = e.target.value;
+                                            const newP = [...formData.prescriptions];
+                                            newP[idx].medicine = term;
+                                            setFormData({...formData, prescriptions: newP});
+                                            handleSearchMaster('pharmacy', term, idx, 'prescription');
+                                         }}
+                                         onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                         className={`w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold shadow-sm transition-all ${p.isPaid ? 'bg-slate-50 cursor-not-allowed border-transparent' : 'focus:border-blue-500'}`}
+                                      />
+                                   </div>
+                                   {searchContext.type === 'prescription' && searchContext.index === idx && medicineSuggestions.length > 0 && !p.isPaid && (
+                                      <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[400px] overflow-y-auto">
+                                         <div className="p-2 space-y-0.5">
+                                            {medicineSuggestions.map((m) => (
+                                               <button 
+                                                  key={m.id}
+                                                  onMouseDown={(e) => {
+                                                     e.preventDefault();
+                                                     const newP = [...formData.prescriptions];
+                                                     newP[idx].medicine = m.brandName || m.name;
+                                                     if (m.dosage) newP[idx].dosage = m.dosage;
+                                                     setFormData({...formData, prescriptions: newP});
+                                                     setMedicineSuggestions([]);
+                                                     setSearchContext({type: null, index: null});
+                                                  }}
+                                                  className="w-full text-left px-5 py-4 hover:bg-blue-50/50 transition-all rounded-xl flex items-center justify-between group/item border border-transparent hover:border-blue-100"
+                                               >
+                                                  <div className="flex items-center gap-4">
+                                                     <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover/item:bg-white group-hover/item:text-blue-600 transition-all shadow-inner">
+                                                        <Pill className="h-5 w-5" />
+                                                     </div>
+                                                     <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-slate-900 truncate">
+                                                           {m.brandName || m.name}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{m.genericName || m.generic || 'Generic Available'}</span>
+                                                     </div>
+                                                  </div>
+                                                  <div className="text-right">
+                                                     <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-lg border border-blue-100 group-hover/item:bg-blue-100">
+                                                        {m.category || 'Pharmacy'}
+                                                     </span>
+                                                  </div>
+                                               </button>
+                                            ))}
+                                         </div>
+                                      </div>
+                                   )}
+                                </div>
+                             </div>
 
-                                 {/* Row 2: Timing & Clinical Instructions */}
-                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end border-t border-slate-100/50 pt-5">
-                                    <div className="md:col-span-3">
-                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Frequency</label>
-                                       <input 
-                                          placeholder="e.g. 1-0-1" 
-                                          value={p.frequency} 
-                                          onChange={(e) => {
-                                             const newP = [...formData.prescriptions];
-                                             newP[idx].frequency = e.target.value;
-                                             setFormData({...formData, prescriptions: newP});
-                                          }} 
-                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm transition-all" 
-                                       />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Days</label>
-                                       <input 
-                                          placeholder="e.g. 5" 
-                                          value={p.duration} 
-                                          onChange={(e) => {
-                                             const newP = [...formData.prescriptions];
-                                             newP[idx].duration = e.target.value;
-                                             setFormData({...formData, prescriptions: newP});
-                                          }} 
-                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-blue-500 shadow-sm transition-all text-center" 
-                                       />
-                                    </div>
-                                    <div className="md:col-span-6 relative">
-                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Clinical Instructions</label>
-                                       <textarea 
-                                          placeholder="Special administration instructions..." 
-                                          value={p.instructions || ""}
-                                          rows={1}
-                                          onChange={(e) => {
-                                             const newP = [...formData.prescriptions];
-                                             newP[idx].instructions = e.target.value;
-                                             setFormData({...formData, prescriptions: newP});
-                                             e.target.style.height = "auto";
-                                             e.target.style.height = e.target.scrollHeight + "px";
-                                          }}
-                                          className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-600 w-full outline-none focus:border-blue-500 shadow-sm resize-none min-h-[44px] transition-all"
-                                       />
-                                    </div>
-                                    <div className="md:col-span-1 flex justify-end pb-1.5">
-                                       <button 
-                                          onClick={() => setFormData({ ...formData, prescriptions: formData.prescriptions.filter((_, i) => i !== idx) })}
-                                          className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all rounded-xl"
-                                          title="Remove Medication"
-                                       >
-                                          <X className="h-5 w-5" />
-                                       </button>
-                                    </div>
-                                 </div>
-                              </div>
-                           ))}
+                             <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-6 items-end border-t border-slate-100/50 pt-8">
+                                <div className="lg:col-span-2 space-y-3">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 pl-1 border-l-2 border-blue-500">Route</label>
+                                   <select className={`w-full p-4 border border-slate-100 rounded-xl outline-none text-xs font-bold appearance-none cursor-pointer transition-all ${p.isPaid ? 'bg-slate-50 cursor-not-allowed' : 'bg-slate-50/50 hover:bg-white'}`}
+                                      value={p.route}
+                                      disabled={p.isPaid}
+                                      onChange={(e) => {
+                                         const newP = [...formData.prescriptions];
+                                         newP[idx].route = e.target.value;
+                                         setFormData({...formData, prescriptions: newP});
+                                      }}>
+                                      {['Oral', 'IV', 'IM', 'Topical', 'Inhalation', 'Drops'].map(r => <option key={r} value={r}>{r}</option>)}
+                                   </select>
+                                </div>
+                                <div className="lg:col-span-2 space-y-3">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 pl-1 border-l-2 border-indigo-500">Dosage</label>
+                                   <input placeholder="Ex: 500mg" value={p.dosage} readOnly={p.isPaid}
+                                      className={`w-full p-4 border border-slate-100 rounded-xl outline-none text-xs font-bold transition-all ${p.isPaid ? 'bg-slate-50 cursor-not-allowed' : 'bg-slate-50/50 focus:bg-white focus:border-indigo-400'}`}
+                                      onChange={(e) => {
+                                         const newP = [...formData.prescriptions];
+                                         newP[idx].dosage = e.target.value;
+                                         setFormData({...formData, prescriptions: newP});
+                                      }}/>
+                                </div>
+                                <div className="lg:col-span-2 space-y-3">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 pl-1 border-l-2 border-emerald-500">Freq</label>
+                                   <select className={`w-full p-4 border border-slate-100 rounded-xl outline-none text-xs font-bold appearance-none cursor-pointer transition-all ${p.isPaid ? 'bg-slate-50 cursor-not-allowed' : 'bg-slate-50/50 hover:bg-white'}`}
+                                      value={p.frequency}
+                                      disabled={p.isPaid}
+                                      onChange={(e) => {
+                                         const newP = [...formData.prescriptions];
+                                         newP[idx].frequency = e.target.value;
+                                         setFormData({...formData, prescriptions: newP});
+                                      }}>
+                                      {['1-0-1', '1-1-1', '0-0-1', '1-0-0', 'PRN', 'Stat'].map(f => <option key={f} value={f}>{f}</option>)}
+                                   </select>
+                                </div>
+                                <div className="lg:col-span-2 space-y-3">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 pl-1 border-l-2 border-amber-500">Days</label>
+                                   <input placeholder="Ex: 5" value={p.duration} readOnly={p.isPaid}
+                                      className={`w-full p-4 border border-slate-100 rounded-xl outline-none text-xs font-bold transition-all ${p.isPaid ? 'bg-slate-50 cursor-not-allowed' : 'bg-slate-50/50 focus:bg-white focus:border-amber-400'}`}
+                                      onChange={(e) => {
+                                         const newP = [...formData.prescriptions];
+                                         newP[idx].duration = e.target.value;
+                                         setFormData({...formData, prescriptions: newP});
+                                      }}/>
+                                </div>
+                                <div className="lg:col-span-3 space-y-3 relative">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 pl-1 border-l-2 border-slate-300">Instructions</label>
+                                   <input placeholder="Ex: After meal" value={p.instructions || ""} readOnly={p.isPaid}
+                                      className={`w-full p-4 border border-slate-100 rounded-xl outline-none text-xs font-bold transition-all ${p.isPaid ? 'bg-slate-50 cursor-not-allowed' : 'bg-slate-50/50 focus:bg-white'}`}
+                                      onChange={(e) => {
+                                         const newP = [...formData.prescriptions];
+                                         newP[idx].instructions = e.target.value;
+                                         setFormData({...formData, prescriptions: newP});
+                                      }}/>
+                                </div>
+                                <div className="lg:col-span-1 flex justify-end pb-1.5">
+                                   {!p.isPaid && (
+                                     <button 
+                                        onClick={() => setFormData({ ...formData, prescriptions: formData.prescriptions.filter((_, i) => i !== idx) })}
+                                        className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all rounded-xl"
+                                     >
+                                        <Trash2 className="h-5 w-5" />
+                                     </button>
+                                   )}
+                                </div>
+                             </div>
+                          </div>
+                       ))}
                         </div>
                     </div>
                   )}
@@ -1799,114 +1892,122 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                 <div className="w-full">
                    <div className="space-y-6">
                       {(formData.labRequests || []).map((r, idx) => (
-                         <div key={idx} className="bg-slate-50/50 hover:bg-white transition-all p-6 rounded-2xl border border-slate-100 group space-y-6 shadow-sm hover:shadow-md">
-                            {/* Row 1: Investigation & Priority */}
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
-                               <div className="md:col-span-8 relative">
-                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Investigation</label>
-                                  <input 
-                                     placeholder="Search test, radiology or pathology..." 
-                                     value={r.test}
-                                     autoComplete="off"
-                                     onChange={(e) => {
-                                        const term = e.target.value;
-                                        const newR = [...formData.labRequests];
-                                        newR[idx].test = term;
-                                        setFormData({...formData, labRequests: newR});
-                                        handleSearchMaster('labs', term, idx, 'labs');
-                                     }}
-                                     onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
-                                     className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 w-full outline-none focus:border-emerald-500 shadow-sm transition-all"
-                                  />
-                                  {searchContext.type === 'lab' && searchContext.index === idx && labSuggestions.length > 0 && (
-                                     <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[350px] overflow-y-auto">
-                                        <div className="p-2 space-y-0.5">
-                                           {labSuggestions.map((m) => (
-                                              <button 
-                                                 key={m.id}
-                                                 onMouseDown={(e) => {
-                                                    e.preventDefault();
-                                                    const newR = [...formData.labRequests];
-                                                    newR[idx].test = m.testName || m.name;
-                                                    setFormData({...formData, labRequests: newR});
-                                                    setLabSuggestions([]);
-                                                    setSearchContext({type: null, index: null});
-                                                 }}
-                                                 className="w-full text-left px-5 py-5 hover:bg-emerald-50/30 transition-all rounded-2xl flex items-center justify-between group/item border border-transparent hover:border-emerald-100"
-                                              >
-                                                 <div className="flex items-center gap-5">
-                                                    <div className="h-12 w-12 bg-slate-100/50 rounded-xl flex items-center justify-center text-slate-400 group-hover/item:bg-white group-hover/item:text-emerald-600 transition-all shadow-inner shrink-0">
-                                                       <ActivityIcon className="h-6 w-6" />
-                                                    </div>
-                                                    <div className="flex flex-col gap-1 overflow-hidden">
-                                                       <span className="text-base font-bold text-slate-900 truncate group-hover/item:text-emerald-900 transition-colors tracking-tight">
-                                                          {m.testName || m.name}
-                                                       </span>
-                                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                                          <div className="h-1.5 w-1.5 rounded-full bg-slate-200" />
-                                                          Investigation Profile
-                                                       </span>
-                                                    </div>
-                                                 </div>
-                                                 <div className="shrink-0 ml-4">
-                                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.1em] bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 shadow-sm group-hover/item:bg-emerald-100 transition-all">
-                                                       {m.department || 'General'}
-                                                    </span>
-                                                 </div>
-                                              </button>
-                                           ))}
-                                        </div>
-                                     </div>
-                                  )}
-                               </div>
-                               <div className="md:col-span-4">
-                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Priority</label>
-                                  <select 
-                                     value={r.priority}
-                                     onChange={(e) => {
-                                        const newR = [...formData.labRequests];
-                                        newR[idx].priority = e.target.value;
-                                        setFormData({...formData, labRequests: newR});
-                                     }}
-                                     className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 w-full outline-none focus:border-emerald-500 shadow-sm appearance-none cursor-pointer hover:bg-slate-50 transition-colors"
-                                  >
-                                     <option value="routine">Routine</option>
-                                     <option value="urgent">Urgent</option>
-                                     <option value="stat">STAT</option>
-                                  </select>
-                               </div>
-                            </div>
+                          <div key={idx} className={`bg-slate-50/50 hover:bg-white transition-all p-6 rounded-2xl border border-slate-100 group space-y-6 shadow-sm hover:shadow-md ${r.isPaid ? 'opacity-90' : ''}`}>
+                             <div className="flex items-center gap-2 mb-2">
+                                {r.isPaid && (
+                                   <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-emerald-100 animate-in fade-in zoom-in duration-300">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Test Settled & Locked
+                                   </span>
+                                )}
+                             </div>
+                             
+                             <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+                                <div className="md:col-span-8 relative">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Investigation</label>
+                                   <input 
+                                      placeholder="Search test, radiology or pathology..." 
+                                      value={r.test}
+                                      readOnly={r.isPaid}
+                                      autoComplete="off"
+                                      onChange={(e) => {
+                                         if (r.isPaid) return;
+                                         const term = e.target.value;
+                                         const newR = [...formData.labRequests];
+                                         newR[idx].test = term;
+                                         setFormData({...formData, labRequests: newR});
+                                         handleSearchMaster('labs', term, idx, 'labs');
+                                      }}
+                                      onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                      className={`bg-white border rounded-xl px-4 py-3 text-sm font-bold w-full outline-none shadow-sm transition-all ${r.isPaid ? 'bg-slate-50 border-transparent text-slate-500 cursor-not-allowed' : 'border-slate-200 focus:border-emerald-500'}`}
+                                   />
+                                   {searchContext.type === 'lab' && searchContext.index === idx && labSuggestions.length > 0 && !r.isPaid && (
+                                      <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[350px] overflow-y-auto">
+                                         <div className="p-2 space-y-0.5">
+                                            {labSuggestions.map((m) => (
+                                               <button 
+                                                  key={m.id}
+                                                  onMouseDown={(e) => {
+                                                     e.preventDefault();
+                                                     const newR = [...formData.labRequests];
+                                                     newR[idx].test = m.testName || m.name;
+                                                     setFormData({...formData, labRequests: newR});
+                                                     setLabSuggestions([]);
+                                                     setSearchContext({type: null, index: null});
+                                                  }}
+                                                  className="w-full text-left px-5 py-5 hover:bg-emerald-50/30 transition-all rounded-2xl flex items-center justify-between group/item border border-transparent hover:border-emerald-100"
+                                               >
+                                                  <div className="flex items-center gap-5">
+                                                     <div className="h-12 w-12 bg-slate-100/50 rounded-xl flex items-center justify-center text-slate-400 group-hover/item:bg-white group-hover/item:text-emerald-600 transition-all shadow-inner shrink-0">
+                                                        <ActivityIcon className="h-6 w-6" />
+                                                     </div>
+                                                     <div className="flex flex-col gap-1 overflow-hidden">
+                                                        <span className="text-base font-bold text-slate-900 truncate group-hover/item:text-emerald-900 transition-colors tracking-tight">
+                                                           {m.testName || m.name}
+                                                        </span>
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                           <div className="h-1.5 w-1.5 rounded-full bg-slate-200" />
+                                                           Investigation Profile
+                                                        </span>
+                                                     </div>
+                                                  </div>
+                                               </button>
+                                            ))}
+                                         </div>
+                                      </div>
+                                   )}
+                                </div>
+                                <div className="md:col-span-4">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Priority</label>
+                                   <select 
+                                      value={r.priority}
+                                      disabled={r.isPaid}
+                                      onChange={(e) => {
+                                         const newR = [...formData.labRequests];
+                                         newR[idx].priority = e.target.value;
+                                         setFormData({...formData, labRequests: newR});
+                                      }}
+                                      className={`bg-white border rounded-xl px-4 py-3 text-xs font-bold w-full outline-none shadow-sm appearance-none cursor-pointer transition-colors ${r.isPaid ? 'bg-slate-50 border-transparent text-slate-500 cursor-not-allowed' : 'border-slate-200 focus:border-emerald-500 hover:bg-slate-50'}`}
+                                   >
+                                      <option value="routine">Routine</option>
+                                      <option value="urgent">Urgent</option>
+                                      <option value="stat">STAT</option>
+                                   </select>
+                                </div>
+                             </div>
 
-                            {/* Row 2: Instructions */}
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end border-t border-slate-100/50 pt-5">
-                               <div className="md:col-span-11 relative">
-                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Clinical Instructions</label>
-                                  <textarea 
-                                     placeholder="Reason for test or specific sample instructions..." 
-                                     value={r.instructions}
-                                     rows={1}
-                                     onChange={(e) => {
-                                        const newR = [...formData.labRequests];
-                                        newR[idx].instructions = e.target.value;
-                                        setFormData({...formData, labRequests: newR});
-                                        e.target.style.height = 'auto';
-                                        e.target.style.height = e.target.scrollHeight + 'px';
-                                     }}
-                                     className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-600 w-full outline-none focus:border-emerald-500 shadow-sm resize-none min-h-[44px] transition-all"
-                                  />
-                               </div>
-                               <div className="md:col-span-1 flex justify-end pb-1.5">
-                                  <button 
-                                     onClick={() => setFormData({ ...formData, labRequests: formData.labRequests.filter((_, i) => i !== idx) })}
-                                     className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all rounded-xl"
-                                     title="Remove Test"
-                                  >
-                                     <Trash2 className="h-5 w-5" />
-                                  </button>
-                               </div>
-                            </div>
-                         </div>
-                      ))}
+                             {/* Row 2: Instructions */}
+                             <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end border-t border-slate-100/50 pt-5">
+                                <div className="md:col-span-11 relative">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Clinical Instructions</label>
+                                   <textarea 
+                                      placeholder="Reason for test or specific sample instructions..." 
+                                      value={r.instructions}
+                                      readOnly={r.isPaid}
+                                      rows={1}
+                                      onChange={(e) => {
+                                         const newR = [...formData.labRequests];
+                                         newR[idx].instructions = e.target.value;
+                                         setFormData({...formData, labRequests: newR});
+                                         e.target.style.height = 'auto';
+                                         e.target.style.height = e.target.scrollHeight + 'px';
+                                      }}
+                                      className={`bg-white border rounded-xl px-4 py-3 text-xs font-medium w-full outline-none shadow-sm resize-none min-h-[44px] transition-all ${r.isPaid ? 'bg-slate-50 border-transparent text-slate-400 cursor-not-allowed' : 'border-slate-200 focus:border-emerald-500'}`}
+                                   />
+                                </div>
+                                <div className="md:col-span-1 flex justify-end pb-1.5">
+                                   {!r.isPaid && (
+                                     <button 
+                                        onClick={() => setFormData({ ...formData, labRequests: formData.labRequests.filter((_, i) => i !== idx) })}
+                                        className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all rounded-xl"
+                                     >
+                                        <Trash2 className="h-5 w-5" />
+                                     </button>
+                                   )}
+                                </div>
+                             </div>
+                          </div>
+                       ))}
                    </div>
                 </div>
             </div>
@@ -2210,43 +2311,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           </div>
         </div>
 
-        {showRouting && (
-           <div className="absolute inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8 rounded-2xl">
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-12 max-w-2xl w-full flex flex-col items-center text-center shadow-2xl relative overflow-hidden">
-                 <div className="absolute top-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500 left-0" />
-                 
-                 <div className="h-24 w-24 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mb-8 shadow-inner">
-                   <CheckCircle2 className="h-12 w-12" />
-                 </div>
-                 
-                 <h3 className="text-3xl font-bold text-slate-900 tracking-tight mb-3">Consultation Finalized</h3>
-                 <p className="text-slate-500 font-medium mb-10 max-w-sm">The clinical note has been securely signed and saved. Where should the patient proceed next?</p>
-                 
-                 <div className="grid grid-cols-2 w-full gap-4">
-                   <button onClick={() => handleRoute('awaiting-pharmacy')} className="py-6 px-4 bg-purple-50 hover:bg-purple-100 border border-purple-100 text-purple-700 rounded-xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
-                      Pharmacy Queue
-                      <span className="text-[10px] font-medium text-purple-400 normal-case tracking-normal">Dispense Prescriptions</span>
-                   </button>
-                   <button onClick={() => handleRoute('awaiting-billing')} className="py-6 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-100 text-amber-700 rounded-xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
-                      Billing Desk (Labs/Tests)
-                      <span className="text-[10px] font-medium text-amber-500 normal-case tracking-normal">Collect test payments</span>
-                   </button>
-                   <button onClick={() => handleRoute('awaiting-nurse')} className="py-6 px-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 rounded-xl font-semibold uppercase tracking-widest text-xs transition-colors flex flex-col items-center gap-2">
-                      Nursing Duty Queue
-                      <span className="text-[10px] font-medium text-blue-400 normal-case tracking-normal">Execute nursing orders</span>
-                   </button>
-                   <button onClick={() => handleRoute('completed')} className="py-6 px-4 bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-200 rounded-xl font-semibold uppercase tracking-widest text-xs transition-all flex flex-col items-center gap-2">
-                      Discharge Patient
-                      <span className="text-[10px] font-medium text-slate-400 normal-case tracking-normal">Session Complete</span>
-                   </button>
-                 </div>
-
-                 <button onClick={() => onSave()} className="mt-8 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">
-                   Skip Routing (Leave Active)
-                 </button>
-              </motion.div>
-           </div>
-        )}
+        {/* Automatic Routing Implementation - Modal Removed */}
       </motion.div>
     </motion.div>
   );

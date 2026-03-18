@@ -51,6 +51,7 @@ export default function Profile() {
     plan: 'Enterprise',
     isVerified: true,
     currency: 'USD',
+    consultationFee: 1000,
     openingHours: 'Mon - Fri: 8:00 AM - 8:00 PM, Sat: 9:00 AM - 5:00 PM',
     socialLinks: {
       facebook: '',
@@ -427,6 +428,22 @@ export default function Profile() {
                         <input type="text" value={profile.taxId} onChange={(e) => setProfile({...profile, taxId: e.target.value})} className="w-full px-4 py-3.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-medium transition-all outline-none" />
                       </div>
                     </div>
+
+                    <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+                       <label className="text-xs font-medium text-slate-500 ml-1 uppercase tracking-wider block">Standard Pricing</label>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div className="space-y-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Default Consultation Fee ({profile.currency})</p>
+                            <input 
+                              type="number" 
+                              value={profile.consultationFee} 
+                              onChange={(e) => setProfile({...profile, consultationFee: e.target.value})} 
+                              className="w-full px-4 py-3.5 bg-white border-transparent focus:ring-2 focus:ring-primary-500 rounded-2xl text-sm font-bold shadow-sm transition-all outline-none" 
+                            />
+                         </div>
+                       </div>
+                    </div>
+
                     <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-start gap-4">
                       <div className="p-2 bg-primary-100 text-primary-600 rounded-xl">
                         <ShieldCheck className="h-6 w-6" />

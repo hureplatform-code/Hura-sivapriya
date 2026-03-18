@@ -109,6 +109,30 @@ const appointmentService = {
     return results.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.time || '00:00').localeCompare(b.time || '00:00'));
   },
 
+  async getPharmacyData(facilityId) {
+    if (!facilityId) return [];
+    
+    // 1. Fetch pending pharmacy requests
+    const qPending = [where('status', '==', 'awaiting-pharmacy'), where('facilityId', '==', facilityId)];
+    
+    // 2. Fetch processed pharmacy requests (routed to billing, completed, or paid)
+    const qProcessed = [where('status', 'in', ['completed', 'awaiting-billing', 'billed', 'paid']), where('facilityId', '==', facilityId), limit(300)];
+    
+    const [pending, processed] = await Promise.all([
+      firestoreService.getAll(this.collection, qPending),
+      firestoreService.getAll(this.collection, qProcessed)
+    ]);
+    
+    const all = [...pending, ...processed];
+
+    return all.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      if (dateB - dateA !== 0) return dateB - dateA;
+      return (b.time || '00:00').localeCompare(a.time || '00:00');
+    });
+  },
+
   async getLaboratoryQueue(facilityId) {
     const q = [where('status', '==', 'awaiting-lab')];
     if (facilityId) q.push(where('facilityId', '==', facilityId));
@@ -123,10 +147,10 @@ const appointmentService = {
     const qPending = [where('status', '==', 'awaiting-lab'), where('facilityId', '==', facilityId)];
     
     // Fetch completed lab requests (including those sent to billing or finalized)
-    const qProcessed = [where('status', 'in', ['completed', 'awaiting-billing', 'billed', 'paid']), where('facilityId', '==', facilityId), limit(300)];
+    const qProcessed = [where('status', 'in', ['completed', 'awaiting-billing', 'billed', 'paid', 'awaiting-pharmacy']), where('facilityId', '==', facilityId), limit(300)];
     
     // Fetch patients who were returned to clinical queue after lab (status 'arrived')
-    const qReturned = [where('status', 'in', ['arrived', 'calling', 'in-session', 'triage']), where('facilityId', '==', facilityId), limit(300)];
+    const qReturned = [where('status', 'in', ['arrived', 'calling', 'in-session', 'triage', 'awaiting-nurse']), where('facilityId', '==', facilityId), limit(300)];
     
     const [pending, processed, returned] = await Promise.all([
       firestoreService.getAll(this.collection, qPending),

@@ -67,6 +67,7 @@ export const TEST_CATALOG = {
   'LFT': {
     name: 'Liver Function Test (LFT)',
     category: 'Biochemistry',
+    price: 2800,
     fields: [
       { id: 'bil_t', label: 'Bilirubin Total', unit: 'mg/dL', ref: '0.2-1.2' },
       { id: 'bil_d', label: 'Bilirubin Direct', unit: 'mg/dL', ref: '0.0-0.3' },
@@ -80,6 +81,7 @@ export const TEST_CATALOG = {
   'RFT': {
     name: 'Renal Function Test (KFT/RFT)',
     category: 'Biochemistry',
+    price: 2200,
     fields: [
       { id: 'urea', label: 'Urea', unit: 'mg/dL', ref: '15-45' },
       { id: 'creat', label: 'Creatinine', unit: 'mg/dL', ref: '0.6-1.2' },
@@ -111,6 +113,7 @@ export const TEST_CATALOG = {
   'ELECTROLYTES': {
     name: 'Serum Electrolytes',
     category: 'Biochemistry',
+    price: 1800,
     fields: [
       { id: 'na', label: 'Sodium (Na+)', unit: 'mmol/L', ref: '135-145' },
       { id: 'k', label: 'Potassium (K+)', unit: 'mmol/L', ref: '3.5-5.1' },
@@ -250,7 +253,7 @@ export default function LabEntry() {
 
   const fetchDynamicCatalog = async () => {
     try {
-      const dbTests = await medicalMasterService.getAll('labs');
+      const dbTests = await medicalMasterService.getAll('labs', null, null, null, userData?.facilityId);
       const catalog = {};
       dbTests.forEach(test => {
         catalog[test.code || test.id] = {
@@ -267,7 +270,8 @@ export default function LabEntry() {
   };
 
   const getMergedCatalog = () => {
-    return { ...TEST_CATALOG, ...dynamicCatalog };
+    // Return ONLY what was configured in the Master Data for this clinic
+    return dynamicCatalog;
   };
 
   const fetchAppointment = async () => {
@@ -276,7 +280,72 @@ export default function LabEntry() {
       const data = await appointmentService.getAppointmentById(appointmentId);
       if (data) {
         setAppointment(data);
-        setStructuredResults(data.structuredResults || []);
+        const catalog = getMergedCatalog();
+        const currentRequests = data.labRequests || [];
+        // PRE-PROCESS: Deduplicate doctor requests by test name
+        const uniqueRequests = Array.from(new Map(currentRequests.map(r => [r.test?.toLowerCase().trim(), r])).values());
+        
+        const candidates = uniqueRequests.map(req => {
+            if (!req.test) return null;
+            const testTitleLower = req.test.toLowerCase().trim();
+            // 2. Catalog Match: Fuzzy search for the best fit
+            const match = Object.entries(catalog).find(([key, t]) => {
+               const nameComp = t.name.toLowerCase();
+               const keyComp = key.toLowerCase();
+               const requestClean = testTitleLower.replace(/\(.*\)/, '').trim();
+               const catalogClean = nameComp.replace(/\(.*\)/, '').trim();
+               
+               return nameComp.includes(testTitleLower) || 
+                      testTitleLower.includes(nameComp) ||
+                      keyComp === testTitleLower ||
+                      testTitleLower.includes(`(${keyComp})`) ||
+                      testTitleLower.includes(`/${keyComp}`) || // Handle "KFT/RFT"
+                      (requestClean.length > 3 && catalogClean.includes(requestClean)) ||
+                      (catalogClean.length > 3 && requestClean.includes(catalogClean));
+            });
+            
+            if (match) {
+               const [typeKey, testSchema] = match;
+               return {
+                  id: Math.random() + Date.now(),
+                  type: typeKey,
+                  name: testSchema.name,
+                  values: {},
+                  remarks: req.instructions || '',
+                  isPreloaded: true
+               };
+            }
+            
+            return {
+               id: Math.random() + Date.now(),
+               type: 'DOCTOR_REQUESTED',
+               name: req.test,
+               values: {},
+               remarks: req.instructions || 'Routine investigation ordered by clinician.',
+               isPreloaded: true
+            };
+        }).filter(Boolean);
+
+        // Update state with smart merge: prioritize DB data (for isPaid) and add new doctor requests
+        setStructuredResults(prev => {
+            const dbResults = data.structuredResults || [];
+            
+            // 1. Identify items we want to keep from DB (they have payment status, results, etc.)
+            // 2. Identify new requests from candidates that aren't in DB yet
+            
+            const toAdd = candidates.filter(newItem => {
+                const newId = (newItem.name || newItem.type).toLowerCase().trim();
+                const existsInDb = dbResults.some(old => {
+                    const oldName = (old.name || '').toLowerCase().trim();
+                    const oldType = (old.type || '').toLowerCase().trim();
+                    return oldName === newId || oldType === newId || 
+                           newId.includes(oldName) || oldName.includes(newId);
+                });
+                return !existsInDb;
+            });
+            
+            return [...dbResults, ...toAdd];
+        });
         setReportFiles(data.reportFiles || []);
       }
     } catch (err) {
@@ -378,7 +447,8 @@ export default function LabEntry() {
         reportFiles,
         labCompletedAt: new Date().toISOString(),
         labTechnicianName: userData?.name || 'Lab Tech',
-        status: status
+        status: status,
+        labResultsReady: true
       };
 
       await appointmentService.updateAppointment(appointment.id, updateData);
@@ -475,7 +545,7 @@ export default function LabEntry() {
                    </span>
                 </div>
                 <p className="text-[10px] font-medium text-slate-400 mt-2 uppercase tracking-widest flex items-center gap-3">
-                   <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Dr. {appointment.provider || appointment.doctor || 'N/A'}</span>
+                   <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Dr. {appointment.providerName || appointment.provider || appointment.doctor || 'N/A'}</span>
                    <span className="h-1 w-1 rounded-full bg-slate-200" />
                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {appointment.date?.split('-').reverse().join('-')}</span>
                    <span className="h-1 w-1 rounded-full bg-slate-200" />
@@ -585,7 +655,9 @@ export default function LabEntry() {
                  <div className="flex items-center gap-8">
                     <div className="flex flex-col">
                        <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest leading-none">Status</span>
-                       <span className="text-[10px] font-bold text-slate-500 uppercase mt-1">{appointment.status.replace('-', ' ')}</span>
+                       <span className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+                         {appointment?.labResultsReady ? 'COMPLETED' : appointment.status.replace('-', ' ')}
+                       </span>
                     </div>
                     <div className="h-6 w-[1px] bg-slate-100" />
                     <div className="flex gap-6">
@@ -630,7 +702,19 @@ export default function LabEntry() {
                          {/* Structured Results Forms */}
                          <div className="space-y-6">
                             {structuredResults.map((entry) => {
-                              const catalog = getMergedCatalog(); const schema = catalog[entry.type]; if (!schema) return null;
+                               const catalog = getMergedCatalog(); 
+                               let schema = catalog[entry.type];
+                               
+                               // Vitrual schema for DOCTOR_REQUESTED tests that aren't in the official catalog
+                               if (!schema && (entry.type === 'DOCTOR_REQUESTED' || entry.isPreloaded)) {
+                                  schema = {
+                                     name: entry.name || 'Requested Investigation',
+                                     category: 'Clinician Ordered',
+                                     fields: [] // Empty fields for generic tests
+                                  };
+                               }
+                               
+                               if (!schema) return null;
                               return (
                                 <motion.div 
                                   initial={{ opacity: 0, scale: 0.98 }}
@@ -740,13 +824,15 @@ export default function LabEntry() {
         isOpen={showPaymentModal}
         onClose={() => {
           setShowPaymentModal(false);
-          navigate('/lab/queue');
         }}
-        appointment={appointment}
+        appointment={{
+           ...appointment,
+           structuredResults: structuredResults
+        }}
         type="investigation"
         onSuccess={() => {
           setShowPaymentModal(false);
-          navigate('/lab/queue');
+          fetchAppointment();
         }}
       />
 

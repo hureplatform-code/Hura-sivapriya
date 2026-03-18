@@ -125,27 +125,40 @@ export default function Dashboard() {
         setArrears([]); // Hide clinic arrears
       } else if (role === 'doctor' || role === 'nurse' || role === 'receptionist') {
         const focusLabel = role === 'doctor' ? "Today's Focus" : "Today's Schedule";
+        const activeToday = appointments.filter(a => 
+          new Date(a.date).toLocaleDateString() === today && 
+          a.status !== 'cancelled'
+        ).length;
+        
         setStats([
-          { label: focusLabel, value: appointments.filter(a => new Date(a.date).toLocaleDateString() === today).length.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/appointments' },
+          { label: focusLabel, value: activeToday.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/appointments' },
           { label: 'Clinical Documentation', value: pendingNotes.toString() + ' Pending', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', path: '/notes' },
           { label: 'Workload Status', value: 'Steady', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50', path: '/appointments' },
           { label: 'Discharged Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/appointments' },
         ]);
         const todayApts = appointments
           .filter(a => new Date(a.date).toLocaleDateString() === today)
+          .filter(a => (role === 'doctor' || role === 'nurse') ? a.status !== 'cancelled' : true)
           .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
 
         setArrears(todayApts.slice(0, 4));
       } else if (role === 'lab_tech') {
         const awaitingLab = appointments.filter(a => a.status === 'awaiting-lab').length;
+        const activeToday = appointments.filter(a => 
+          new Date(a.date).toLocaleDateString() === today && 
+          a.status !== 'cancelled'
+        ).length;
+
         setStats([
+          { label: "Today's Schedule", value: activeToday.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/appointments' },
           { label: 'Awaiting Lab', value: awaitingLab.toString() + ' Patients', icon: Thermometer, color: 'text-orange-600', bg: 'bg-orange-50', path: '/lab/queue' },
           { label: 'Workload', value: awaitingLab > 5 ? 'High' : 'Normal', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50', path: '/lab/queue' },
           { label: 'Tests Today', value: appointments.filter(a => a.labCompletedAt && new Date(a.labCompletedAt).toLocaleDateString() === today).length.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/lab/queue' },
-          { label: 'System Health', value: 'Online', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50', path: '/' },
         ]);
-        const labQueue = appointments.filter(a => a.status === 'awaiting-lab').slice(0, 4);
-        setArrears(labQueue);
+        const todayApts = appointments
+          .filter(a => new Date(a.date).toLocaleDateString() === today && a.status !== 'cancelled')
+          .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
+        setArrears(todayApts.slice(0, 4));
       } else if (role === 'pharmacist' || role === 'pharmacist_admin') {
         const [inventory, pharmaMaster, nonPharmaMaster] = await Promise.all([
           inventoryService.getInventory(userData?.facilityId),
@@ -168,16 +181,23 @@ export default function Dashboard() {
         });
         
         const awaitingPharmacy = appointments.filter(a => a.status === 'awaiting-pharmacy').length;
+        const activeToday = appointments.filter(a => 
+          new Date(a.date).toLocaleDateString() === today && 
+          a.status !== 'cancelled'
+        ).length;
 
         setStats([
+          { label: "Today's Schedule", value: activeToday.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/appointments' },
           { label: 'Awaiting Pharmacy', value: awaitingPharmacy.toString() + ' Patients', icon: ClipboardList, color: 'text-orange-600', bg: 'bg-orange-50', path: '/pharmacy/queue' },
           { label: 'Out of Stock', value: outOfStock.length.toString() + ' Items', icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/config/pharmacy' },
           { label: 'Low Stock Alerts', value: lowStock.length.toString() + ' Items', icon: Package, color: 'text-amber-600', bg: 'bg-amber-50', path: '/config/pharmacy' },
-          { label: 'Inventory Health', value: allItems.length > 0 ? (((allItems.length - outOfStock.length) / allItems.length) * 100).toFixed(0) + '%' : '100%', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/config/pharmacy' },
         ]);
 
         setLowStockItems([...outOfStock, ...lowStock].slice(0, 4));
-        setArrears(appointments.filter(a => a.status === 'awaiting-pharmacy').slice(0, 4));
+        const todayApts = appointments
+          .filter(a => new Date(a.date).toLocaleDateString() === today && a.status !== 'cancelled')
+          .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
+        setArrears(todayApts.slice(0, 4));
       } else {
         const arrearsRate = billingStats.revenue > 0 
           ? ((billingStats.outstanding / (billingStats.revenue + billingStats.outstanding)) * 100).toFixed(1) + '%' 
@@ -312,12 +332,15 @@ export default function Dashboard() {
 
         <div className={`grid grid-cols-1 ${role === 'lab_tech' ? '' : 'lg:grid-cols-2'} gap-8`}>
           {/* Main Visual Section */}
-          <div className={`bg-white rounded-3xl border border-slate-100 shadow-sm p-10 flex flex-col ${role === 'lab_tech' ? 'lg:col-span-2' : ''}`}>
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">
-              {role === 'doctor' ? 'Clinical Schedule' : role === 'lab_tech' ? 'Lab Intake Queue' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'Pharmacy Queue' : 'Financial Arrears'}
-            </h3>
-            <div className="h-10 w-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400">
+          <div className={`bg-white rounded-xl border border-slate-100 p-6 flex flex-col ${role === 'lab_tech' ? 'lg:col-span-2' : ''}`}>
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-50">
+            <div>
+               <h3 className="text-lg font-bold text-slate-800">
+                 {role === 'doctor' ? 'Clinical Schedule' : role === 'lab_tech' ? 'Lab Intake Queue' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'Pharmacy Queue' : 'Financial Arrears'}
+               </h3>
+               <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Today's Appointments</p>
+            </div>
+            <div className="text-slate-300">
               {role === 'doctor' ? <Calendar className="h-5 w-5" /> : role === 'lab_tech' ? <Activity className="h-5 w-5" /> : (role === 'pharmacist' || role === 'pharmacist_admin') ? <ClipboardList className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
             </div>
           </div>
@@ -329,43 +352,33 @@ export default function Dashboard() {
                   {arrears.map((apt, i) => (
                     <div 
                       key={i} 
-                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-[2rem] group transition-all cursor-pointer border-2 ${role === 'lab_tech' ? 'bg-white border-slate-100 hover:border-orange-200 hover:shadow-xl' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'bg-white border-slate-100 hover:border-amber-200 hover:shadow-xl' : 'bg-slate-50 border-transparent hover:bg-white hover:border-primary-100'}`}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 px-2 transition-colors cursor-pointer group"
                       onClick={() => (role === 'lab_tech' || role === 'pharmacist' || role === 'pharmacist_admin') && navigate(role === 'lab_tech' ? '/lab/queue' : '/pharmacy/queue')}
                     >
-                      <div className="flex items-center gap-6">
-                        <div className={`h-16 w-16 rounded-2xl flex items-center justify-center border shadow-sm ${role === 'lab_tech' ? 'bg-orange-50 border-orange-100 text-orange-600' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-primary-50 border-primary-100 text-primary-600'}`}>
-                           <span className="text-lg font-black tracking-tighter">T-{apt.tokenNumber || '0'}</span>
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-lg flex flex-col items-center justify-center border border-slate-100 bg-white text-slate-400">
+                           <span className="text-xs font-bold leading-none">T-{apt.tokenNumber || '0'}</span>
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900 text-lg leading-tight">{apt.patient}</p>
-                          <div className="flex flex-wrap items-center gap-3 mt-1.5">
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-100">
-                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PATIENT ID</span>
-                               <span className="text-[10px] font-bold text-slate-700">{apt.patientId || 'NEW'}</span>
-                            </div>
+                          <p className="font-semibold text-slate-800 text-base leading-none group-hover:text-primary-600 transition-colors uppercase">{apt.patient}</p>
+                          <div className="flex flex-wrap items-center gap-4 mt-2">
+                            <span className="text-[10px] text-slate-500 font-medium">ID: {apt.patientId || 'NEW'}</span>
                             {(apt.patientPhone || apt.phoneNumber || apt.mobile) && (
-                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-100">
-                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">MOB</span>
-                                 <span className="text-[10px] font-bold text-slate-700">{apt.patientPhone || apt.phoneNumber || apt.mobile}</span>
-                              </div>
+                              <span className="text-[10px] text-slate-500 font-medium">MOB: {apt.patientPhone || apt.phoneNumber || apt.mobile}</span>
                             )}
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em]">{apt.type}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                               <Stethoscope className="h-2.5 w-2.5" /> Dr. {apt.providerName || apt.provider || apt.doctor || 'Consultant'}
+                            </span>
+                            <span className="text-[10px] font-bold text-primary-500 uppercase tracking-widest">{apt.type || 'Consultation'}</span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-3">
-                         {role === 'lab_tech' && (
-                           <div className="text-right hidden sm:block">
-                              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Protocol</p>
-                              <p className="text-[10px] font-bold text-orange-600 uppercase">Emergency</p>
-                           </div>
-                         )}
-
+                      <div className="flex items-center gap-4 mt-4 sm:mt-0">
                         {role === 'receptionist' && apt.status === 'scheduled' && (
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleCheckIn(apt.id); }}
-                            className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md active:scale-95"
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-95"
                           >
                             Check In
                           </button>
@@ -374,21 +387,21 @@ export default function Dashboard() {
                         {role === 'doctor' && (apt.status === 'arrived' || apt.status === 'triage') && (
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleCallIn(apt.id); }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md active:scale-95"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95"
                           >
                             Call In
                           </button>
                         )}
 
-                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest 
-                          ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-600' : 
-                            apt.status === 'calling' ? 'bg-amber-50 text-amber-600 animate-pulse' :
-                            apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-600' :
-                            apt.status === 'awaiting-lab' ? 'bg-orange-50 text-orange-600' :
-                            apt.status === 'awaiting-pharmacy' ? 'bg-amber-50 text-amber-600' :
-                            'bg-slate-50 text-slate-500'}`}>
-                          {apt.status}
-                        </span>
+                        <div className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest border rounded transition-colors
+                          ${apt.status === 'arrived' ? 'border-indigo-100 text-indigo-600' : 
+                            apt.status === 'calling' ? 'border-amber-100 text-amber-600 animate-pulse' :
+                            apt.status === 'in-session' ? 'border-emerald-100 text-emerald-600' :
+                            apt.status === 'awaiting-lab' ? 'border-orange-100 text-orange-600' :
+                            apt.status === 'awaiting-pharmacy' ? 'border-amber-100 text-amber-600' :
+                            'border-slate-100 text-slate-400'}`}>
+                          {apt.status === 'scheduled' ? 'Scheduled' : apt.status.replace('-', ' ')}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -399,26 +412,36 @@ export default function Dashboard() {
                 </div>
               )
             ) : (
-              arrears.length > 0 ? arrears.map((inv, i) => (
-                <div 
-                  key={i} 
-                  onClick={() => navigate('/billing')}
-                  className="flex items-center justify-between p-4 bg-slate-50 rounded-xl group hover:bg-white border-2 border-transparent hover:border-red-100 transition-all cursor-pointer active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                      <CreditCard className="h-6 w-6 text-red-500" />
+              arrears.length > 0 ? (
+                <div className="space-y-4">
+                  {arrears.map((inv, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => navigate('/billing')}
+                      className="flex items-center justify-between py-4 border-b border-slate-50 last:border-0 px-2 transition-colors cursor-pointer group hover:bg-slate-50/50"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 bg-slate-50 rounded-lg flex items-center justify-center text-red-500 border border-slate-100">
+                          <CreditCard className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-800 text-base leading-none uppercase">{inv.patientName}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                             <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Pending</span>
+                             <span className="text-[10px] text-slate-400 font-medium">INV-{inv.id?.substring(0, 6)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                         <p className="text-lg font-bold text-slate-800 leading-none">{currency} {inv.total?.toLocaleString()}</p>
+                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Outstanding</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-slate-900 text-sm">{inv.patientName}</p>
-                      <p className="text-[10px] text-red-500 font-bold uppercase">{currency} {inv.total?.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-900 transition-colors" />
+                  ))}
                 </div>
-              )) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 italic text-sm">
-                  <p>Outstanding ledger is clear.</p>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-slate-400 text-[10px] font-bold uppercase tracking-widest py-10">
+                  Outstanding ledger is clear.
                 </div>
               )
             )}
@@ -426,9 +449,9 @@ export default function Dashboard() {
 
           <button 
             onClick={() => navigate((role === 'doctor' || role === 'nurse' || role === 'receptionist') ? '/appointments' : role === 'lab_tech' ? '/lab/queue' : (role === 'pharmacist' || role === 'pharmacist_admin') ? '/pharmacy/queue' : '/billing')}
-            className="w-full mt-8 py-4 bg-slate-50 text-slate-900 font-bold text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-slate-100 transition-all border border-slate-100"
+            className="w-full mt-6 py-3 bg-slate-100 text-slate-600 font-bold text-[10px] uppercase tracking-[0.2em] rounded-lg hover:bg-slate-200 transition-all active:scale-95"
           >
-            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? 'Manage Calendar' : role === 'lab_tech' ? 'View Lab Queue' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'Manage Pharmacy Queue' : 'View All Invoices'}
+            {(role === 'doctor' || role === 'nurse' || role === 'receptionist') ? 'Manage Appointments' : role === 'lab_tech' ? 'View Lab Queue' : (role === 'pharmacist' || role === 'pharmacist_admin') ? 'Manage Pharmacy Queue' : 'View Financial Ledger'}
           </button>
         </div>
 
