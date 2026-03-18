@@ -558,6 +558,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   const [searchContext, setSearchContext] = useState({ type: null, index: null });
   const [viewingHistoryPatient, setViewingHistoryPatient] = useState(null);
   const [associatedApt, setAssociatedApt] = useState(null);
+  const [viewingNote, setViewingNote] = useState(null);
   
   const transcriptRef = React.useRef('');
   const userStopRef = React.useRef(false);
@@ -1731,29 +1732,47 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                              </div>
                              
                              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
-                                <div className="md:col-span-12 relative">
-                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Search Medicine</label>
-                                   <div className="relative">
-                                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                                      <input 
-                                         placeholder="Type brand or generic name..." 
-                                         value={p.medicine}
-                                         readOnly={p.isPaid}
-                                         autoComplete="off"
-                                         onChange={(e) => {
-                                            if (p.isPaid) return;
-                                            const term = e.target.value;
-                                            const newP = [...formData.prescriptions];
-                                            newP[idx].medicine = term;
-                                            setFormData({...formData, prescriptions: newP});
-                                            handleSearchMaster('pharmacy', term, idx, 'prescription');
-                                         }}
-                                         onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
-                                         className={`w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold shadow-sm transition-all ${p.isPaid ? 'bg-slate-50 cursor-not-allowed border-transparent' : 'focus:border-blue-500'}`}
-                                      />
-                                   </div>
-                                   {searchContext.type === 'prescription' && searchContext.index === idx && medicineSuggestions.length > 0 && !p.isPaid && (
-                                      <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[400px] overflow-y-auto">
+                                 <div className="md:col-span-12 relative">
+                                    <label className={`text-[10px] font-black uppercase tracking-widest ml-1 mb-2 block transition-colors ${p.medicine ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                       {p.medicine ? 'Selected Medication' : 'Search Medicine'}
+                                    </label>
+                                    <div className="relative group">
+                                       {p.medicine ? (
+                                          <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                                       ) : (
+                                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                       )}
+                                       <input 
+                                          placeholder="Type brand or generic name..." 
+                                          value={p.medicine}
+                                          readOnly={p.isPaid}
+                                          autoComplete="off"
+                                          onChange={(e) => {
+                                             if (p.isPaid) return;
+                                             const term = e.target.value;
+                                             const newP = [...formData.prescriptions];
+                                             newP[idx].medicine = term;
+                                             setFormData({...formData, prescriptions: newP});
+                                             handleSearchMaster('pharmacy', term, idx, 'prescription');
+                                          }}
+                                          onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                          className={`w-full pl-12 pr-12 py-4 bg-white border rounded-xl outline-none text-sm font-bold shadow-sm transition-all ${p.isPaid ? 'bg-slate-50 cursor-not-allowed border-transparent' : p.medicine ? 'border-emerald-100 focus:border-emerald-500 bg-emerald-50/10' : 'border-slate-200 focus:border-blue-500'}`}
+                                       />
+                                       {p.medicine && !p.isPaid && (
+                                          <button 
+                                             onClick={() => {
+                                                const newP = [...formData.prescriptions];
+                                                newP[idx].medicine = '';
+                                                setFormData({...formData, prescriptions: newP});
+                                             }}
+                                             className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-lg transition-all"
+                                          >
+                                             <X className="h-4 w-4" />
+                                          </button>
+                                       )}
+                                    </div>
+                                    {searchContext.type === 'prescription' && searchContext.index === idx && medicineSuggestions.length > 0 && !p.isPaid && (
+                                       <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[400px] overflow-y-auto">
                                          <div className="p-2 space-y-0.5">
                                             {medicineSuggestions.map((m) => (
                                                <button 
@@ -1903,24 +1922,45 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                              </div>
                              
                              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
-                                <div className="md:col-span-8 relative">
-                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Investigation</label>
-                                   <input 
-                                      placeholder="Search test, radiology or pathology..." 
-                                      value={r.test}
-                                      readOnly={r.isPaid}
-                                      autoComplete="off"
-                                      onChange={(e) => {
-                                         if (r.isPaid) return;
-                                         const term = e.target.value;
-                                         const newR = [...formData.labRequests];
-                                         newR[idx].test = term;
-                                         setFormData({...formData, labRequests: newR});
-                                         handleSearchMaster('labs', term, idx, 'labs');
-                                      }}
-                                      onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
-                                      className={`bg-white border rounded-xl px-4 py-3 text-sm font-bold w-full outline-none shadow-sm transition-all ${r.isPaid ? 'bg-slate-50 border-transparent text-slate-500 cursor-not-allowed' : 'border-slate-200 focus:border-emerald-500'}`}
-                                   />
+                                 <div className="md:col-span-8 relative">
+                                    <label className={`text-[10px] font-black uppercase tracking-widest ml-1 mb-2 block transition-colors ${r.test ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                       {r.test ? 'Selected Investigation' : 'Select Investigation'}
+                                    </label>
+                                    <div className="relative">
+                                       {r.test ? (
+                                          <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                                       ) : (
+                                          <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                       )}
+                                       <input 
+                                          placeholder="Search test, radiology or pathology..." 
+                                          value={r.test}
+                                          readOnly={r.isPaid}
+                                          autoComplete="off"
+                                          onChange={(e) => {
+                                             if (r.isPaid) return;
+                                             const term = e.target.value;
+                                             const newR = [...formData.labRequests];
+                                             newR[idx].test = term;
+                                             setFormData({...formData, labRequests: newR});
+                                             handleSearchMaster('labs', term, idx, 'labs');
+                                          }}
+                                          onBlur={() => setTimeout(() => setSearchContext({type: null, index: null}), 300)}
+                                          className={`pl-12 pr-12 py-3.5 bg-white border rounded-xl text-sm font-bold w-full outline-none shadow-sm transition-all ${r.isPaid ? 'bg-slate-50 border-transparent text-slate-500 cursor-not-allowed' : r.test ? 'border-emerald-100 focus:border-emerald-500 bg-emerald-50/10' : 'border-slate-200 focus:border-emerald-500'}`}
+                                       />
+                                       {r.test && !r.isPaid && (
+                                          <button 
+                                             onClick={() => {
+                                                const newR = [...formData.labRequests];
+                                                newR[idx].test = '';
+                                                setFormData({...formData, labRequests: newR});
+                                             }}
+                                             className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-lg transition-all"
+                                          >
+                                             <X className="h-4 w-4" />
+                                          </button>
+                                       )}
+                                    </div>
                                    {searchContext.type === 'lab' && searchContext.index === idx && labSuggestions.length > 0 && !r.isPaid && (
                                       <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden max-h-[350px] overflow-y-auto">
                                          <div className="p-2 space-y-0.5">
@@ -2270,7 +2310,6 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             )}
           </AnimatePresence>
         </div>
-        
 
       <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-white z-10">
           <div className="flex items-center gap-4 text-slate-400 text-xs font-semibold uppercase tracking-widest">
@@ -2310,9 +2349,22 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             </div>
           </div>
         </div>
-
         {/* Automatic Routing Implementation - Modal Removed */}
       </motion.div>
+
+      {/* Internal Viewers/Modals that need to overlay the editor */}
+      <AnimatePresence>
+        {viewingNote && (
+          <NoteViewer 
+            note={viewingNote}
+            onClose={() => setViewingNote(null)}
+            onEdit={(id) => {
+               setViewingNote(null);
+               // Handle internal re-edit if needed, though usually history notes are signed
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

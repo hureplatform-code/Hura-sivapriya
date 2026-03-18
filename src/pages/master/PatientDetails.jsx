@@ -647,6 +647,7 @@ export default function PatientDetails() {
 
 function PatientHistoryModal({ patient, records, onClose, searchQuery, onSearchChange, monthFilter, onMonthChange }) {
   const months = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const [viewingNote, setViewingNote] = useState(null);
   
   const filteredRecords = records.filter(record => {
     const matchesSearch = !searchQuery || 
@@ -727,7 +728,7 @@ function PatientHistoryModal({ patient, records, onClose, searchQuery, onSearchC
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 bg-white space-y-4">
+        <div className="flex-1 overflow-y-auto p-8 bg-white space-y-4 relative">
           {filteredRecords.length > 0 ? filteredRecords.map((record, idx) => (
             <motion.div 
               key={record.id} 
@@ -758,35 +759,30 @@ function PatientHistoryModal({ patient, records, onClose, searchQuery, onSearchC
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Attending Physician</p>
-                   <p className="text-xs font-bold text-slate-900">{record.doctorName || record.staffName || 'Dr. Medical Staff'}</p>
+                <div className="text-right flex flex-col items-end gap-3畅">
+                   <div>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Attending Physician</p>
+                     <p className="text-xs font-bold text-slate-900">{record.doctorName || record.staffName || 'Dr. Medical Staff'}</p>
+                   </div>
+                   <button 
+                     onClick={() => setViewingNote(record)}
+                     className="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-primary-600 transition-all active:scale-95 shadow-sm"
+                   >
+                     View Details
+                   </button>
                 </div>
               </div>
               
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
                 <div className="space-y-2">
                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Diagnosis & Assessment</p>
-                   <p className="text-sm text-slate-700 font-medium leading-relaxed">{record.diagnosis || record.assessment || 'No clinical data recorded.'}</p>
+                   <p className="text-sm text-slate-700 font-medium leading-relaxed line-clamp-2">{record.diagnosis || record.assessment || 'No clinical data recorded.'}</p>
                 </div>
                 <div className="space-y-2">
                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Clinical Plan / Notes</p>
-                   <p className="text-sm text-slate-500 italic leading-relaxed">{record.plan || record.notes || 'Routine follow-up scheduled.'}</p>
+                   <p className="text-sm text-slate-500 italic leading-relaxed line-clamp-2">{record.plan || record.notes || 'Routine follow-up scheduled.'}</p>
                 </div>
               </div>
-
-              {record.prescriptions?.length > 0 && (
-                <div className="mt-6 p-4 bg-white border border-slate-100 rounded-xl space-y-3">
-                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Active Prescriptions</p>
-                   <div className="flex flex-wrap gap-2">
-                     {record.prescriptions.map((p, i) => (
-                       <span key={i} className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-[10px] font-medium border border-slate-200">
-                         {p.medicineName} • {p.dosage}
-                       </span>
-                     ))}
-                   </div>
-                </div>
-              )}
             </motion.div>
           )) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -797,6 +793,16 @@ function PatientHistoryModal({ patient, records, onClose, searchQuery, onSearchC
                <p className="text-slate-400 max-w-xs mt-2 text-sm font-medium">Try adjusting your search query or month filter to find older clinical records.</p>
             </div>
           )}
+
+          {/* Clinical Record Overlay Viewer */}
+          <AnimatePresence>
+            {viewingNote && (
+              <NoteViewer 
+                note={viewingNote}
+                onClose={() => setViewingNote(null)}
+              />
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="p-6 border-t border-slate-100 bg-slate-50 text-center shrink-0">
@@ -807,10 +813,162 @@ function PatientHistoryModal({ patient, records, onClose, searchQuery, onSearchC
   );
 }
 
+function NoteViewer({ note, onClose }) {
+  if (!note) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="w-full max-w-4xl max-h-[90vh] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-white/20"
+      >
+        <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-white relative">
+          <div className="flex items-center gap-5">
+            <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center text-primary-600 border border-slate-100 shadow-inner">
+              <FileText className="h-7 w-7" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-slate-900 tracking-tight">{note.title || 'Clinical Encounter'}</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">
+                {note.patientName || 'Verification Successful'} • {note.createdAt?.seconds ? new Date(note.createdAt.seconds * 1000).toLocaleDateString() : 'Historical'}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="h-12 w-12 flex items-center justify-center bg-slate-50 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all shadow-sm active:scale-95">
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-12 space-y-12 bg-white">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Physician</p>
+              <p className="text-sm font-bold text-slate-900">{note.doctorName || note.staffName || 'Medical Staff'}</p>
+            </div>
+            <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Specialty</p>
+              <p className="text-sm font-bold text-slate-900 capitalize">{note.specialties?.join(', ') || note.specialty || 'General Practice'}</p>
+            </div>
+            {note.diagnosis && (
+              <div className="p-6 bg-slate-900 text-white rounded-[2rem] col-span-2 shadow-2xl shadow-slate-200 ring-4 ring-slate-50">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic px-1 opacity-60">Verified Diagnosis (ICD-10)</p>
+                <p className="text-lg font-bold px-1">{note.diagnosis}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-4">
+             {note.vitals && Object.values(note.vitals).some(v => v) && (
+               <div className="col-span-full bg-slate-50/50 p-10 rounded-[2rem] border border-slate-100 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-8">
+                 {Object.entries(note.vitals).filter(([_, v]) => v).map(([key, value]) => (
+                   <div key={key} className="text-center md:text-left space-y-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{key.replace('_', ' ')}</p>
+                      <p className="text-base font-black text-slate-900">{value}</p>
+                   </div>
+                 ))}
+               </div>
+             )}
+
+            <ViewerBox label="Subjective" icon="S" content={note.subjective || note.history} />
+            <ViewerBox label="Objective" icon="O" content={note.objective || note.examination} />
+            <ViewerBox label="Assessment" icon="A" content={note.assessment || note.diagnosisSummary} />
+            <ViewerBox label="Plan" icon="P" content={note.plan || note.treatment} />
+            
+            {note.prescriptions?.length > 0 && (
+               <div className="col-span-full space-y-6">
+                  <div className="flex items-center gap-4 px-2">
+                     <div className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center text-xs font-black shadow-lg">Rx</div>
+                     <h5 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Pharmacological Orders</h5>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-xl shadow-slate-100">
+                     <table className="w-full">
+                        <thead className="bg-slate-50/80 border-b border-slate-100">
+                           <tr className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-left">
+                              <th className="px-8 py-5">Medication</th>
+                              <th className="px-8 py-5">Dose</th>
+                              <th className="px-8 py-5">Frequency</th>
+                              <th className="px-8 py-5">Duration</th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 font-medium text-sm text-slate-600">
+                           {note.prescriptions.map((p, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                 <td className="px-8 py-6">
+                                   <p className="font-bold text-slate-900">{p.medicineName || p.medicine}</p>
+                                   <span className="text-[8px] px-2 py-0.5 bg-slate-100 text-slate-400 rounded-md uppercase font-black tracking-widest mt-1 inline-block">{p.route || 'Oral'}</span>
+                                 </td>
+                                 <td className="px-8 py-6">{p.dosage}</td>
+                                 <td className="px-8 py-6 font-bold text-primary-600">{p.frequency}</td>
+                                 <td className="px-8 py-6 uppercase text-[10px] font-black tabular-nums">{p.duration}</td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            )}
+
+            {note.labRequests?.length > 0 && (
+               <div className="col-span-full space-y-6">
+                  <div className="flex items-center gap-4 px-2">
+                     <div className="h-10 w-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-xs font-black shadow-lg">Lx</div>
+                     <h5 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Diagnostics & Labs</h5>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5畅">
+                     {note.labRequests.map((l, idx) => (
+                        <div key={idx} className="p-8 bg-emerald-50/30 border-2 border-dashed border-emerald-100 rounded-[2rem] flex justify-between items-center group transition-all hover:bg-emerald-50/50 hover:border-emerald-200">
+                           <div className="space-y-1">
+                               <p className="text-base font-black text-slate-900">{l?.test || 'Standard Investigation'}</p>
+                               <div className="flex items-center gap-3 mt-2">
+                                 <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-100/50 px-3 py-1 rounded-lg">
+                                    {l?.priority || 'Routine'}
+                                 </span>
+                                 <p className="text-[10px] font-bold text-slate-400 border-l border-emerald-200 pl-3">
+                                   {l?.instructions || 'Standard Protocol'}
+                                 </p>
+                               </div>
+                            </div>
+                           <Activity className="h-6 w-6 text-emerald-200 group-hover:text-emerald-500 transition-all group-hover:scale-125" />
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+          </div>
+        </div>
+
+        <div className="p-10 border-t border-slate-100 bg-slate-50/50 flex items-center justify-center gap-6 shrink-0">
+          <button onClick={onClose} className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95">Close Clinical Review</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ViewerBox({ label, icon, content }) {
+  if (!content) return null;
+  return (
+    <div className="space-y-4畅">
+      <div className="flex items-center gap-3 px-2">
+        <div className="h-8 w-8 bg-slate-900 text-white rounded-xl flex items-center justify-center text-[10px] font-black shadow-md">{icon}</div>
+        <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] opacity-80">{label} Details</h5>
+      </div>
+      <div className="p-10 bg-white border border-slate-100 rounded-[2.5rem] text-sm text-slate-600 leading-[1.8] whitespace-pre-wrap font-medium shadow-inner-lg min-h-[160px]">
+        {content}
+      </div>
+    </div>
+  );
+}
+
 function DetailRow({ label, value }) {
   return (
-    <div className="flex justify-between items-center py-1 border-b border-slate-50 last:border-0">
-      <span className="text-xs text-slate-500">{label}</span>
+    <div className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 px-1 transition-all rounded-lg">
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
       <span className="text-sm font-bold text-slate-900">{value}</span>
     </div>
   );
@@ -818,29 +976,29 @@ function DetailRow({ label, value }) {
 
 function EditableField({ label, value, onChange, type = "text", isSelect = false, options = [], isTextArea = false }) {
   return (
-    <div className="space-y-1">
-      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</label>
+    <div className="space-y-2畅">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{label}</label>
       {isSelect ? (
         <select 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:bg-white focus:border-primary-500 transition-all"
+          className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/5 transition-all shadow-sm"
         >
-          <option value="">Select...</option>
+          <option value="">Select Option...</option>
           {options.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
       ) : isTextArea ? (
         <textarea 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:bg-white focus:border-primary-500 transition-all min-h-[80px] resize-none"
+          className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/5 transition-all min-h-[120px] resize-none shadow-sm"
         />
       ) : (
         <input 
           type={type} 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:bg-white focus:border-primary-500 transition-all"
+          className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/5 transition-all shadow-sm"
         />
       )}
     </div>

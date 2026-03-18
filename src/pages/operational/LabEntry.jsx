@@ -247,8 +247,13 @@ export default function LabEntry() {
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
   useEffect(() => {
-    fetchAppointment();
-    fetchDynamicCatalog();
+    const init = async () => {
+      setLoading(true);
+      await fetchDynamicCatalog();
+      await fetchAppointment();
+      setLoading(false);
+    };
+    init();
   }, [appointmentId]);
 
   const fetchDynamicCatalog = async () => {
@@ -256,7 +261,9 @@ export default function LabEntry() {
       const dbTests = await medicalMasterService.getAll('labs', null, null, null, userData?.facilityId);
       const catalog = {};
       dbTests.forEach(test => {
-        catalog[test.code || test.id] = {
+        const id = test.code || test.id;
+        catalog[id] = {
+          id,
           name: test.name,
           category: test.category,
           price: test.price,
@@ -264,8 +271,10 @@ export default function LabEntry() {
         };
       });
       setDynamicCatalog(catalog);
+      return catalog;
     } catch (err) {
       console.error('Error fetching lab catalog:', err);
+      return {};
     }
   };
 
@@ -330,21 +339,38 @@ export default function LabEntry() {
         setStructuredResults(prev => {
             const dbResults = data.structuredResults || [];
             
-            // 1. Identify items we want to keep from DB (they have payment status, results, etc.)
-            // 2. Identify new requests from candidates that aren't in DB yet
+            // SECURITY: If the technician has already started work (items in structuredResults), 
+            // we should be very careful about auto-adding from note to avoid 'reappearing' items.
+            // However, we still want to add truly new items from the clinician.
             
             const toAdd = candidates.filter(newItem => {
-                const newId = (newItem.name || newItem.type).toLowerCase().trim();
+                const newNameClean = (newItem.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const newTypeClean = (String(newItem.type) || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                // Check if it exists in DB results (persistence)
                 const existsInDb = dbResults.some(old => {
-                    const oldName = (old.name || '').toLowerCase().trim();
-                    const oldType = (old.type || '').toLowerCase().trim();
-                    return oldName === newId || oldType === newId || 
-                           newId.includes(oldName) || oldName.includes(newId);
+                    const oldNameClean = (old.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const oldTypeClean = (String(old.type) || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    
+                    return oldNameClean === newNameClean || 
+                           oldTypeClean === newTypeClean ||
+                           (newNameClean.length > 3 && oldNameClean.includes(newNameClean)) ||
+                           (oldNameClean.length > 3 && newNameClean.includes(oldNameClean));
                 });
-                return !existsInDb;
+                if (existsInDb) return false;
+
+                // Check if it's already in the LOCAL current state (prevent double-sync in same session)
+                const existsInLocal = prev.some(local => {
+                   const localNameClean = (local.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                   return localNameClean === newNameClean || (newNameClean.length > 3 && localNameClean.includes(newNameClean));
+                });
+
+                return !existsInLocal;
             });
             
-            return [...dbResults, ...toAdd];
+            // Only auto-sync if we have meaningful new items
+            if (toAdd.length === 0) return dbResults.length > 0 ? dbResults : prev;
+            return [...(dbResults.length > 0 ? dbResults : prev), ...toAdd];
         });
         setReportFiles(data.reportFiles || []);
       }

@@ -17,7 +17,8 @@ import {
   Thermometer,
   ListTodo
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import TriageModal from '../../components/modals/TriageModal';
 
 export default function NursingQueue() {
   const { userData } = useAuth();
@@ -30,6 +31,7 @@ export default function NursingQueue() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [clinicalRecord, setClinicalRecord] = useState(null);
   const [loadingRecord, setLoadingRecord] = useState(false);
+  const [isTriageOpen, setIsTriageOpen] = useState(false);
 
   useEffect(() => {
     fetchQueue();
@@ -64,10 +66,43 @@ export default function NursingQueue() {
     }
   };
 
+  const handlePerformTriage = () => {
+    setIsTriageOpen(true);
+  };
+
+  const handleSaveTriage = async (vitals) => {
+    try {
+      // 1. Update Appointment Status to 'triage' (ready for doctor)
+      await appointmentService.updateAppointmentStatus(selectedPatient.id, 'triage');
+      
+      // 2. Save Vitals to Medical Records (Type: triage)
+      await medicalRecordService.createRecord({
+        patientId: selectedPatient.patientId,
+        patientName: selectedPatient.patient,
+        appointmentId: selectedPatient.id,
+        facilityId: userData?.facilityId,
+        doctorName: userData?.name || 'Nurse',
+        type: 'triage',
+        specialty: 'general',
+        title: 'Triage Assessment',
+        status: 'signed',
+        vitals
+      }, { id: userData?.uid, name: userData?.name });
+
+      success('Triage data recorded and patient queued for doctor.');
+      setIsTriageOpen(false);
+      setSelectedPatient(null);
+      fetchQueue();
+    } catch (error) {
+      console.error('Error saving triage:', error);
+      toastError('Failed to save triage data.');
+    }
+  };
+
   const handleReturnToDoctor = async () => {
     if (!selectedPatient) return;
     try {
-      // Returning patient to Arrived status pushes them back to the doctor's active queue
+      // Returning patient to 'triage' or 'arrived' status pushes them back to the doctor's active queue
       await appointmentService.updateAppointmentStatus(selectedPatient.id, 'arrived');
       
       // Log audit
@@ -134,9 +169,9 @@ export default function NursingQueue() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
-              <Syringe className="h-8 w-8 text-blue-500" /> Nursing Orders
+              <Syringe className="h-8 w-8 text-blue-500" /> Nursing Orders & Triage
             </h1>
-            <p className="text-slate-500 font-medium mt-1">Execute clinical orders requested by attending doctors.</p>
+            <p className="text-slate-500 font-medium mt-1">Record vitals or execute clinical orders requested by doctors.</p>
           </div>
           <button 
             onClick={fetchQueue}
@@ -170,7 +205,7 @@ export default function NursingQueue() {
                  <div className="text-center py-12 bg-white rounded-[2rem] border border-slate-100/50 shadow-sm border-dashed">
                     <CheckCircle2 className="h-10 w-10 text-blue-300 mx-auto mb-4" />
                     <p className="text-sm font-semibold text-slate-600">All caught up!</p>
-                    <p className="text-xs font-medium text-slate-400 mt-1">No pending nursing orders.</p>
+                    <p className="text-xs font-medium text-slate-400 mt-1">No pending nursing orders or triage.</p>
                  </div>
               ) : (
                  filteredQueue.map((apt) => (
@@ -210,7 +245,7 @@ export default function NursingQueue() {
                         <div>
                            <h2 className="text-xl font-bold text-slate-900">{selectedPatient.patient}</h2>
                            <p className="text-sm font-medium text-slate-500 mt-1">
-                              Sent by Dr. {selectedPatient.providerName || selectedPatient.provider || selectedPatient.doctor || 'Unknown'} • {selectedPatient.date}
+                              {selectedPatient.status === 'awaiting-nurse' && !clinicalRecord ? 'New Arrival - Pending Triage' : `Sent by Dr. ${selectedPatient.providerName || selectedPatient.provider || selectedPatient.doctor || 'Unknown'} • ${selectedPatient.date}`}
                            </p>
                         </div>
                         <div className="h-12 w-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-blue-500">
@@ -244,8 +279,8 @@ export default function NursingQueue() {
                                           <h4 className="text-xs font-bold uppercase tracking-widest">Triage Info</h4>
                                        </div>
                                        <p className="text-slate-700 font-medium leading-relaxed">
-                                          BP: {selectedPatient.vitals?.bloodPressure || 'N/A'}<br/>
-                                          Temp: {selectedPatient.vitals?.temperature || 'N/A'} °C<br/>
+                                          BP: {selectedPatient.vitals?.bp_sys}/{selectedPatient.vitals?.bp_dia || 'N/A'}<br/>
+                                          Temp: {selectedPatient.vitals?.temp || 'N/A'} °C<br/>
                                           Weight: {selectedPatient.vitals?.weight || 'N/A'} kg
                                        </p>
                                     </div>
@@ -261,39 +296,63 @@ export default function NursingQueue() {
                                  </div>
                              </motion.div>
                            ) : (
-                              <div className="text-center p-12 text-slate-500 font-medium">
-                                 No clinical note has been saved for this appointment yet. If you are expecting orders, politely remind the doctor to save their note draft.
+                              <div className="text-center p-12 text-slate-500 font-medium h-full flex flex-col items-center justify-center space-y-4">
+                                 <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300">
+                                    <Thermometer className="h-8 w-8" />
+                                 </div>
+                                 <div>
+                                   <p className="text-sm text-slate-600 font-bold uppercase tracking-widest">Pending Initial Triage</p>
+                                   <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">This patient has arrived and is waiting for initial vitals collection before seeing the doctor.</p>
+                                 </div>
+                                 <button 
+                                   onClick={handlePerformTriage}
+                                   className="px-8 py-4 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 active:scale-95"
+                                 >
+                                    Start Triage Now
+                                 </button>
                               </div>
                            )}
                      </div>
-                     <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-end gap-3 flex-wrap">
-                        <button 
-                          onClick={handleRouteToBilling}
-                          className="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
-                        >
-                           Route to Billing
-                        </button>
-                        <button 
-                          onClick={handleReturnToDoctor}
-                          className="px-8 py-4 bg-blue-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
-                        >
-                           Tasks Complete (Return to Doctor)
-                        </button>
-                     </div>
+                     {clinicalRecord && (
+                        <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-end gap-3 flex-wrap">
+                           <button 
+                             onClick={handleRouteToBilling}
+                             className="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
+                           >
+                              Route to Billing
+                           </button>
+                           <button 
+                             onClick={handleReturnToDoctor}
+                             className="px-8 py-4 bg-blue-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
+                           >
+                              Tasks Complete (Return to Doctor)
+                           </button>
+                        </div>
+                     )}
                   </>
                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
-                     <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-300">
-                        <ListTodo className="h-10 w-10" />
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-slate-400">
+                     <div className="h-24 w-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mb-6">
+                        <User className="h-10 w-10 opacity-20" />
                      </div>
-                     <h3 className="text-xl font-medium text-slate-900">Nursing Workspace</h3>
-                     <p className="text-slate-500 font-medium max-w-sm">Select a patient from the queue to review and execute specific nursing orders left by the doctor.</p>
+                     <p className="text-sm font-semibold uppercase tracking-widest">Select a patient to begin</p>
+                     <p className="text-xs font-medium mt-2 max-w-xs leading-relaxed">Select a patient from the queue to view clinical orders or perform initial triage.</p>
                   </div>
                )}
             </div>
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isTriageOpen && (
+          <TriageModal 
+            appointment={selectedPatient}
+            onClose={() => setIsTriageOpen(false)}
+            onSave={handleSaveTriage}
+          />
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

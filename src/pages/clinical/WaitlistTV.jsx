@@ -33,7 +33,7 @@ export default function WaitlistTV() {
       }
 
       const waiting = data.filter(a => {
-        const isQueuingStatus = ['arrived', 'triage', 'in-session', 'calling'].includes(a.status);
+        const isQueuingStatus = ['arrived', 'triage', 'in-session', 'calling', 'awaiting-nurse'].includes(a.status);
         if (!isQueuingStatus) return false;
 
         // Ensure the appointment belongs to the current clinical day
@@ -132,7 +132,7 @@ export default function WaitlistTV() {
                              Status
                           </p>
                           <p className={`text-sm md:text-2xl font-bold uppercase ${apt.status === 'in-session' ? 'text-white' : apt.status === 'calling' ? 'text-amber-400 animate-pulse' : 'text-blue-400'}`}>
-                             {apt.status === 'in-session' ? 'Consulting' : apt.status === 'calling' ? 'Please Enter' : apt.status === 'triage' ? 'In Triage' : 'Waiting'}
+                             {apt.status === 'in-session' ? 'Consulting' : apt.status === 'calling' ? 'Please Enter' : apt.status === 'triage' ? 'Doctor Ready' : apt.status === 'awaiting-nurse' ? 'With Nurse' : 'Waiting'}
                           </p>
                        </div>
                        <ChevronRight className={`h-6 w-6 md:h-8 md:w-8 ${apt.status === 'in-session' ? 'text-white' : 'text-white/10'}`} />
