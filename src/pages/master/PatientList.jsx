@@ -37,8 +37,11 @@ export default function PatientList() {
   const [genderFilter, setGenderFilter] = useState('All');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-  const { userData } = useAuth();
-  const { success, error: toastError } = useToast();
+  const { userData, subscriptionStatus, verificationStatus } = useAuth();
+  const isTrialExpired = subscriptionStatus?.expiryDate && new Date(subscriptionStatus.expiryDate) < new Date();
+  const isUnverified = verificationStatus !== 'verified';
+  const isRestricted = isTrialExpired && isUnverified;
+  const { success, error: toastError, warning } = useToast();
   const { confirm } = useConfirm();
 
   useEffect(() => {
@@ -155,8 +158,14 @@ export default function PatientList() {
           </div>
           {userData?.role !== 'doctor' && (
             <button 
-              onClick={() => setIsRegisterModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+              onClick={() => {
+                if (isRestricted) {
+                    toastError('Access Restricted: Please complete facility verification and settle outstanding subscription to register new patients.');
+                    return;
+                }
+                setIsRegisterModalOpen(true);
+              }}
+              className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-2xl transition-all shadow-lg active:scale-95 ${isRestricted ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'}`}
             >
               <UserPlus className="h-5 w-5" />
               Register New Patient

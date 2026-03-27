@@ -30,7 +30,7 @@ export default function PrivateRoute({ children }) {
           '/pharmacy', '/master/patients', '/master/profile', '/master/branches'
       ];
       if (blockedForSuperadmin.some(p => location.pathname.startsWith(p))) {
-           return <Navigate to="/" />;
+           return <Navigate to="/dashboard" />;
       }
       return children;
   }
@@ -43,14 +43,14 @@ export default function PrivateRoute({ children }) {
       // Note: /master/patients is allowed for receptionist. Custom /master check:
       if (blockedForReceptionist.some(p => location.pathname.startsWith(p)) || 
          (location.pathname.startsWith('/master') && !location.pathname.startsWith('/master/patients'))) {
-           return <Navigate to="/" />;
+           return <Navigate to="/dashboard" />;
       }
   }
 
   // Prevent Non-Pharmacist access to Pharmacy
   if (!['clinic_owner', 'pharmacist'].includes(userData?.role)) {
       if (location.pathname.startsWith('/pharmacy')) {
-           return <Navigate to="/" />;
+           return <Navigate to="/dashboard" />;
       }
   }
 

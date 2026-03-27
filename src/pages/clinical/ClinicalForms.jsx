@@ -161,7 +161,7 @@ export default function ClinicalForms() {
              Clinical documentation and form generation are restricted to facility clinical staff. Platform governance access is restricted to global audit and revenue analytics.
            </p>
            <button 
-             onClick={() => navigate('/')}
+             onClick={() => navigate('/dashboard')}
              className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Return to Dashboard

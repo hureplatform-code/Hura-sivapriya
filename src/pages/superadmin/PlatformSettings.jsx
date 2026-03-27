@@ -24,7 +24,7 @@ export default function PlatformSettings() {
 
   // Verify Superadmin access
   if (userData?.role !== 'superadmin') {
-    return <Navigate to="/" />;
+    return <Navigate to="/dashboard" />;
   }
 
   useEffect(() => {

@@ -55,15 +55,17 @@ export default function Billing() {
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('patient') || '');
   const [activeMenu, setActiveMenu] = useState(null);
-  const { success, info } = useToast();
+  const { userData, subscriptionStatus, verificationStatus } = useAuth();
+  const isTrialExpired = subscriptionStatus?.expiryDate && new Date(subscriptionStatus.expiryDate) < new Date();
+  const isUnverified = verificationStatus !== 'verified';
+  const isRestricted = isTrialExpired && isUnverified;
+  const { success, info, error: toastError } = useToast();
   const [billingStats, setBillingStats] = useState({
     revenue: 0,
     outstanding: 0,
     invoicesCount: 0,
     todayPayments: 0
   });
-
-  const { userData } = useAuth();
 
   useEffect(() => {
     if (userData) {
@@ -216,8 +218,14 @@ export default function Billing() {
             <p className="text-slate-500 mt-1">Manage invoices, payments, and clinic revenue streams.</p>
           </div>
           <button 
-            onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
+            onClick={() => {
+              if (isRestricted) {
+                  toastError('Access Restricted: Please complete facility verification and settle outstanding subscription to generate new invoices.');
+                  return;
+              }
+              setIsCreating(true);
+            }}
+            className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-2xl transition-all shadow-xl active:scale-95 ${isRestricted ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
           >
             <Plus className="h-5 w-5" />
             Generate New Invoice

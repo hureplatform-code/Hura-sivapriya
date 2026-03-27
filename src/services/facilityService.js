@@ -49,6 +49,7 @@ const facilityService = {
             logoUrl: logoUrl,
             createdAt: new Date().toISOString(),
             status: 'trial',
+            verificationStatus: 'pending', // pending, submitted, verified
             subscription: {
               planId: facilityData.subscriptionPlan?.toLowerCase() || 'essential',
               planName: facilityData.subscriptionPlan || 'Essential',
@@ -184,6 +185,14 @@ const facilityService = {
   async deleteFacility(facilityId) {
     if (!facilityId) throw new Error("Facility ID required");
     return firestoreService.delete(this.collection, facilityId);
+  },
+
+  async submitVerification(facilityId, data) {
+    return firestoreService.update(this.collection, facilityId, {
+      ...data,
+      verificationStatus: 'submitted',
+      verificationSubmittedAt: new Date().toISOString()
+    });
   }
 };
 

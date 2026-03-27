@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [verificationStatus, setVerificationStatus] = useState(null);
   const [activeStaffCount, setActiveStaffCount] = useState(0);
 
   async function login(email, password) {
@@ -108,6 +109,7 @@ export function AuthProvider({ children }) {
                     const facility = await facilityService.getProfile(data.facilityId);
                     if (facility) {
                         setSubscriptionStatus(facility.subscription);
+                        setVerificationStatus(facility.verificationStatus || 'pending');
                         const count = await userService.countActiveStaff(data.facilityId);
                         setActiveStaffCount(count);
                     }
@@ -141,6 +143,7 @@ export function AuthProvider({ children }) {
       } else {
         setUserData(null);
         setSubscriptionStatus(null);
+        setVerificationStatus(null);
         setActiveStaffCount(0);
         setLoading(false);
         setInitialized(true);
@@ -161,6 +164,7 @@ export function AuthProvider({ children }) {
                 const facility = await facilityService.getProfile(userData.facilityId);
                 if (facility) {
                     setSubscriptionStatus(facility.subscription);
+                    setVerificationStatus(facility.verificationStatus || 'pending');
                     const count = await userService.countActiveStaff(userData.facilityId);
                     setActiveStaffCount(count);
                 }
@@ -179,6 +183,7 @@ export function AuthProvider({ children }) {
     signup,
     logout,
     subscriptionStatus,
+    verificationStatus,
     activeStaffCount,
     loading,
     initialized

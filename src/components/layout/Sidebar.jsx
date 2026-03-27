@@ -73,6 +73,7 @@ const getMenuItems = (role) => [
       { label: 'Pharmacy Setup', path: '/config/pharmacy', roles: ['clinic_owner', 'pharmacist_admin'] },
       { label: 'SMS Notifications', path: '/config/sms', roles: ['superadmin', 'clinic_owner'] },
       { label: 'Global Platform Settings', path: '/superadmin/settings', roles: ['superadmin'] },
+      { label: 'Marketing Site Content', path: '/superadmin/site-content', roles: ['superadmin'] },
     ]
   },
   {

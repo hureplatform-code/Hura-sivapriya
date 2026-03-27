@@ -62,6 +62,11 @@ import InsuranceAgingReport from './pages/reports/InsuranceAgingReport';
 import DailyCashflowReport from './pages/reports/DailyCashflowReport';
 import WaitlistTV from './pages/clinical/WaitlistTV';
 import PatientIntake from './pages/public/PatientIntake';
+import LandingPage from './pages/public/LandingPage';
+import SiteContent from './pages/superadmin/SiteContent';
+import Privacy from './pages/public/Privacy';
+import Terms from './pages/public/Terms';
+import Security from './pages/public/Security';
 import './index.css';
 
 function App() {
@@ -76,11 +81,16 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           {/* Temporary Setup Route */}
           <Route path="/setup-superadmin" element={<SetupSuperadmin />} />
-          <Route path="/intake" element={<PatientIntake />} />
-          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+           <Route path="/intake" element={<PatientIntake />} />
+           <Route path="/" element={<LandingPage />} />
+           <Route path="/privacy" element={<Privacy />} />
+           <Route path="/terms" element={<Terms />} />
+           <Route path="/security" element={<Security />} />
+           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           
           {/* Master Setup */}
           <Route path="/master/users" element={<PrivateRoute><Users /></PrivateRoute>} />
+           <Route path="/superadmin/site-content" element={<PrivateRoute><SiteContent /></PrivateRoute>} />
           <Route path="/master/permissions" element={<PrivateRoute><PermissionsEditor /></PrivateRoute>} />
           <Route path="/master/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
           <Route path="/master/branches" element={<PrivateRoute><Branches /></PrivateRoute>} />

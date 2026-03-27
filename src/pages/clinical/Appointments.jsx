@@ -70,7 +70,7 @@ export default function Appointments() {
              Individual clinic appointment schedules are managed by facility staff. Platform governance access is restricted to adoption and resource utilization metrics.
            </p>
            <button 
-             onClick={() => navigate('/')}
+             onClick={() => navigate('/dashboard')}
              className="mt-8 px-8 py-4 bg-slate-900 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
            >
              Return to Platform Dashboard

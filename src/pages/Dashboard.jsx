@@ -44,6 +44,83 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import AppointmentModal from '../components/modals/AppointmentModal';
 import { useToast } from '../contexts/ToastContext';
 
+const VerificationModal = ({ isOpen, onClose, facilityId, onComplete }) => {
+  const [loading, setLoading] = useState(false);
+  const { success, error } = useToast();
+  const [data, setData] = useState({
+    licenseBody: 'MOH',
+    licenseNumber: '',
+    location: '',
+    licenseExpiry: ''
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await facilityService.submitVerification(facilityId, data);
+      success("Verification documents submitted for review.");
+      onComplete();
+      onClose();
+    } catch (err) {
+      error("Submission failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl">
+        <div className="p-10">
+          <div className="h-16 w-16 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 mb-6">
+             <ShieldCheck className="h-8 w-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Facility Verification</h2>
+          <p className="text-slate-500 mt-2 text-sm">Please submit your licensing details to unlock full platform features after the trial period.</p>
+
+          <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
+             <div className="space-y-4">
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Licensing Body</label>
+                    <select value={data.licenseBody} onChange={e => setData({...data, licenseBody: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-primary-500 transition-all font-medium text-sm">
+                        <option>MOH</option>
+                        <option>KMPDU</option>
+                        <option>PHB</option>
+                        <option>Other</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">License Number</label>
+                    <input required type="text" value={data.licenseNumber} onChange={e => setData({...data, licenseNumber: e.target.value})} placeholder="REG-202X-XXXX" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-primary-500 transition-all font-medium text-sm" />
+                  </div>
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Physical Location</label>
+                 <input required type="text" value={data.location} onChange={e => setData({...data, location: e.target.value})} placeholder="Building, Street, City" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-primary-500 transition-all font-medium text-sm" />
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">License Expiry Date</label>
+                 <input required type="date" value={data.licenseExpiry} onChange={e => setData({...data, licenseExpiry: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-primary-500 transition-all font-medium text-sm" />
+               </div>
+             </div>
+
+             <div className="flex gap-4 pt-4">
+                <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all">Cancel</button>
+                <button type="submit" disabled={loading} className="flex-1 py-4 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-slate-200 hover:bg-primary-600 transition-all">
+                  {loading ? 'Submitting...' : 'Submit Documents'}
+                </button>
+             </div>
+          </form>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const { currency } = useCurrency();
   const { userData } = useAuth();
@@ -55,7 +132,9 @@ export default function Dashboard() {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { success } = useToast();
+  const { success, error: toastError } = useToast();
+  const [facilityData, setFacilityData] = useState(null);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
   useEffect(() => {
     if (userData) {
@@ -115,6 +194,9 @@ export default function Dashboard() {
           const smsService = await import('../services/smsSettingsService');
           providerBal = await smsService.default.getAtBalance() || 'N/A';
         } catch (e) { console.error("Error loading sms service", e); }
+
+        const facData = await facilityService.getProfile(userData.facilityId);
+        setFacilityData(facData);
 
         setStats([
           { label: 'Total Clinics', value: totalOrganizations.toString(), icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50', path: '/superadmin/subscriptions' },
@@ -212,6 +294,8 @@ export default function Dashboard() {
         setArrears(invoices.filter(i => i.paymentStatus !== 'paid').slice(0, 4));
       }
 
+      const facData = await facilityService.getProfile(userData.facilityId);
+      setFacilityData(facData);
       setAuditLogs(logs?.slice(0, 4) || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -283,6 +367,36 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        {(facilityData?.verificationStatus === 'pending' || facilityData?.verificationStatus === 'submitted') && (role === 'clinic_owner' || role === 'admin') && (
+           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="overflow-hidden">
+              <div className={`p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 border shadow-xl shadow-slate-100/50 ${facilityData?.verificationStatus === 'submitted' ? 'bg-blue-50 border-blue-100' : 'bg-amber-50 border-amber-100'}`}>
+                 <div className="flex items-center gap-6">
+                    <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 ${facilityData?.verificationStatus === 'submitted' ? 'bg-blue-600 text-white' : 'bg-amber-500 text-white'}`}>
+                       <ShieldCheck className="h-7 w-7" />
+                    </div>
+                    <div>
+                       <h4 className={`text-lg font-bold ${facilityData?.verificationStatus === 'submitted' ? 'text-blue-900' : 'text-amber-900'}`}>
+                          {facilityData?.verificationStatus === 'submitted' ? 'Verification Under Review' : 'Facility Verification Required'}
+                       </h4>
+                       <p className={`text-sm font-medium ${facilityData?.verificationStatus === 'submitted' ? 'text-blue-700/70' : 'text-amber-700/70'}`}>
+                          {facilityData?.verificationStatus === 'submitted' 
+                             ? 'Our compliance team is verifying your licensing documents. This usually takes 24-48 hours.'
+                             : 'To ensure uninterrupted access after your 10-day trial, please submit your facility licensing documents.'}
+                       </p>
+                    </div>
+                 </div>
+                 {facilityData?.verificationStatus === 'pending' && (
+                    <button 
+                       onClick={() => setIsVerificationModalOpen(true)}
+                       className="px-8 py-4 bg-amber-900 text-white font-bold text-xs uppercase tracking-widest rounded-2xl hover:bg-amber-800 transition-all shadow-lg shadow-amber-200 shrink-0"
+                    >
+                       Verify Now
+                    </button>
+                 )}
+              </div>
+           </motion.div>
+        )}
+
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
            <div>
              <h1 className="text-2xl font-semibold text-slate-900 tracking-tight capitalize">
@@ -556,6 +670,13 @@ export default function Dashboard() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveAppointment}
+      />
+
+      <VerificationModal 
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        facilityId={userData?.facilityId}
+        onComplete={fetchDashboardStats}
       />
     </DashboardLayout>
   );
