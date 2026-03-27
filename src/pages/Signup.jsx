@@ -115,45 +115,53 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex bg-white font-['Inter']">
       {/* Left Side: Branding */}
-      <div className="hidden lg:flex lg:w-[40%] relative overflow-hidden bg-slate-900">
+      <div className="hidden lg:flex lg:w-[40%] relative overflow-hidden bg-[#030712]">
         <div
-          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-40 scale-105"
+          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-20 scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/80 to-slate-900" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#030712]/40 via-[#030712]/80 to-[#030712]" />
 
         <div className="relative z-10 w-full h-full p-20 flex flex-col justify-between">
-          <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate('/')}>
-            <img src="/logo.png" alt="Hure Care" className="h-12 w-auto brightness-0 invert" />
-            <span className="text-2xl font-bold text-white tracking-widest uppercase italic">HURE CARE</span>
+          <div className="flex items-center gap-4 cursor-pointer group" onClick={() => navigate('/')}>
+             <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center p-2 shadow-lg shadow-white/5 transition-transform group-hover:scale-110">
+                <img src="/logo.png" alt="Logo" className="h-full w-auto object-contain" />
+             </div>
+             <div className="text-xl font-bold text-white tracking-tight italic">
+                HURE <span className="text-teal-400">Care</span>
+             </div>
           </div>
 
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[10px] font-bold tracking-[0.2em] uppercase">
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-teal-500/5 border border-teal-500/10 text-teal-400 text-[10px] font-black tracking-[0.2em] uppercase">
               <Sparkles className="h-3 w-3" />
               Trusted by 500+ Clinicians
             </div>
-            <h1 className="text-5xl font-medium text-white leading-[1.1] tracking-tight">
-              Digital Transformation <br />
-              <span className="text-teal-400 font-semibold italic">for your facility.</span>
+            <h1 className="text-5xl lg:text-7xl font-medium text-white leading-[1.05] tracking-tight">
+              Digital <br />
+              Transformation <br />
+              <span className="text-teal-400 relative inline-block">
+                for your facility.
+                <div className="absolute -bottom-2 left-0 w-full h-1 bg-teal-500/20 rounded-full" />
+              </span>
             </h1>
-            <p className="text-lg text-slate-400 leading-relaxed max-w-sm">
-              Join the fastest growing clinical network in Kenya. Streamline documentation, protect records, and elevate patient outcomes.
+            <p className="text-xl text-slate-400 leading-relaxed max-w-sm font-medium">
+              Join the fastest growing clinical network in Kenya. Streamline documentation and elevate patient outcomes.
             </p>
 
-            <div className="grid grid-cols-2 gap-4 pt-12">
-              <div className="p-6 bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10">
-                <div className="text-3xl font-bold text-white tracking-tight">24h</div>
-                <div className="text-xs text-slate-400 uppercase tracking-widest mt-1">Setup Time</div>
-              </div>
-              <div className="p-6 bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10">
-                <div className="text-3xl font-bold text-white tracking-tight">Zero</div>
-                <div className="text-xs text-slate-400 uppercase tracking-widest mt-1">Setup Fees</div>
-              </div>
+            <div className="flex gap-4 pt-8">
+               <div className="px-6 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/5">
+                  <div className="text-2xl font-bold text-white tracking-tight leading-none mb-2">24h</div>
+                  <div className="text-[8px] text-slate-500 uppercase tracking-widest leading-none font-black italic">Setup Cycle</div>
+               </div>
+               <div className="px-6 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/5">
+                  <div className="text-2xl font-bold text-white tracking-tight leading-none mb-2">Zero</div>
+                  <div className="text-[8px] text-slate-500 uppercase tracking-widest leading-none font-black italic">Setup Fees</div>
+               </div>
             </div>
           </div>
 
-          <div className="text-slate-500 text-[10px] uppercase tracking-[0.3em] font-medium">
-            © 2026 HURE CARE
+          <div className="text-slate-600 text-[10px] uppercase font-black tracking-[0.4em] italic">
+            © 2026 HURE CARE TECHNOLOGY
           </div>
         </div>
       </div>

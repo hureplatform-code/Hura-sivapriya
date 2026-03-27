@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { 
-  Save, 
-  RotateCcw, 
-  Globe, 
-  Type, 
-  Tag, 
-  FileText, 
-  Layout, 
-  CreditCard, 
+import {
+  Save,
+  RotateCcw,
+  Globe,
+  Type,
+  Tag,
+  FileText,
+  Layout,
+  CreditCard,
   HelpCircle,
   AlertCircle
 } from 'lucide-react';
@@ -21,7 +21,7 @@ const initialContent = {
   heroTitleHighlight1: "patient care",
   heroTitleHighlight2: "operations",
   heroBody:
-    "HURE Care is the modern operating system for clinical workflow management. Built to help healthcare facilities manage appointments, patient records, visit documentation, billing, and daily coordination in one secure, intuitive system.",
+    "HURE Care is the modern operating system for healthcare facility operations, built to help facilities manage appointments, patient records, visit documentation, billing, and daily front-desk-to-provider coordination in one secure system.",
   heroNote: "Experience how modern EMR should feel.",
   pricingEyebrow: "FLEXIBLE PRICING",
   pricingTitle: "Simple, transparent plans",
@@ -140,77 +140,77 @@ export default function SiteContent() {
             <p className="text-slate-500 text-sm mt-1">Manage public-facing text and information from one place.</p>
           </div>
           <div className="flex items-center gap-3">
-             <button 
-                onClick={handleReset}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-500 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all"
-             >
-                <RotateCcw className="h-4 w-4" /> Reset
-             </button>
-             <button 
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-6 py-2 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
-             >
-                {saving ? 'Saving...' : <><Save className="h-4 w-4" /> Save Changes</>}
-             </button>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-500 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all"
+            >
+              <RotateCcw className="h-4 w-4" /> Reset
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-2 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : <><Save className="h-4 w-4" /> Save Changes</>}
+            </button>
           </div>
         </header>
 
         <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-                {sections.map(section => (
-                    <div key={section.id} className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm">
-                        <div className="flex items-center gap-4 mb-8 border-b border-slate-50 pb-6">
-                            <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-teal-600">
-                                <section.icon className="h-6 w-6" />
-                            </div>
-                            <h2 className="text-xl font-bold text-slate-900">{section.title}</h2>
-                        </div>
-
-                        <div className="space-y-6">
-                            {section.fields.map(field => (
-                                <div key={field.key} className="space-y-2">
-                                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">{field.label}</label>
-                                    {field.type === 'textarea' ? (
-                                        <textarea 
-                                            value={content[field.key]}
-                                            onChange={(e) => handleChange(field.key, e.target.value)}
-                                            rows={4}
-                                            className="w-full px-5 py-4 bg-slate-50 border border-slate-100 focus:border-teal-500 focus:bg-white rounded-2xl outline-none transition-all text-sm font-medium text-slate-800"
-                                        />
-                                    ) : (
-                                        <input 
-                                            type="text"
-                                            value={content[field.key]}
-                                            onChange={(e) => handleChange(field.key, e.target.value)}
-                                            className="w-full px-5 py-4 bg-slate-50 border border-slate-100 focus:border-teal-500 focus:bg-white rounded-2xl outline-none transition-all text-sm font-medium text-slate-800"
-                                        />
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="space-y-8 text-center bg-teal-600 rounded-[2.5rem] p-10 text-white">
-                <div className="h-16 w-16 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                    <Globe className="h-8 w-8" />
+          <div className="lg:col-span-2 space-y-8">
+            {sections.map(section => (
+              <div key={section.id} className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm">
+                <div className="flex items-center gap-4 mb-8 border-b border-slate-50 pb-6">
+                  <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-teal-600">
+                    <section.icon className="h-6 w-6" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900">{section.title}</h2>
                 </div>
-                <h3 className="text-2xl font-bold tracking-tight">Live Updates</h3>
-                <p className="text-teal-50 leading-relaxed text-sm">
-                    Changes made here are applied instantly to the public landing page. Be sure to verify all spelling and information before saving.
-                </p>
-                <div className="pt-8 border-t border-white/10 mt-8">
-                    <div className="flex items-center justify-between text-xs font-bold tracking-widest uppercase opacity-70 mb-4">
-                        <span>Current Domain</span>
-                        <AlertCircle className="h-4 w-4" />
+
+                <div className="space-y-6">
+                  {section.fields.map(field => (
+                    <div key={field.key} className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">{field.label}</label>
+                      {field.type === 'textarea' ? (
+                        <textarea
+                          value={content[field.key]}
+                          onChange={(e) => handleChange(field.key, e.target.value)}
+                          rows={4}
+                          className="w-full px-5 py-4 bg-slate-50 border border-slate-100 focus:border-teal-500 focus:bg-white rounded-2xl outline-none transition-all text-sm font-medium text-slate-800"
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={content[field.key]}
+                          onChange={(e) => handleChange(field.key, e.target.value)}
+                          className="w-full px-5 py-4 bg-slate-50 border border-slate-100 focus:border-teal-500 focus:bg-white rounded-2xl outline-none transition-all text-sm font-medium text-slate-800"
+                        />
+                      )}
                     </div>
-                    <div className="bg-black/20 p-4 rounded-2xl font-mono text-sm break-all">
-                        care.gethure.com
-                    </div>
+                  ))}
                 </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-8 text-center bg-teal-600 rounded-[2.5rem] p-10 text-white">
+            <div className="h-16 w-16 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <Globe className="h-8 w-8" />
             </div>
+            <h3 className="text-2xl font-bold tracking-tight">Live Updates</h3>
+            <p className="text-teal-50 leading-relaxed text-sm">
+              Changes made here are applied instantly to the public landing page. Be sure to verify all spelling and information before saving.
+            </p>
+            <div className="pt-8 border-t border-white/10 mt-8">
+              <div className="flex items-center justify-between text-xs font-bold tracking-widest uppercase opacity-70 mb-4">
+                <span>Current Domain</span>
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div className="bg-black/20 p-4 rounded-2xl font-mono text-sm break-all">
+                care.gethure.com
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

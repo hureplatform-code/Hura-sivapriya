@@ -3,15 +3,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import siteContentService from "../../services/siteContentService";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  CheckCircle2, 
-  ChevronDown, 
-  Layout, 
-  Calendar, 
-  FileText, 
-  CreditCard, 
-  Globe, 
-  ShieldCheck, 
+import {
+  CheckCircle2,
+  ChevronDown,
+  Layout,
+  Calendar,
+  FileText,
+  CreditCard,
+  Globe,
+  ShieldCheck,
   ArrowRight,
   User,
   Activity,
@@ -29,7 +29,7 @@ const initialContent = {
   heroTitleHighlight1: "patient care",
   heroTitleHighlight2: "operations",
   heroBody:
-    "HURE Care is the modern operating system for clinical workflow management. Built to help healthcare facilities manage appointments, patient records, visit documentation, billing, and daily coordination in one secure, intuitive system.",
+    "HURE Care is the modern operating system for healthcare facility operations, built to help facilities manage appointments, patient records, visit documentation, billing, and daily front-desk-to-provider coordination in one secure system.",
   heroNote: "Experience how modern EMR should feel.",
   pricingIntroTitle: "Ready to modernize your patient care operations?",
   pricingIntroBody:
@@ -156,7 +156,7 @@ export default function LandingPage() {
     const loadContent = async () => {
       const dbContent = await siteContentService.getContent();
       if (dbContent) {
-          setContent(prev => ({ ...prev, ...dbContent }));
+        setContent(prev => ({ ...prev, ...dbContent }));
       }
     };
     loadContent();
@@ -191,8 +191,8 @@ export default function LandingPage() {
 
           <div className="flex items-center gap-6">
             <button onClick={() => navigate('/login')} className="text-sm font-semibold text-slate-600 hover:text-teal-600 transition-colors">Sign in</button>
-            <button 
-              onClick={() => navigate('/signup')} 
+            <button
+              onClick={() => navigate('/signup')}
               className="px-6 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold shadow-xl shadow-teal-100 hover:bg-teal-700 hover:shadow-teal-200 transition-all active:scale-95"
             >
               Get Started
@@ -211,7 +211,7 @@ export default function LandingPage() {
 
           <div className="mx-auto max-w-7xl">
             <div className="lg:grid lg:grid-cols-2 gap-16 items-center">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8 }}
@@ -232,14 +232,14 @@ export default function LandingPage() {
                   {content.heroBody}
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <button 
+                  <button
                     onClick={() => handleStartTrial('Essential')}
                     className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center gap-3 shadow-2xl shadow-slate-200 hover:bg-slate-800 transition-all group"
                   >
                     Start 10-Day Free Trial
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </button>
-                  <a 
+                  <a
                     href="#pricing"
                     className="px-8 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all"
                   >
@@ -247,12 +247,12 @@ export default function LandingPage() {
                   </a>
                 </div>
                 <p className="mt-8 text-sm font-medium text-slate-400 italic flex items-center gap-2">
-                   <div className="h-1 w-1 rounded-full bg-teal-400" />
-                   {content.heroNote}
+                  <div className="h-1 w-1 rounded-full bg-teal-400" />
+                  {content.heroNote}
                 </p>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1, delay: 0.2 }}
@@ -260,65 +260,65 @@ export default function LandingPage() {
               >
                 {/* Mesh Gradient Background */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-teal-100/40 to-blue-100/40 rounded-[3rem] blur-2xl -rotate-6 scale-110" />
-                
+
                 <div className="relative h-[500px] w-full bg-white/40 backdrop-blur-sm rounded-[3rem] border border-white/60 shadow-2xl overflow-hidden p-8">
-                    {/* Floating UI Elements */}
-                    <motion.div 
-                      animate={{ y: [0, -10, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute top-10 left-10 right-10 bg-white rounded-2xl shadow-xl border border-slate-100 p-6 z-10"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 bg-teal-500 rounded-lg" />
-                          <div className="h-2 w-24 bg-slate-100 rounded-full" />
-                        </div>
-                        <div className="h-6 w-16 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold flex items-center justify-center">ACTIVE</div>
+                  {/* Floating UI Elements */}
+                  <motion.div
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute top-10 left-10 right-10 bg-white rounded-2xl shadow-xl border border-slate-100 p-6 z-10"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 bg-teal-500 rounded-lg" />
+                        <div className="h-2 w-24 bg-slate-100 rounded-full" />
                       </div>
-                      <div className="space-y-2">
-                        <div className="h-2 w-full bg-slate-50 rounded-full" />
-                        <div className="h-2 w-3/4 bg-slate-50 rounded-full" />
-                      </div>
-                    </motion.div>
+                      <div className="h-6 w-16 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold flex items-center justify-center">ACTIVE</div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-2 w-full bg-slate-50 rounded-full" />
+                      <div className="h-2 w-3/4 bg-slate-50 rounded-full" />
+                    </div>
+                  </motion.div>
 
-                    <motion.div 
-                      animate={{ y: [0, 15, 0] }}
-                      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                      className="absolute bottom-12 left-8 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 z-20"
-                    >
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="h-10 w-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white">
-                          <Activity className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-bold text-slate-400">VITALS CHECK</div>
-                          <div className="text-xl font-bold text-slate-900 tracking-tight">Normal</div>
-                        </div>
+                  <motion.div
+                    animate={{ y: [0, 15, 0] }}
+                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                    className="absolute bottom-12 left-8 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 z-20"
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="h-10 w-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white">
+                        <Activity className="h-5 w-5" />
                       </div>
-                      <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full w-2/3 bg-indigo-500" />
+                      <div>
+                        <div className="text-[10px] font-bold text-slate-400">VITALS CHECK</div>
+                        <div className="text-xl font-bold text-slate-900 tracking-tight">Normal</div>
                       </div>
-                    </motion.div>
+                    </div>
+                    <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full w-2/3 bg-indigo-500" />
+                    </div>
+                  </motion.div>
 
-                    <motion.div 
-                      animate={{ x: [0, 10, 0] }}
-                      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                      className="absolute top-40 right-4 w-48 bg-slate-900 text-white rounded-2xl shadow-2xl p-5 z-20"
-                    >
-                       <div className="text-[8px] font-bold text-teal-400 tracking-[0.2em] mb-2 uppercase">Live Queue</div>
-                       <div className="space-y-3">
-                         {[1,2,3].map(i => (
-                           <div key={i} className="flex items-center gap-2">
-                             <div className="h-5 w-5 rounded-full bg-white/10" />
-                             <div className={`h-1.5 bg-white/10 rounded-full ${i === 1 ? 'w-16' : 'w-12'}`} />
-                           </div>
-                         ))}
-                       </div>
-                    </motion.div>
+                  <motion.div
+                    animate={{ x: [0, 10, 0] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                    className="absolute top-40 right-4 w-48 bg-slate-900 text-white rounded-2xl shadow-2xl p-5 z-20"
+                  >
+                    <div className="text-[8px] font-bold text-teal-400 tracking-[0.2em] mb-2 uppercase">Live Queue</div>
+                    <div className="space-y-3">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className="h-5 w-5 rounded-full bg-white/10" />
+                          <div className={`h-1.5 bg-white/10 rounded-full ${i === 1 ? 'w-16' : 'w-12'}`} />
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
 
-                    {/* Background Decorative Circles */}
-                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-teal-200/20 rounded-full blur-2xl" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 border border-slate-100/50 rounded-full" />
+                  {/* Background Decorative Circles */}
+                  <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-teal-200/20 rounded-full blur-2xl" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 border border-slate-100/50 rounded-full" />
                 </div>
               </motion.div>
             </div>
@@ -334,69 +334,38 @@ export default function LandingPage() {
               <p className="text-lg text-slate-500 leading-relaxed">Everything your medical team needs to transition from manual bottlenecks to digital excellence.</p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
               {featureCards.map((feature, idx) => (
-                <motion.div 
+                <motion.div
                   key={idx}
-                  whileHover={{ y: -5 }}
-                  className={`${feature.span} bg-white p-10 rounded-[2rem] border border-slate-100 shadow-sm transition-shadow hover:shadow-xl hover:shadow-slate-200/50 group`}
+                  whileHover={{ y: -4, x: 4, scale: 1.01 }}
+                  className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-2xl hover:shadow-teal-100/40 group relative overflow-hidden flex items-center gap-8"
                 >
-                  <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center text-teal-600 mb-8 border border-slate-100 group-hover:bg-teal-600 group-hover:text-white transition-colors duration-300">
-                    <feature.icon className="h-6 w-6" />
+                  {/* Action Badge */}
+                  <div className="absolute top-6 right-8 text-[8px] font-black text-slate-200 tracking-[0.3em] uppercase group-hover:text-teal-400 transition-colors">
+                    HURE-MOD-{(idx + 1).toString().padStart(2, '0')}
                   </div>
-                  <h3 className="text-2xl font-medium tracking-tight text-slate-900 mb-4">{feature.title}</h3>
-                  <p className="text-slate-500 leading-relaxed">{feature.description}</p>
+
+                  <div className="shrink-0 h-24 w-24 bg-slate-50 rounded-[1.5rem] flex items-center justify-center text-teal-600 border border-slate-100 group-hover:bg-teal-600 group-hover:text-white transition-all duration-500 shadow-inner group-hover:rotate-6">
+                    <feature.icon className="h-10 w-10" />
+                  </div>
+                  
+                  <div className="flex-1 pr-12">
+                    <h3 className="text-xl font-bold tracking-tight text-slate-900 mb-2 group-hover:text-teal-700 transition-colors">
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                      {feature.description}
+                    </p>
+                    <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-teal-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-[-10px] group-hover:translate-x-0">
+                       Learn More <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+
+                  {/* Subtle Background Mesh */}
+                  <div className="absolute top-0 right-0 w-32 h-full bg-slate-50/30 -z-0 translate-x-12 skew-x-12 group-hover:bg-teal-50/50 transition-colors" />
                 </motion.div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Facility Journey Section */}
-        <section className="px-6 py-24 bg-white relative overflow-hidden">
-          <div className="mx-auto max-w-7xl">
-            <div className="text-center mb-20">
-              <div className="text-teal-600 text-sm font-bold uppercase tracking-[0.2em] mb-4">Onboarding Journey</div>
-              <h2 className="text-4xl lg:text-5xl font-medium tracking-tight text-slate-900 mb-6">Your growth, simplified.</h2>
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto">From clinical evaluation to verified excellence. We partner with you at every stage.</p>
-            </div>
-
-            <div className="relative grid md:grid-cols-3 gap-12">
-               {/* Connecting Line */}
-               <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-100 -translate-y-1/2 hidden md:block -z-10" />
-               
-               {[
-                 { 
-                   step: "01", 
-                   title: "10-Day Evaluation", 
-                   body: "Experience the full HURE Care workflow across triage, clinical notes, and billing with zero restrictions.",
-                   icon: Activity,
-                   color: "bg-teal-50 text-teal-600"
-                 },
-                 { 
-                   step: "02", 
-                   title: "Document Verification", 
-                   body: "Submit your facility licensing for our compliance review to ensure secure, uninterrupted access.",
-                   icon: ShieldCheck,
-                   color: "bg-blue-50 text-blue-600"
-                 },
-                 { 
-                   step: "03", 
-                   title: "Unrestricted Growth", 
-                   body: "Activate your preferred plan and scale your facility with a verified professional operating system.",
-                   icon: TrendingUp,
-                   color: "bg-indigo-50 text-indigo-600"
-                 }
-               ].map((item, idx) => (
-                 <div key={idx} className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm relative group hover:shadow-xl hover:shadow-slate-100 transition-all">
-                    <div className="text-[10px] font-black text-slate-200 tracking-[0.5em] mb-6 group-hover:text-teal-100 transition-colors">STEP {item.step}</div>
-                    <div className={`h-16 w-16 ${item.color} rounded-2xl flex items-center justify-center mb-6 shadow-sm`}>
-                       <item.icon className="h-8 w-8" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-4">{item.title}</h3>
-                    <p className="text-sm text-slate-500 leading-relaxed font-medium">{item.body}</p>
-                 </div>
-               ))}
             </div>
           </div>
         </section>
@@ -410,13 +379,12 @@ export default function LandingPage() {
 
             <div className="grid lg:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
               {plans.map((plan, idx) => (
-                <div 
+                <div
                   key={idx}
-                  className={`relative p-10 rounded-[2.5rem] border flex flex-col transition-all duration-300 ${
-                    plan.featured 
-                    ? "bg-slate-950 text-white border-slate-900 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.25)] scale-105" 
+                  className={`relative p-10 rounded-[2.5rem] border flex flex-col transition-all duration-300 ${plan.featured
+                    ? "bg-slate-950 text-white border-slate-900 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.25)] scale-105"
                     : "bg-white text-slate-800 border-slate-100 shadow-sm"
-                  }`}
+                    }`}
                 >
                   {plan.featured && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-teal-500 text-white text-[10px] font-bold tracking-[0.2em] rounded-full">
@@ -439,13 +407,12 @@ export default function LandingPage() {
                       </div>
                     ))}
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleStartTrial(plan.name)}
-                    className={`w-full py-4 rounded-xl font-bold transition-all active:scale-95 ${
-                      plan.featured 
-                      ? "bg-teal-500 text-white hover:bg-teal-400" 
+                    className={`w-full py-4 rounded-xl font-bold transition-all active:scale-95 ${plan.featured
+                      ? "bg-teal-500 text-white hover:bg-teal-400"
                       : "bg-slate-100 text-slate-900 hover:bg-slate-200"
-                    }`}
+                      }`}
                   >
                     {plan.cta}
                   </button>
@@ -454,6 +421,56 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Facility Journey Section */}
+        <section className="px-6 py-24 bg-white relative overflow-hidden">
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center mb-20">
+              <div className="text-teal-600 text-sm font-bold uppercase tracking-[0.2em] mb-4">Onboarding Journey</div>
+              <h2 className="text-4xl lg:text-5xl font-medium tracking-tight text-slate-900 mb-6">Your growth, simplified.</h2>
+              <p className="text-lg text-slate-500 max-w-2xl mx-auto">From clinical evaluation to verified excellence. We partner with you at every stage.</p>
+            </div>
+
+            <div className="relative grid md:grid-cols-3 gap-12">
+              {/* Connecting Line */}
+              <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-100 -translate-y-1/2 hidden md:block -z-10" />
+
+              {[
+                {
+                  step: "01",
+                  title: "10-Day Evaluation",
+                  body: "Experience the full HURE Care workflow across triage, clinical notes, and billing with zero restrictions.",
+                  icon: Activity,
+                  color: "bg-teal-50 text-teal-600"
+                },
+                {
+                  step: "02",
+                  title: "Document Verification",
+                  body: "Submit your facility licensing for our compliance review to ensure secure, uninterrupted access.",
+                  icon: ShieldCheck,
+                  color: "bg-blue-50 text-blue-600"
+                },
+                {
+                  step: "03",
+                  title: "Unrestricted Growth",
+                  body: "Activate your preferred plan and scale your facility with a verified professional operating system.",
+                  icon: TrendingUp,
+                  color: "bg-indigo-50 text-indigo-600"
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm relative group hover:shadow-xl hover:shadow-slate-100 transition-all">
+                  <div className="text-[10px] font-black text-slate-200 tracking-[0.5em] mb-6 group-hover:text-teal-100 transition-colors">STEP {item.step}</div>
+                  <div className={`h-16 w-16 ${item.color} rounded-2xl flex items-center justify-center mb-6 shadow-sm`}>
+                    <item.icon className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-4">{item.title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed font-medium">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
 
         {/* FAQ Section */}
         <section id="faq" className="px-6 py-24 bg-slate-50/50">
@@ -466,11 +483,11 @@ export default function LandingPage() {
 
             <div className="space-y-4">
               {faqs.map((faq, idx) => (
-                <div 
+                <div
                   key={idx}
                   className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm"
                 >
-                  <button 
+                  <button
                     onClick={() => setActiveFaq(activeFaq === idx ? -1 : idx)}
                     className="w-full px-8 py-6 flex items-center justify-between text-left group"
                   >
@@ -479,7 +496,7 @@ export default function LandingPage() {
                   </button>
                   <AnimatePresence>
                     {activeFaq === idx && (
-                      <motion.div 
+                      <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -499,81 +516,62 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-50 border-t border-slate-100 py-24 px-6 mt-12 relative overflow-hidden">
-        <div className="mx-auto max-w-7xl grid md:grid-cols-4 gap-12 relative z-10">
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="h-10 w-10 bg-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-100">
-                 <img src="/logo.png" alt="Logo" className="h-6 w-auto brightness-0 invert" />
+      <footer className="bg-[#030712] py-24 px-6 relative overflow-hidden">
+        <div className="mx-auto max-w-7xl relative z-10">
+          <div className="grid md:grid-cols-4 gap-16 mb-24">
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center p-2 shadow-lg shadow-white/5 overflow-hidden">
+                  <img src="/logo.png" alt="Logo" className="h-full w-auto object-contain" />
+                </div>
+                <div className="text-2xl font-bold tracking-tight text-white italic">
+                  HURE <span className="text-teal-400">Care</span>
+                </div>
               </div>
-              <div className="text-2xl font-bold tracking-tight text-slate-900 italic">
-                HURE <span className="text-teal-600">Care</span>
-              </div>
+              <p className="max-w-md text-slate-400 leading-relaxed font-medium text-lg">
+                {content.footerBlurb}
+              </p>
             </div>
-            <p className="max-w-xs text-slate-500 leading-relaxed mb-10 font-medium">
-              {content.footerBlurb}
+
+            <div>
+              <h5 className="font-bold text-xl text-white mb-8">Product</h5>
+              <ul className="space-y-4 text-slate-400 font-medium">
+                <li><a href="#features" className="hover:text-teal-400 transition-colors">Features</a></li>
+                <li><a href="#pricing" className="hover:text-teal-400 transition-colors">Pricing</a></li>
+                <li><a href="#faq" className="hover:text-teal-400 transition-colors">FAQ</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-bold text-xl text-white mb-8">Legal</h5>
+              <ul className="space-y-4 text-slate-400 font-medium">
+                <li><Link to="/privacy" className="hover:text-teal-400 transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-teal-400 transition-colors">Terms of Service</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
+              © {new Date().getFullYear()} HURE CARE TECHNOLOGY. ALL RIGHTS RESERVED.
             </p>
-            <div className="flex gap-4">
-                {[
-                  { icon: Twitter, href: "#" },
-                  { icon: Linkedin, href: "#" },
-                  { icon: Facebook, href: "#" },
-                  { icon: Instagram, href: "#" }
-                ].map((social, i) => (
-                    <a 
-                      key={i} 
-                      href={social.href}
-                      className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 hover:text-teal-600 hover:bg-white hover:shadow-xl hover:shadow-slate-200 transition-all border border-slate-100"
-                    >
-                      <social.icon className="h-5 w-5" />
-                    </a>
-                ))}
+            <div className="flex gap-10">
+              {[
+                { label: 'Privacy', path: '/privacy' },
+                { label: 'Terms', path: '/terms' },
+                { label: 'Security', path: '/security' }
+              ].map(item => (
+                <Link
+                  key={item.label}
+                  to={item.path}
+                  className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] hover:text-teal-400 transition-colors"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </div>
-
-          <div>
-            <h5 className="font-black text-[10px] uppercase tracking-[0.3em] text-slate-900 mb-8">Product</h5>
-            <ul className="space-y-4 text-sm font-semibold text-slate-500">
-              <li><a href="#features" className="hover:text-teal-600 transition-colors">Solutions</a></li>
-              <li><a href="#pricing" className="hover:text-teal-600 transition-colors">Pricing Plans</a></li>
-              <li><a href="#" className="hover:text-teal-600 transition-colors">Platform Status</a></li>
-              <li><a href="#" className="hover:text-teal-600 transition-colors">Security Matrix</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h5 className="font-black text-[10px] uppercase tracking-[0.3em] text-slate-900 mb-8">Experience</h5>
-            <ul className="space-y-4 text-sm font-semibold text-slate-500">
-              <li><a href="/login" className="hover:text-teal-600 transition-colors">Client Portal</a></li>
-              <li><a href="/signup" className="hover:text-teal-600 transition-colors">Trial Request</a></li>
-              <li><a href="#" className="hover:text-teal-600 transition-colors">Knowledge Base</a></li>
-              <li><a href="#" className="hover:text-teal-600 transition-colors">Privacy Policy</a></li>
-            </ul>
-          </div>
         </div>
-        
-        <div className="mx-auto max-w-7xl mt-24 pt-12 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-            © 2026 HURE CARE TECHNOLOGY. ALL RIGHTS RESERVED.
-          </p>
-          <div className="flex gap-10">
-            {[
-              { label: 'Privacy', path: '/privacy' },
-              { label: 'Terms', path: '/terms' },
-              { label: 'Security', path: '/security' }
-            ].map(item => (
-              <Link 
-                key={item.label} 
-                to={item.path} 
-                className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:text-teal-600 transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-        
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-teal-50 rounded-full blur-3xl opacity-50" />
       </footer>
     </div>
   );
