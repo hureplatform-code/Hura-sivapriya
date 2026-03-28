@@ -110,6 +110,7 @@ const getMenuItems = (role) => [
     subItems: [
       { label: 'Collection Queue', path: '/billing/queue', roles: ['clinic_owner', 'admin', 'receptionist', 'lab_tech'] },
       { label: 'Invoices & Records', path: '/billing', roles: ['clinic_owner', 'admin', 'receptionist', 'lab_tech'] },
+      { label: 'Insurance Claims', path: '/billing/claims', roles: ['clinic_owner', 'admin', 'receptionist'] },
       { label: 'General Ledger', path: '/accounting', roles: ['clinic_owner', 'admin'] },
       { label: 'Platform Revenue', path: '/accounting', roles: ['superadmin'] },
       { label: 'Expenses', path: '/expenses', roles: ['superadmin', 'clinic_owner', 'admin'] },
@@ -340,13 +341,6 @@ export default function Sidebar({ isOpen, onClose }) {
               <p className="text-xs text-slate-500 truncate capitalize">{role}</p>
             </div>
           </div>
-          <button 
-            onClick={logout}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all duration-200 text-sm font-medium border border-transparent hover:border-red-100"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout Session
-          </button>
         </div>
 
         {/* Superadmin Provider Balance Health Widget */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bell, User, X, FileText, Calendar, Users, Menu } from 'lucide-react';
+import { Search, Bell, User, X, FileText, Calendar, Users, Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import patientService from '../../services/patientService';
@@ -10,7 +10,7 @@ import inventoryService from '../../services/inventoryService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header({ onMenuClick }) {
-  const { userData } = useAuth();
+  const { userData, logout } = useAuth();
   const navigate = useNavigate();
   const role = userData?.role || 'Superadmin';
   const [notifications, setNotifications] = React.useState([]);
@@ -376,12 +376,19 @@ export default function Header({ onMenuClick }) {
         
         <div className="h-8 w-[1px] bg-slate-100"></div>
 
-        <div className="flex items-center gap-3 group cursor-pointer">
-          <div className="text-right">
-            <p className="text-sm font-medium text-slate-900">{userData?.name || 'Jon Day'}</p>
-            <p className="text-xs text-slate-400 capitalize">{role}</p>
+        <div className="flex items-center gap-3">
+          <div className="text-right flex flex-col items-end">
+            <p className="text-sm font-bold text-slate-900 leading-tight mb-0.5">{userData?.name || 'Jon Day'}</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1.5">{role}</p>
+            <button 
+              onClick={logout}
+              className="group/logout flex items-center gap-1.5 text-[9px] font-black text-slate-400 hover:text-red-500 transition-colors uppercase tracking-[0.2em]"
+            >
+              <LogOut className="h-3 w-3 group-hover/logout:-translate-x-0.5 transition-transform" />
+              Log Out
+            </button>
           </div>
-          <div className="h-10 w-10 bg-slate-100 rounded-xl overflow-hidden shadow-inner flex items-center justify-center text-primary-600 font-medium border border-slate-200">
+          <div className="h-10 w-10 bg-slate-100 rounded-xl overflow-hidden shadow-inner flex items-center justify-center text-primary-600 font-bold border border-slate-200">
             {userData?.name?.split(' ').map(n => n[0]).join('') || <User className="h-6 w-6 text-slate-400" />}
           </div>
         </div>

@@ -23,8 +23,13 @@ import {
   Plus as PlusIcon,
   ShoppingBag,
   Stethoscope,
-  Scissors
+  Scissors,
+  Briefcase,
+  Printer
 } from 'lucide-react';
+import medicalRecordService from '../../services/medicalRecordService';
+import appointmentService from '../../services/appointmentService';
+import claimService from '../../services/claimService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -138,6 +143,151 @@ export default function Billing() {
     inv.invoiceNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     inv.patientName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleExportClaimPack = async (inv) => {
+    try {
+      showNotification('success', 'Fetching clinical records for claim pack...');
+      
+      // 1. Fetch related Clinical Data
+      const [soapRecord, appointment] = await Promise.all([
+        inv.invAppId ? medicalRecordService.getRecordByAppointment(inv.invAppId) : null,
+        inv.invAppId ? appointmentService.getAppointmentById(inv.invAppId) : null
+      ]);
+
+      // 2. Create/Update Claim Snapshot for audit-safe tracking
+      await claimService.createClaimSnapshot(inv, soapRecord, appointment, userData);
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      const primaryColor = [15, 23, 42]; // Slate 900
+      const accentColor = [37, 99, 235]; // Blue 600
+
+      // PAGE 1: CLAIM SUMMARY & INVOICE
+      doc.setFillColor(...primaryColor);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('INSURANCE CLAIM PACK', 20, 25);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Ref: ${inv.invoiceNo} | Date: ${new Date().toLocaleDateString()}`, pageWidth - 20, 25, { align: 'right' });
+
+      // Patient Header
+      doc.setTextColor(...primaryColor);
+      doc.setFontSize(12);
+      doc.text('PATIENT INFORMATION', 20, 60);
+      doc.setDrawColor(230, 230, 230);
+      doc.line(20, 63, pageWidth - 20, 63);
+
+      doc.setFontSize(10);
+      doc.text(`Name: ${inv.patientName}`, 20, 75);
+      doc.text(`Insurance: ${inv.stage === 2 ? 'Covered Visit' : 'Mixed Billing'}`, 20, 82);
+      doc.text(`Invoice Status: ${inv.status?.toUpperCase()}`, 20, 89);
+      
+      doc.text(`Pay Mode: ${inv.payMode === '2' ? 'Insurance Direct' : 'Cash/Other'}`, pageWidth - 20, 75, { align: 'right' });
+      doc.text(`Claim ID: CLM-${inv.id?.slice(-8).toUpperCase()}`, pageWidth - 20, 82, { align: 'right' });
+
+      // Invoice Table
+      doc.setFontSize(12);
+      doc.text('FINANCIAL BREAKDOWN', 20, 110);
+      
+      const items = inv.items?.length > 0 ? inv.items : [{ description: 'Clinic Service', qty: 1, price: inv.totalAmount, amount: inv.totalAmount }];
+      
+      doc.autoTable({
+        startY: 115,
+        head: [['Service Description', 'Qty', 'Unit Price', 'Total']],
+        body: items.map(i => [i.description, i.qty, i.price, i.amount]),
+        theme: 'grid',
+        headStyles: { fillColor: primaryColor, fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: { 3: { halign: 'right' } }
+      });
+
+      const finalY = doc.lastAutoTable.finalY + 10;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`TOTAL CLAIM AMOUNT: ${currency} ${inv.totalAmount}`, pageWidth - 20, finalY, { align: 'right' });
+
+      // PAGE 2: CLINICAL SOAP NOTE
+      if (soapRecord) {
+        doc.addPage();
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, pageWidth, 30, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.text('CLINICAL ASSESSMENT (SOAP)', 20, 20);
+
+        doc.setTextColor(...primaryColor);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SUBJECTIVE:', 20, 50);
+        doc.setFont('helvetica', 'normal');
+        doc.text(doc.splitTextToSize(soapRecord.subjective || 'No notes provided.', pageWidth - 40), 20, 57);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('OBJECTIVE:', 20, 85);
+        doc.setFont('helvetica', 'normal');
+        doc.text(doc.splitTextToSize(soapRecord.objective || 'Examination within normal limits.', pageWidth - 40), 20, 92);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('ASSESSMENT / DIAGNOSIS:', 20, 120);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...accentColor);
+        doc.text(soapRecord.diagnosis || 'Clinical evaluation complete.', 20, 127);
+        
+        doc.setTextColor(...primaryColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PLAN & ORDERS:', 20, 145);
+        doc.setFont('helvetica', 'normal');
+        doc.text(doc.splitTextToSize(soapRecord.plan || 'Routine follow-up.', pageWidth - 40), 20, 152);
+
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Digitally Signed by: ${soapRecord.doctorName || 'Attending Physician'}`, 20, 280);
+        doc.text(`Timestamp: ${new Date(soapRecord.createdAt?.seconds * 1000).toLocaleString()}`, pageWidth - 20, 280, { align: 'right' });
+      }
+
+      // PAGE 3: LAB RESULTS / INVESTIGATIONS
+      if (appointment && (appointment.labResults || appointment.structuredResults?.length > 0)) {
+        doc.addPage();
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, pageWidth, 30, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.text('LABORATORY & INVESTIGATION REPORTS', 20, 20);
+
+        doc.setTextColor(...primaryColor);
+        
+        if (appointment.structuredResults?.length > 0) {
+          doc.autoTable({
+            startY: 50,
+            head: [['Test Name', 'Result', 'Reference Range', 'Status']],
+            body: appointment.structuredResults.map(r => [r.testName, r.value, r.reference || '--', 'Final']),
+            theme: 'striped',
+            headStyles: { fillColor: accentColor },
+            bodyStyles: { fontSize: 8 }
+          });
+        } else if (appointment.labResults) {
+          doc.setFontSize(10);
+          doc.text('Clinical Findings:', 20, 50);
+          doc.setFont('helvetica', 'normal');
+          doc.text(doc.splitTextToSize(appointment.labResults, pageWidth - 40), 20, 57);
+        }
+
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Verified Laboratory Report - HURE Care Clinical OS', 20, 280);
+      }
+
+      doc.save(`ClaimPack_${inv.invoiceNo}_${inv.patientName.replace(/\s+/g, '_')}.pdf`);
+      showNotification('success', 'Claim Pack generated successfully.');
+    } catch (err) {
+      console.error(err);
+      showNotification('error', 'Failed to generate claim pack.');
+    }
+  };
 
   const handleExportInvoice = (inv) => {
     const doc = new jsPDF();
@@ -358,8 +508,15 @@ export default function Billing() {
                                   onClick={() => { handleExportInvoice(inv); setActiveMenu(null); }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                                 >
-                                  <Receipt className="h-4 w-4" />
+                                  <Printer className="h-4 w-4" />
                                   Print Invoice
+                                </button>
+                                <button 
+                                  onClick={() => { handleExportClaimPack(inv); setActiveMenu(null); }}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                                >
+                                  <Briefcase className="h-4 w-4" />
+                                  Prepare Claim Pack
                                 </button>
                                 {inv.status !== 'paid' && (
                                   <button 
@@ -431,7 +588,9 @@ function BillGenerator({ onClose, onSave }) {
     payAmount: '0.00',
     items: [],
     taxPercent: '0',
-    discount: '0.00'
+    discount: '0.00',
+    insuranceScheme: '',
+    insuranceMemberNo: ''
   });
 
   useEffect(() => {
@@ -441,6 +600,14 @@ function BillGenerator({ onClose, onSave }) {
   useEffect(() => {
     if (patientId) {
       fetchPatientAppointments(patientId);
+      const patient = patients.find(p => p.id === patientId || p.docId === patientId);
+      if (patient) {
+        setFormData(prev => ({
+          ...prev,
+          insuranceScheme: patient.insuranceProvider || '',
+          insuranceMemberNo: patient.insuranceMemberNo || ''
+        }));
+      }
     } else {
       setAppointments([]);
       setAppointmentId('');
@@ -623,6 +790,30 @@ function BillGenerator({ onClose, onSave }) {
                 <option value="3">M-Pesa / Digital</option>
               </select>
             </div>
+            {formData.payMode === '2' && (
+              <>
+                <div className="space-y-4">
+                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Insurance Scheme</label>
+                  <input 
+                    type="text"
+                    value={formData.insuranceScheme}
+                    onChange={(e) => setFormData({...formData, insuranceScheme: e.target.value})}
+                    placeholder="e.g. NHIF, Jubilee..."
+                    className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium outline-none shadow-inner"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Member Number</label>
+                  <input 
+                    type="text"
+                    value={formData.insuranceMemberNo}
+                    onChange={(e) => setFormData({...formData, insuranceMemberNo: e.target.value})}
+                    placeholder="Enter policy number..."
+                    className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium outline-none shadow-inner"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="pt-8 border-t border-slate-50">

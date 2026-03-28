@@ -31,6 +31,7 @@ import NursingQueue from './pages/clinical/NursingQueue';
 import Investigation from './pages/clinical/Investigation';
 import Billing from './pages/financial/Billing';
 import BillingQueue from './pages/financial/BillingQueue';
+import ClaimsTracker from './pages/financial/ClaimsTracker';
 import Accounting from './pages/financial/Accounting';
 import Expenses from './pages/financial/Expenses';
 import Inventory from './pages/operational/Inventory';
@@ -143,6 +144,7 @@ function App() {
           {/* Billing & Pharmacy */}
           <Route path="/billing" element={<PrivateRoute><Billing /></PrivateRoute>} />
           <Route path="/billing/queue" element={<PrivateRoute><BillingQueue /></PrivateRoute>} />
+          <Route path="/billing/claims" element={<PrivateRoute><ClaimsTracker /></PrivateRoute>} />
           <Route path="/accounting" element={<PrivateRoute><Accounting /></PrivateRoute>} />
           <Route path="/expenses" element={<PrivateRoute><Expenses /></PrivateRoute>} />
           <Route path="/pharmacy/inventory" element={<PrivateRoute><Inventory /></PrivateRoute>} />
