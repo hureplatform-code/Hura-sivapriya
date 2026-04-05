@@ -46,7 +46,8 @@ npm run build
 
 
 ## Login
-- **URL**: https://hura-sivapriya.vercel.app/
+- **URL**: 
+https://hura-sivapriya.vercel.app/
 Super admin
 jebin@justrise.bh
 1234567890
