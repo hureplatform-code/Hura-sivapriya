@@ -123,12 +123,12 @@ export default function Signup() {
 
         <div className="relative z-10 w-full h-full p-20 flex flex-col justify-between">
           <div className="flex items-center gap-4 cursor-pointer group" onClick={() => navigate('/')}>
-             <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center p-2 shadow-lg shadow-white/5 transition-transform group-hover:scale-110">
-                <img src="/logo.png" alt="Logo" className="h-full w-auto object-contain" />
-             </div>
-             <div className="text-xl font-bold text-white tracking-tight italic">
-                HURE <span className="text-teal-400">Care</span>
-             </div>
+            <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center p-2 shadow-lg shadow-white/5 transition-transform group-hover:scale-110">
+              <img src="/logo.png" alt="Logo" className="h-full w-auto object-contain" />
+            </div>
+            <div className="text-xl font-bold text-white tracking-tight italic">
+              HURE <span className="text-teal-400">Care</span>
+            </div>
           </div>
 
           <div className="space-y-8">
@@ -149,14 +149,14 @@ export default function Signup() {
             </p>
 
             <div className="flex gap-4 pt-8">
-               <div className="px-6 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/5">
-                  <div className="text-2xl font-bold text-white tracking-tight leading-none mb-2">24h</div>
-                  <div className="text-[8px] text-slate-500 uppercase tracking-widest leading-none font-black italic">Setup Cycle</div>
-               </div>
-               <div className="px-6 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/5">
-                  <div className="text-2xl font-bold text-white tracking-tight leading-none mb-2">Zero</div>
-                  <div className="text-[8px] text-slate-500 uppercase tracking-widest leading-none font-black italic">Setup Fees</div>
-               </div>
+              <div className="px-6 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/5">
+                <div className="text-2xl font-bold text-white tracking-tight leading-none mb-2">24h</div>
+                <div className="text-[8px] text-slate-500 uppercase tracking-widest leading-none font-black italic">Setup Cycle</div>
+              </div>
+              <div className="px-6 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/5">
+                <div className="text-2xl font-bold text-white tracking-tight leading-none mb-2">Zero</div>
+                <div className="text-[8px] text-slate-500 uppercase tracking-widest leading-none font-black italic">Setup Fees</div>
+              </div>
             </div>
           </div>
 

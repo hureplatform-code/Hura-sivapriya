@@ -30,19 +30,19 @@ export default function Login() {
     <div className="min-h-screen flex bg-white font-['Inter']">
       {/* Left Side: Brand Imagery */}
       <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden bg-slate-900">
-        <div 
+        <div
           className="absolute inset-0 bg-[url('/assets/img/loginbg_v2.png')] bg-cover bg-center opacity-80 scale-105 transition-transform duration-[20s] hover:scale-100"
         />
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 via-slate-900/40 to-transparent" />
-        
+
         <div className="relative z-10 w-full h-full p-24 flex flex-col justify-between">
-            <div className="flex items-center gap-4">
-              <img src="/logo.png" alt="Hure Care Logo" className="h-14 w-auto object-contain drop-shadow-md" />
-              <span className="text-3xl font-bold text-white tracking-widest uppercase italic shadow-black drop-shadow-md">HURE CARE</span>
-            </div>
+          <div className="flex items-center gap-4">
+            <img src="/logo.png" alt="Hure Care Logo" className="h-14 w-auto object-contain drop-shadow-md" />
+            <span className="text-3xl font-bold text-white tracking-widest uppercase italic shadow-black drop-shadow-md">HURE CARE</span>
+          </div>
 
           <div className="max-w-xl">
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-6xl font-medium text-white leading-[1.1] tracking-tight"
@@ -58,7 +58,7 @@ export default function Login() {
 
           <div className="flex items-center gap-8">
             <div className="flex -space-x-4">
-              {[1,2,3,4].map(i => (
+              {[1, 2, 3, 4].map(i => (
                 <div key={i} className="h-12 w-12 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] font-medium text-white uppercase overflow-hidden">
                   <img src={`https://i.pravatar.cc/150?u=${i}`} alt="user" />
                 </div>
@@ -74,7 +74,7 @@ export default function Login() {
         <div className="w-full max-w-md space-y-12">
           <div className="lg:hidden flex justify-center mb-8">
             <div className="h-14 w-14 bg-primary-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-primary-200 overflow-hidden p-2">
-               <img src="/logo.png" alt="Hure Care Logo" className="h-full w-full object-contain" />
+              <img src="/logo.png" alt="Hure Care Logo" className="h-full w-full object-contain" />
             </div>
           </div>
 
@@ -84,7 +84,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="bg-red-50 p-6 rounded-2xl flex items-center gap-4 text-red-700 text-sm border-2 border-red-100/50"

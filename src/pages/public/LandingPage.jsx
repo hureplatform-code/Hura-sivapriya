@@ -552,9 +552,14 @@ export default function LandingPage() {
           </div>
 
           <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
-              © {new Date().getFullYear()} HURE CARE TECHNOLOGY. ALL RIGHTS RESERVED.
-            </p>
+            <div className="flex flex-col gap-2">
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
+                © {new Date().getFullYear()} HURE CARE TECHNOLOGY. ALL RIGHTS RESERVED.
+              </p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                Developed by <a href="https://justrise.bh" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:text-teal-300 transition-colors">justrise.bh</a> just rise technologies wll
+              </p>
+            </div>
             <div className="flex gap-10">
               {[
                 { label: 'Privacy', path: '/privacy' },
