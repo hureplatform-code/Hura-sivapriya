@@ -90,11 +90,11 @@ const billingService = {
       .reduce((sum, inv) => sum + (parseFloat(inv.totalAmount || inv.payAmount || 0)), 0);
     
     // Calculate today's payments
-    const today = new Date().toLocaleDateString();
+    const today = new Date().toLocaleDateString('en-GB');
     const todayPaymentsFiltered = invoices
       .filter(inv => {
         const invDate = inv.createdAt?.seconds ? new Date(inv.createdAt.seconds * 1000) : new Date(inv.createdAt);
-        return inv.status === 'paid' && invDate.toLocaleDateString() === today;
+        return inv.status === 'paid' && invDate.toLocaleDateString('en-GB') === today;
       });
       
     const todayPayments = todayPaymentsFiltered.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount || inv.payAmount || 0)), 0);

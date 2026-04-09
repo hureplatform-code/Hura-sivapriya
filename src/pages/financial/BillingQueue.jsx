@@ -152,7 +152,7 @@ export default function BillingQueue() {
                       </div>
                     </td>
                     <td className="py-5 px-6 font-bold text-slate-600 text-xs">
-                       {apt.date} <span className="text-[9px] text-slate-300 ml-1">{apt.time || 'W.IN'}</span>
+                       {new Date(apt.date).toLocaleDateString('en-GB')} <span className="text-[9px] text-slate-300 ml-1">{apt.time || 'W.IN'}</span>
                     </td>
                     <td className="py-5 px-6 font-semibold text-slate-600 text-xs text-primary-600">
                        Dr. {apt.providerName || apt.doctor || 'N/A'}

@@ -26,7 +26,7 @@ const wardService = {
       patient: patientData?.name || null,
       patientId: patientData?.patientId || null,
       admissionId: admissionId || ward.beds[bedIndex].admissionId || null,
-      admittedAt: patientData?.admittedAt || new Date().toLocaleDateString(),
+      admittedAt: patientData?.admittedAt || new Date().toLocaleDateString('en-GB'),
       doctor: patientData?.doctor || null
     };
 

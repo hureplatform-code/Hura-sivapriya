@@ -174,12 +174,13 @@ export default function QuickPatientModal({ isOpen, onClose, onSave }) {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-2">
-                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Date of Birth</label>
+                  <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Date of Birth (DD/MM/YYYY)</label>
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <input
                       name="dob"
                       type="date"
+                      lang="en-GB"
                       value={formData.dob}
                       onChange={handleChange}
                       required

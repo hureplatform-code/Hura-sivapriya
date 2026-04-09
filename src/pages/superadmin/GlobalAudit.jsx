@@ -199,7 +199,7 @@ export default function GlobalAudit() {
                                 </div>
                                 <div className="flex items-center gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-widest">
                                    <Clock className="h-3 w-3" />
-                                   {log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000).toLocaleString() : 'Recent'}
+                                   {log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000).toLocaleString('en-GB') : 'Recent'}
                                 </div>
                              </div>
                              <p className="text-sm text-slate-600 font-medium mb-3 line-clamp-1">{log.description}</p>

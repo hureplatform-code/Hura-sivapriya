@@ -267,7 +267,7 @@ export default function Accounting() {
                                 {accStats.isPlatform && (
                                    <td className="py-5 px-4">
                                       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight">
-                                        {entry.expiry ? new Date(entry.expiry).toLocaleDateString() : '—'}
+                                        {entry.expiry ? new Date(entry.expiry).toLocaleDateString('en-GB') : '—'}
                                       </span>
                                    </td>
                                 )}

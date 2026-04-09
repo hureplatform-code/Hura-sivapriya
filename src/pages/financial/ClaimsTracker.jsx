@@ -150,7 +150,7 @@ export default function ClaimsTracker() {
                                         <div>
                                             <p className="font-bold text-slate-900 text-sm">#{claim.invoiceNo}</p>
                                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                Added {new Date(claim.createdAt?.seconds * 1000).toLocaleDateString()}
+                                                Added {new Date(claim.createdAt?.seconds * 1000).toLocaleDateString('en-GB')}
                                             </p>
                                         </div>
                                     </div>

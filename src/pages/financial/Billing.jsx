@@ -173,7 +173,7 @@ export default function Billing() {
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Ref: ${inv.invoiceNo} | Date: ${new Date().toLocaleDateString()}`, pageWidth - 20, 25, { align: 'right' });
+      doc.text(`Ref: ${inv.invoiceNo} | Date: ${new Date().toLocaleDateString('en-GB')}`, pageWidth - 20, 25, { align: 'right' });
 
       // Patient Header
       doc.setTextColor(...primaryColor);
@@ -246,7 +246,7 @@ export default function Billing() {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(`Digitally Signed by: ${soapRecord.doctorName || 'Attending Physician'}`, 20, 280);
-        doc.text(`Timestamp: ${new Date(soapRecord.createdAt?.seconds * 1000).toLocaleString()}`, pageWidth - 20, 280, { align: 'right' });
+        doc.text(`Timestamp: ${new Date(soapRecord.createdAt?.seconds * 1000).toLocaleString('en-GB')}`, pageWidth - 20, 280, { align: 'right' });
       }
 
       // PAGE 3: LAB RESULTS / INVESTIGATIONS
@@ -296,7 +296,7 @@ export default function Billing() {
     
     doc.setFontSize(10);
     doc.text(`Invoice No: ${inv.invoiceNo}`, 14, 32);
-    doc.text(`Date: ${new Date(inv.createdAt?.seconds * 1000 || inv.createdAt).toLocaleDateString()}`, 14, 38);
+    doc.text(`Date: ${new Date(inv.createdAt?.seconds * 1000 || inv.createdAt).toLocaleDateString('en-GB')}`, 14, 38);
     doc.text(`Patient: ${inv.patientName}`, 14, 44);
     doc.text(`Status: ${inv.status?.toUpperCase() || 'PENDING'}`, 14, 50);
 
@@ -453,7 +453,7 @@ export default function Billing() {
                       <div>
                         <p className="font-medium text-slate-900 text-sm">#{inv.invoiceNo}</p>
                         <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight mt-0.5">
-                          {inv.createdAt?.seconds ? new Date(inv.createdAt.seconds * 1000).toLocaleDateString() : new Date(inv.createdAt).toLocaleDateString()}
+                          {inv.createdAt?.seconds ? new Date(inv.createdAt.seconds * 1000).toLocaleDateString('en-GB') : new Date(inv.createdAt).toLocaleDateString('en-GB')}
                         </p>
                       </div>
                     </td>
@@ -764,7 +764,7 @@ function BillGenerator({ onClose, onSave }) {
                 <option value="">{appointments.length === 0 ? 'No appointments found' : 'Select Visit...'}</option>
                 {appointments.map(a => (
                   <option key={a.id} value={a.id}>
-                    {new Date(a.date?.seconds * 1000 || a.date).toLocaleDateString()} - {a.reason || 'General Visit'}
+                    {new Date(a.date?.seconds * 1000 || a.date).toLocaleDateString('en-GB')} - {a.reason || 'General Visit'}
                   </option>
                 ))}
               </select>

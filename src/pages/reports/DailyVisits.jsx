@@ -23,8 +23,8 @@ export default function DailyVisits() {
       setLoading(true);
       const appointments = await appointmentService.getAllAppointments(userData?.facilityId);
       
-      const today = new Date().toLocaleDateString();
-      const todayAppointments = appointments.filter(a => new Date(a.date).toLocaleDateString() === today);
+      const today = new Date().toLocaleDateString('en-GB');
+      const todayAppointments = appointments.filter(a => new Date(a.date).toLocaleDateString('en-GB') === today);
       
       // Sort by time
       const sorted = todayAppointments.sort((a, b) => {
@@ -79,7 +79,7 @@ export default function DailyVisits() {
     doc.setFontSize(20);
     doc.text('Daily Visit Logs', 14, 22);
     doc.setFontSize(12);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 14, 30);
 
     const arrivalsTable = arrivals.map(a => [a.time, a.patient, a.type, a.status]);
     autoTable(doc, {
@@ -104,7 +104,7 @@ export default function DailyVisits() {
           <div className="flex gap-3">
             <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 font-medium rounded-2xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-all">
               <Calendar className="h-5 w-5" />
-              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (Today)
+              {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} (Today)
             </button>
             <button 
               onClick={handleExportPDF}

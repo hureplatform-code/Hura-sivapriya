@@ -188,7 +188,7 @@ export default function PatientDetails() {
     const footY = 280;
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Generated on ${new Date().toLocaleString()} | HURA Cloud | Official Biometric Record`, 105, footY, { align: 'center' });
+    doc.text(`Generated on ${new Date().toLocaleString('en-GB')} | HURA Cloud | Official Biometric Record`, 105, footY, { align: 'center' });
 
     doc.save(`BioCard_${patient.name.replace(/\s/g, '_')}.pdf`);
   };
@@ -527,7 +527,7 @@ export default function PatientDetails() {
                           </div>
                           <div>
                              <p className="text-xs font-bold text-slate-900 truncate max-w-[120px]">{doc.fileName}</p>
-                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{doc.fileSize} • {new Date(doc.uploadedAt || Date.now()).toLocaleDateString()}</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{doc.fileSize} • {new Date(doc.uploadedAt || Date.now()).toLocaleDateString('en-GB')}</p>
                           </div>
                        </div>
                        <div className="flex items-center gap-1 opacity-0 group-hover/doc:opacity-100 transition-opacity">
@@ -570,9 +570,9 @@ export default function PatientDetails() {
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Last Visit</p>
                       <p className="text-lg font-bold text-slate-900">
                         {records[0]?.createdAt?.seconds 
-                          ? new Date(records[0].createdAt.seconds * 1000).toLocaleDateString() 
+                          ? new Date(records[0].createdAt.seconds * 1000).toLocaleDateString('en-GB') 
                           : records[0]?.createdAt 
-                            ? new Date(records[0].createdAt).toLocaleDateString()
+                            ? new Date(records[0].createdAt).toLocaleDateString('en-GB')
                             : '--'}
                       </p>
                     </div>
@@ -611,8 +611,8 @@ export default function PatientDetails() {
                       <div className="flex justify-between items-start mb-2">
                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                            {record.createdAt?.seconds 
-                             ? new Date(record.createdAt.seconds * 1000).toLocaleDateString() 
-                             : new Date(record.createdAt).toLocaleDateString()}
+                             ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-GB') 
+                             : new Date(record.createdAt).toLocaleDateString('en-GB')}
                          </span>
                       </div>
                       <p className="text-xs font-bold text-slate-900 truncate">{record.title || 'Clinical Note'}</p>
@@ -660,7 +660,7 @@ function PatientHistoryModal({ patient, records, onClose, searchQuery, onSearchC
     if (monthFilter === 'All') return true;
     
     const date = record.createdAt?.seconds ? new Date(record.createdAt.seconds * 1000) : new Date(record.createdAt);
-    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const month = date.toLocaleDateString('en-GB', { month: 'short' });
     return month === monthFilter;
   }).sort((a,b) => {
     const dateA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
@@ -742,13 +742,13 @@ function PatientHistoryModal({ patient, records, onClose, searchQuery, onSearchC
                   <div className="flex flex-col items-center justify-center px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm min-w-[70px]">
                     <span className="text-lg font-black text-slate-900 leading-none mb-1">
                       {record.createdAt?.seconds 
-                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { day: '2-digit' })
-                        : new Date(record.createdAt).toLocaleDateString('en-US', { day: '2-digit' })}
+                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-GB', { day: '2-digit' })
+                        : new Date(record.createdAt).toLocaleDateString('en-GB', { day: '2-digit' })}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       {record.createdAt?.seconds 
-                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-                        : new Date(record.createdAt).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+                        : new Date(record.createdAt).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })}
                     </span>
                   </div>
                   <div className="space-y-2">

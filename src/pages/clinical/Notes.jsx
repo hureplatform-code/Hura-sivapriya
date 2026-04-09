@@ -37,7 +37,7 @@ const getRelativeVisitTime = (timestamp) => {
   if (diffInHours < 24) return `Today (${diffInHours}h ago)`;
   if (diffInDays === 1) return 'Yesterday';
   if (diffInDays < 7) return `${diffInDays} days ago`;
-  return date.toLocaleDateString();
+  return date.toLocaleDateString('en-GB');
 };
 
 const SPECIALTIES = [
@@ -499,8 +499,8 @@ function PatientHistoryModal({ patient, onClose, onViewNote }) {
                     </div>
                     <div className="text-[9px] font-bold text-slate-400 uppercase">
                       {record.createdAt?.seconds 
-                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short' })
-                        : new Date(record.createdAt).toLocaleDateString('en-US', { month: 'short' })}
+                        ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-GB', { month: 'short' })
+                        : new Date(record.createdAt).toLocaleDateString('en-GB', { month: 'short' })}
                     </div>
                   </div>
                   
@@ -514,8 +514,8 @@ function PatientHistoryModal({ patient, onClose, onViewNote }) {
                        <span className={`h-1.5 w-1.5 rounded-full ${record.status === 'draft' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
                          Status: {record.status} • {record.createdAt?.seconds 
-                           ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-US', { year: 'numeric' })
-                           : new Date(record.createdAt).toLocaleDateString('en-US', { year: 'numeric' })}
+                           ? new Date(record.createdAt.seconds * 1000).toLocaleDateString('en-GB', { year: 'numeric' })
+                           : new Date(record.createdAt).toLocaleDateString('en-GB', { year: 'numeric' })}
                        </span>
                     </div>
                   </div>

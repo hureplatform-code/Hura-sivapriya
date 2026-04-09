@@ -61,7 +61,7 @@ export const InvoiceSlip = ({ data, facility = {} }) => (
       </div>
       <div className="flex justify-between text-[10px] font-medium">
         <span>DATE:</span>
-        <span>{new Date().toLocaleDateString()}</span>
+        <span>{new Date().toLocaleDateString('en-GB')}</span>
       </div>
       <div className="flex justify-between text-[10px] font-medium">
         <span>PATIENT:</span>
@@ -125,7 +125,7 @@ export const ClinicalSummary = ({ data, facility = {} }) => (
       </div>
       <div className="text-right">
         <p className="font-medium text-xs">REF: {data.id?.toUpperCase()}</p>
-        <p className="text-slate-400 text-[10px] font-medium">{new Date().toLocaleString()}</p>
+        <p className="text-slate-400 text-[10px] font-medium">{new Date().toLocaleString('en-GB')}</p>
       </div>
     </div>
 

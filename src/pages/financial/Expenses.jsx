@@ -213,7 +213,7 @@ export default function Expenses() {
                                </div>
                                <div>
                                   <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{new Date(item.date || Date.now()).toLocaleDateString()}</p>
+                                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{new Date(item.date || Date.now()).toLocaleDateString('en-GB')}</p>
                                </div>
                             </div>
                          </td>

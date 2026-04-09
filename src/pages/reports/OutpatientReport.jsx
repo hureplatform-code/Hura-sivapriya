@@ -50,8 +50,8 @@ export default function OutpatientReport() {
       const avgTime = records.length > 0 ? "22 min" : "0 min";
 
       // Calculate Daily Arrival Rate
-      const today = new Date().toLocaleDateString();
-      const todayArrivals = appointments.filter(a => new Date(a.date).toLocaleDateString() === today).length;
+      const today = new Date().toLocaleDateString('en-GB');
+      const todayArrivals = appointments.filter(a => new Date(a.date).toLocaleDateString('en-GB') === today).length;
 
       setStats([
         { label: 'Total Outpatients', value: totalOutpatients.toLocaleString(), change: '+5.2%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'up' },
@@ -102,7 +102,7 @@ export default function OutpatientReport() {
     doc.setFontSize(20);
     doc.text('Outpatient Analytics Report', 14, 22);
     doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleString('en-GB')}`, 14, 30);
 
     const statsTable = stats.map(s => [s.label, s.value]);
     autoTable(doc, {
@@ -135,7 +135,7 @@ export default function OutpatientReport() {
           <div className="flex gap-3">
             <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 font-medium rounded-2xl border border-slate-100 shadow-sm hover:bg-slate-50 transition-all">
               <Calendar className="h-5 w-5" />
-              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </button>
             <button 
               onClick={handleExportPDF}

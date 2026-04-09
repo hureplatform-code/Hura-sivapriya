@@ -23,12 +23,12 @@ export default function DailyCashflowReport() {
       setLoading(true);
       const invoices = await billingService.getAllInvoices(userData?.facilityId);
 
-      const today = new Date().toLocaleDateString();
+      const today = new Date().toLocaleDateString('en-GB');
       const todayInvoices = invoices.filter(inv => {
         const d = inv.createdAt?.seconds
           ? new Date(inv.createdAt.seconds * 1000)
           : new Date(inv.createdAt || inv.date);
-        return d.toLocaleDateString() === today;
+        return d.toLocaleDateString('en-GB') === today;
       });
 
       const txs = todayInvoices.map(inv => {
@@ -65,7 +65,7 @@ export default function DailyCashflowReport() {
     doc.setFontSize(20);
     doc.text('Daily Cashflow & Liquidity Summary', 14, 22);
     doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Generated: ${new Date().toLocaleString('en-GB')}`, 14, 30);
     const tableData = transactions.map(t => [t.time, t.ref, t.patient, t.mode, `${currency} ${t.amt.toLocaleString()}`, t.status]);
     autoTable(doc, { head: [['Time', 'Reference', 'Patient', 'Mode', 'Amount', 'Status']], body: tableData, startY: 40 });
     doc.save(`Cashflow_${Date.now()}.pdf`);
@@ -114,7 +114,7 @@ export default function DailyCashflowReport() {
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Transaction Stream</h3>
             <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest">
-              <TrendingUp className="h-4 w-4" /> Today — {new Date().toLocaleDateString()}
+              <TrendingUp className="h-4 w-4" /> Today — {new Date().toLocaleDateString('en-GB')}
             </div>
           </div>
 

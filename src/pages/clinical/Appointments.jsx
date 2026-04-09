@@ -450,7 +450,7 @@ export default function Appointments() {
                    <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
                       <CalendarIcon className="h-8 w-8" />
                    </div>
-                   <p className="font-medium text-xs uppercase tracking-widest text-slate-400">No appointments for {new Date(selectedDate).toLocaleDateString()}.</p>
+                   <p className="font-medium text-xs uppercase tracking-widest text-slate-400">No appointments for {new Date(selectedDate).toLocaleDateString('en-GB')}.</p>
                 </div>
               ) : (
                 filteredAppointments.map((apt, i) => (

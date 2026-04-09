@@ -172,8 +172,8 @@ export default function Dashboard() {
       const patients = patientsRes?.patients || patientsRes || [];
       const allRecords = allRecordsRes?.records || allRecordsRes?.items || allRecordsRes || [];
 
-      const today = new Date().toLocaleDateString();
-      const completedToday = (appointments || []).filter(a => a.status === 'completed' && new Date(a.date).toLocaleDateString() === today).length;
+      const today = new Date().toLocaleDateString('en-GB');
+      const completedToday = (appointments || []).filter(a => a.status === 'completed' && new Date(a.date).toLocaleDateString('en-GB') === today).length;
       const pendingNotes = allRecords ? allRecords.filter(r => r.status === 'draft').length : 0;
       const overdueNotes = allRecords ? allRecords.filter(r => r.status === 'draft' && (new Date() - new Date(r.createdAt?.seconds ? r.createdAt.seconds * 1000 : Date.now())) > 86400000).length : 0;
 
@@ -208,7 +208,7 @@ export default function Dashboard() {
       } else if (role === 'doctor' || role === 'nurse' || role === 'receptionist') {
         const focusLabel = role === 'doctor' ? "Today's Focus" : "Today's Schedule";
         const activeToday = appointments.filter(a => 
-          new Date(a.date).toLocaleDateString() === today && 
+          new Date(a.date).toLocaleDateString('en-GB') === today && 
           a.status !== 'cancelled'
         ).length;
         
@@ -219,7 +219,7 @@ export default function Dashboard() {
           { label: 'Discharged Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/appointments' },
         ]);
         const todayApts = appointments
-          .filter(a => new Date(a.date).toLocaleDateString() === today)
+          .filter(a => new Date(a.date).toLocaleDateString('en-GB') === today)
           .filter(a => (role === 'doctor' || role === 'nurse') ? a.status !== 'cancelled' : true)
           .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
 
@@ -227,7 +227,7 @@ export default function Dashboard() {
       } else if (role === 'lab_tech') {
         const awaitingLab = appointments.filter(a => a.status === 'awaiting-lab').length;
         const activeToday = appointments.filter(a => 
-          new Date(a.date).toLocaleDateString() === today && 
+          new Date(a.date).toLocaleDateString('en-GB') === today && 
           a.status !== 'cancelled'
         ).length;
 
@@ -235,10 +235,10 @@ export default function Dashboard() {
           { label: "Today's Schedule", value: activeToday.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/appointments' },
           { label: 'Awaiting Lab', value: awaitingLab.toString() + ' Patients', icon: Thermometer, color: 'text-orange-600', bg: 'bg-orange-50', path: '/lab/queue' },
           { label: 'Workload', value: awaitingLab > 5 ? 'High' : 'Normal', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50', path: '/lab/queue' },
-          { label: 'Tests Today', value: appointments.filter(a => a.labCompletedAt && new Date(a.labCompletedAt).toLocaleDateString() === today).length.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/lab/queue' },
+          { label: 'Tests Today', value: appointments.filter(a => a.labCompletedAt && new Date(a.labCompletedAt).toLocaleDateString('en-GB') === today).length.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/lab/queue' },
         ]);
         const todayApts = appointments
-          .filter(a => new Date(a.date).toLocaleDateString() === today && a.status !== 'cancelled')
+          .filter(a => new Date(a.date).toLocaleDateString('en-GB') === today && a.status !== 'cancelled')
           .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
         setArrears(todayApts.slice(0, 4));
       } else if (role === 'pharmacist' || role === 'pharmacist_admin') {
@@ -264,7 +264,7 @@ export default function Dashboard() {
         
         const awaitingPharmacy = appointments.filter(a => a.status === 'awaiting-pharmacy').length;
         const activeToday = appointments.filter(a => 
-          new Date(a.date).toLocaleDateString() === today && 
+          new Date(a.date).toLocaleDateString('en-GB') === today && 
           a.status !== 'cancelled'
         ).length;
 
@@ -277,7 +277,7 @@ export default function Dashboard() {
 
         setLowStockItems([...outOfStock, ...lowStock].slice(0, 4));
         const todayApts = appointments
-          .filter(a => new Date(a.date).toLocaleDateString() === today && a.status !== 'cancelled')
+          .filter(a => new Date(a.date).toLocaleDateString('en-GB') === today && a.status !== 'cancelled')
           .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
         setArrears(todayApts.slice(0, 4));
       } else {
@@ -418,7 +418,7 @@ export default function Dashboard() {
                )}
                <div className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-100 rounded-2xl shadow-sm">
                  <Calendar className="h-4 w-4 text-primary-500" />
-                 <span className="text-sm font-medium text-slate-700">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                 <span className="text-sm font-medium text-slate-700">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                </div>
             </div>
         </header>
@@ -596,7 +596,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">
-                         {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                         {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                       </p>
                     </div>
                   </div>

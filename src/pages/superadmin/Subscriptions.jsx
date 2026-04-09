@@ -408,7 +408,7 @@ export default function Subscriptions() {
                          <p className="flex justify-between"><strong>Requested:</strong> <span className="text-primary-600 font-medium">{req.requestedPlan}</span></p>
                          <div className="h-px bg-slate-200 my-2"></div>
                          <p className="italic text-slate-500">"{req.message}"</p>
-                         <p className="text-[10px] text-slate-400 mt-2 text-right">{new Date(req.timestamp).toLocaleDateString()}</p>
+                         <p className="text-[10px] text-slate-400 mt-2 text-right">{new Date(req.timestamp).toLocaleDateString('en-GB')}</p>
                       </div>
                       <div className="flex gap-2">
                          <button onClick={() => handleDismiss(req.id)} className="flex-1 py-1.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-200">Dismiss</button>
@@ -496,7 +496,7 @@ export default function Subscriptions() {
                              <span className="text-red-500 text-xs font-semibold uppercase tracking-wider flex items-center gap-1"><XCircle className="h-3 w-3"/> {fac.subscription?.status}</span>
                           )}
                           <div className="text-[10px] text-slate-400 mt-1 font-medium">
-                             Expires: {fac.subscription?.expiryDate ? new Date(fac.subscription.expiryDate).toLocaleDateString() : 'Never'}
+                             Expires: {fac.subscription?.expiryDate ? new Date(fac.subscription.expiryDate).toLocaleDateString('en-GB') : 'Never'}
                           </div>
                        </td>
                         <td className="p-4 text-right pr-6">
