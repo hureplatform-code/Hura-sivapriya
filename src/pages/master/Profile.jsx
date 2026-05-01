@@ -14,7 +14,9 @@ import {
   CheckCircle2,
   Trash2,
   Plus,
-  Printer
+  Printer,
+  Users,
+  UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,6 +28,7 @@ const tabs = [
   { id: 'billing', label: 'Billing & License', icon: ShieldCheck },
   { id: 'branding', label: 'Print Branding', icon: Printer },
   { id: 'branches', label: 'Branch Settings', icon: Globe },
+  { id: 'governance', label: 'Governance', icon: ShieldCheck },
 ];
 
 export default function Profile() {
@@ -57,7 +60,8 @@ export default function Profile() {
       facebook: '',
       twitter: '',
       linkedin: ''
-    }
+    },
+    allowDoctorPatientCreation: false
   });
   const [branches, setBranches] = useState([]);
   const [logoFile, setLogoFile] = useState(null);
@@ -554,6 +558,62 @@ export default function Profile() {
                           <p className="text-sm font-medium text-slate-400">No branches registered yet.</p>
                        </div>
                     )}
+                  </motion.div>
+                )}
+
+                {activeTab === 'governance' && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="space-y-8"
+                  >
+                    <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6">
+                       <div className="flex items-center gap-4 mb-2">
+                          <div className="h-12 w-12 bg-primary-100 text-primary-600 rounded-2xl flex items-center justify-center shadow-sm">
+                             <Users className="h-6 w-6" />
+                          </div>
+                          <div>
+                             <h4 className="text-lg font-bold text-slate-900">Clinical Workflow Permissions</h4>
+                             <p className="text-sm text-slate-500 font-medium">Control what clinical staff can do beyond standard documentation.</p>
+                          </div>
+                       </div>
+
+                       <div className="h-px bg-slate-200/50" />
+
+                       <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-primary-100 transition-all">
+                          <div className="flex items-center gap-4">
+                             <div className="h-10 w-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                                <UserPlus className="h-5 w-5" />
+                             </div>
+                             <div>
+                                <p className="text-sm font-bold text-slate-900">Allow Doctors to Create Patients</p>
+                                <p className="text-[11px] text-slate-400 font-medium max-w-md">Useful for small clinics where doctors manage their own intake. If disabled, only front desk can register new patients.</p>
+                             </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              className="sr-only peer"
+                              checked={profile.allowDoctorPatientCreation}
+                              onChange={(e) => setProfile({...profile, allowDoctorPatientCreation: e.target.checked})}
+                            />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                          </label>
+                       </div>
+
+                       <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-primary-100 transition-all opacity-50 cursor-not-allowed">
+                          <div className="flex items-center gap-4">
+                             <div className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                                <ShieldCheck className="h-5 w-5" />
+                             </div>
+                             <div>
+                                <p className="text-sm font-bold text-slate-900">Enforce 2FA for Admin Actions</p>
+                                <p className="text-[11px] text-slate-400 font-medium max-w-md">Require multi-factor authentication for financial deletions and user management.</p>
+                             </div>
+                          </div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded">Enterprise Only</span>
+                       </div>
+                    </div>
                   </motion.div>
                 )}
               </form>

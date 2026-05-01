@@ -107,7 +107,7 @@ export default function Accounts() {
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">{subscription?.planName || 'Free Plan'}</h3>
                     <p className="text-xs text-slate-500 font-medium">
-                      Status: <span className="uppercase font-medium text-emerald-600">{subscription?.status || 'Active'}</span> • Expires: {subscription?.expiryDate ? new Date(subscription.expiryDate).toLocaleDateString() : 'Never'}
+                      Status: <span className="uppercase font-medium text-emerald-600">{subscription?.status || 'Active'}</span> • Expires: {subscription?.expiryDate ? new Date(subscription.expiryDate).toLocaleDateString('en-GB') : 'Never'}
                     </p>
                   </div>
                 </div>

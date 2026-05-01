@@ -298,7 +298,7 @@ export default function Inventory() {
                          <span className={`text-xs font-semibold uppercase tracking-tight
                            ${new Date(item.expiry) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) ? 'text-red-500' : 'text-slate-500'}
                          `}>
-                           {new Date(item.expiry).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                           {new Date(item.expiry).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
                          </span>
                       </td>
                       <td className="py-6 px-6 text-right">

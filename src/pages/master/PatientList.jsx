@@ -37,7 +37,7 @@ export default function PatientList() {
   const [genderFilter, setGenderFilter] = useState('All');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-  const { userData, subscriptionStatus, verificationStatus } = useAuth();
+  const { userData, facilityData, subscriptionStatus, verificationStatus } = useAuth();
   const isTrialExpired = subscriptionStatus?.expiryDate && new Date(subscriptionStatus.expiryDate) < new Date();
   const isUnverified = verificationStatus !== 'verified';
   const isRestricted = isTrialExpired && isUnverified;
@@ -156,7 +156,7 @@ export default function PatientList() {
             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Patient Registry</h1>
             <p className="text-slate-500 mt-1">Centralized database for all registered patients and clinical histories.</p>
           </div>
-          {userData?.role !== 'doctor' && (
+          {(userData?.role !== 'doctor' || facilityData?.allowDoctorPatientCreation) && (
             <button 
               onClick={() => {
                 if (isRestricted) {

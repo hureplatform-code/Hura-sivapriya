@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [activeStaffCount, setActiveStaffCount] = useState(0);
+  const [facilityData, setFacilityData] = useState(null);
 
   async function login(email, password) {
     const result = await signInWithEmailAndPassword(auth, email, password);
@@ -108,6 +109,7 @@ export function AuthProvider({ children }) {
                 try {
                     const facility = await facilityService.getProfile(data.facilityId);
                     if (facility) {
+                        setFacilityData(facility);
                         setSubscriptionStatus(facility.subscription);
                         setVerificationStatus(facility.verificationStatus || 'pending');
                         const count = await userService.countActiveStaff(data.facilityId);
@@ -142,6 +144,7 @@ export function AuthProvider({ children }) {
         });
       } else {
         setUserData(null);
+        setFacilityData(null);
         setSubscriptionStatus(null);
         setVerificationStatus(null);
         setActiveStaffCount(0);
@@ -163,6 +166,7 @@ export function AuthProvider({ children }) {
             try {
                 const facility = await facilityService.getProfile(userData.facilityId);
                 if (facility) {
+                    setFacilityData(facility);
                     setSubscriptionStatus(facility.subscription);
                     setVerificationStatus(facility.verificationStatus || 'pending');
                     const count = await userService.countActiveStaff(userData.facilityId);
@@ -179,6 +183,7 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     userData,
+    facilityData,
     login,
     signup,
     logout,

@@ -46,6 +46,7 @@ export default function PaymentCollectionModal({ isOpen, onClose, appointment, o
   const [items, setItems] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [amountPaid, setAmountPaid] = useState('');
+  const [transactionRef, setTransactionRef] = useState('');
   const [discount, setDiscount] = useState('0');
   const [isFinished, setIsFinished] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState(null);
@@ -204,6 +205,11 @@ export default function PaymentCollectionModal({ isOpen, onClose, appointment, o
       return;
     }
 
+    if (paymentMethod !== 'Cash' && !transactionRef) {
+      toastError(`Transaction Reference is required for ${paymentMethod} payments.`);
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -225,6 +231,7 @@ export default function PaymentCollectionModal({ isOpen, onClose, appointment, o
         balance: total - paid,
         paymentStatus: paid >= total ? 'paid' : (paid > 0 ? 'partial' : 'unpaid'),
         paymentMethod,
+        transactionRef: paymentMethod === 'Cash' ? '' : transactionRef,
         invAppId: appointment.id,
         status: paid >= total ? 'paid' : 'billed',
         createdAt: new Date().toISOString(),
@@ -531,7 +538,7 @@ export default function PaymentCollectionModal({ isOpen, onClose, appointment, o
                                 Payment Method
                              </label>
                              <div className="grid grid-cols-2 gap-2">
-                                {['Cash', 'M-Pesa', 'Card', 'Credit'].map(method => (
+                                {['Cash', 'M-Pesa', 'Card', 'Credit', 'Insurance'].map(method => (
                                   <button 
                                     key={method}
                                     onClick={() => setPaymentMethod(method)}
@@ -545,6 +552,18 @@ export default function PaymentCollectionModal({ isOpen, onClose, appointment, o
                                   </button>
                                 ))}
                              </div>
+                             {paymentMethod !== 'Cash' && (
+                               <div className="mt-3">
+                                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 ml-1">Ref / Code</label>
+                                  <input 
+                                    type="text"
+                                    value={transactionRef}
+                                    onChange={(e) => setTransactionRef(e.target.value)}
+                                    placeholder="e.g. QWE123RTY"
+                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 outline-none focus:border-emerald-500 transition-all"
+                                  />
+                               </div>
+                             )}
                           </div>
  
                           <div className="space-y-2.5">

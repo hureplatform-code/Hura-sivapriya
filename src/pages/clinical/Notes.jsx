@@ -702,6 +702,62 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     } finally { setIsAnalyzing(false); }
   };
 
+  const handleGenerateReferral = () => {
+    const printWindow = window.open('', '_blank');
+    const content = `
+      <html>
+        <head>
+          <title>Referral Note - ${selectedPatient?.name}</title>
+          <style>
+            body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+            .facility-name { font-size: 24px; font-weight: bold; text-transform: uppercase; }
+            .note-title { font-size: 20px; font-weight: bold; margin: 20px 0; text-align: center; text-decoration: underline; }
+            .section { margin-bottom: 20px; }
+            .section-title { font-weight: bold; text-transform: uppercase; font-size: 14px; color: #666; margin-bottom: 5px; }
+            .data { font-size: 16px; margin-bottom: 15px; }
+            .footer { margin-top: 50px; border-top: 1px solid #eee; pt: 20px; }
+            .signature { margin-top: 40px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="facility-name">${userData?.facilityName || 'HURE CARE PLATFORM'}</div>
+            <div>Date: ${new Date().toLocaleDateString('en-GB')}</div>
+          </div>
+          <div class="note-title">MEDICAL REFERRAL NOTE</div>
+          <div class="section">
+            <div class="section-title">Patient Details</div>
+            <div class="data">Name: ${selectedPatient?.name}<br>Age/Sex: ${selectedPatient?.age || '--'} / ${selectedPatient?.gender || '--'}<br>OP Number: ${selectedPatient?.opNumber || '---'}</div>
+          </div>
+          <div class="section">
+            <div class="section-title">Clinical Summary</div>
+            <div class="data"><b>Subjective:</b> ${formData.subjective || '---'}<br><b>Objective:</b> ${formData.objective || '---'}</div>
+          </div>
+          <div class="section">
+            <div class="section-title">Assessment & Diagnosis</div>
+            <div class="data">${formData.assessment || '---'}<br><b>ICD-10:</b> ${formData.diagnosis || '---'}</div>
+          </div>
+          <div class="section">
+            <div class="section-title">Plan & Recommendations</div>
+            <div class="data">${formData.plan || '---'}</div>
+          </div>
+          <div class="signature">
+            <p>__________________________</p>
+            <p><b>${userData?.name || 'Medical Officer'}</b></p>
+            <p>Clinical Practitioner</p>
+          </div>
+          <div class="footer">
+            <p style="font-size: 10px; color: #999;">Generated via HURE Care Digital Health Platform</p>
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(content);
+    printWindow.document.close();
+  };
+
   useEffect(() => {
     fetchPatients();
     if (initialRecordId) loadExistingRecord(initialRecordId);
@@ -1669,7 +1725,8 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                     { label: 'Dia', field: 'bp_dia', unit: 'mmHg' },
                     { label: 'SpO2', field: 'spo2', unit: '%' },
                     { label: 'Weight', field: 'weight', unit: 'kg' },
-                    { label: 'Height', field: 'height', unit: 'cm' }
+                    { label: 'Height', field: 'height', unit: 'cm' },
+                    { label: 'Pain', field: 'pain_score', unit: '0-10' }
                   ].map((v) => (
                     <div key={v.field} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2 group hover:border-primary-200 transition-all">
                        <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-tighter px-0.5">{v.label}</label>
@@ -2316,7 +2373,13 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             Auto-save active
           </div>
-          <div className="flex gap-4 items-center">
+          <div class="flex gap-4 items-center">
+            <button
+               onClick={handleGenerateReferral}
+               className="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+               <FileText className="h-4 w-4" /> Referral Note
+            </button>
             <button
               onClick={onClose}
               className="px-8 py-4 bg-slate-50 text-slate-500 font-medium text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all font-medium"
@@ -2559,6 +2622,66 @@ function NoteViewer({ note, onClose, onEdit }) {
                 Edit Script
              </button>
           )}
+          <button 
+             onClick={() => {
+                const printWindow = window.open('', '_blank');
+                const content = `
+                  <html>
+                    <head>
+                      <title>Referral Note - ${note.patientName}</title>
+                      <style>
+                        body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+                        .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+                        .facility-name { font-size: 24px; font-weight: bold; text-transform: uppercase; }
+                        .note-title { font-size: 20px; font-weight: bold; margin: 20px 0; text-align: center; text-decoration: underline; }
+                        .section { margin-bottom: 20px; }
+                        .section-title { font-weight: bold; text-transform: uppercase; font-size: 14px; color: #666; margin-bottom: 5px; }
+                        .data { font-size: 16px; margin-bottom: 15px; }
+                        .footer { margin-top: 50px; border-top: 1px solid #eee; pt: 20px; }
+                        .signature { margin-top: 40px; }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="header">
+                        <div class="facility-name">${note.facilityName || 'HURE CARE PLATFORM'}</div>
+                        <div>Date: ${new Date().toLocaleDateString('en-GB')}</div>
+                      </div>
+                      <div class="note-title">MEDICAL REFERRAL NOTE</div>
+                      <div class="section">
+                        <div class="section-title">Patient Details</div>
+                        <div class="data">Name: ${note.patientName}<br>OP Number: ${note.patientOp || '---'}</div>
+                      </div>
+                      <div class="section">
+                        <div class="section-title">Clinical Summary</div>
+                        <div class="data"><b>Subjective:</b> ${note.subjective || '---'}<br><b>Objective:</b> ${note.objective || '---'}</div>
+                      </div>
+                      <div class="section">
+                        <div class="section-title">Assessment & Diagnosis</div>
+                        <div class="data">${note.assessment || '---'}<br><b>ICD-10:</b> ${note.diagnosis || '---'}</div>
+                      </div>
+                      <div class="section">
+                        <div class="section-title">Plan & Recommendations</div>
+                        <div class="data">${note.plan || '---'}</div>
+                      </div>
+                      <div class="signature">
+                        <p>__________________________</p>
+                        <p><b>${note.doctorName || 'Medical Officer'}</b></p>
+                        <p>Clinical Practitioner</p>
+                      </div>
+                      <div class="footer">
+                        <p style="font-size: 10px; color: #999;">Generated via HURE Care Digital Health Platform</p>
+                      </div>
+                      <script>window.print();</script>
+                    </body>
+                  </html>
+                `;
+                printWindow.document.write(content);
+                printWindow.document.close();
+             }}
+             className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
+          >
+             <FileText className="h-4 w-4" /> Referral Note
+          </button>
           <button onClick={onClose} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-medium text-xs uppercase tracking-widest">Close Viewer</button>
         </div>
       </motion.div>

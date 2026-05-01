@@ -50,11 +50,12 @@ export default function Appointments() {
   const [isTriageOpen, setIsTriageOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [triageApt, setTriageApt] = useState(null);
-  const { userData } = useAuth();
+  const { userData, facilityData } = useAuth();
   const [activeMenu, setActiveMenu] = useState(null);
   const [routingMenu, setRoutingMenu] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [specialtyFilter, setSpecialtyFilter] = useState('All');
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'board'
   const { success, warning, error: toastError } = useToast();
   const { confirm } = useConfirm();
 
@@ -244,6 +245,17 @@ export default function Appointments() {
     }
   };
 
+  const handleQuickCheckIn = async (apt) => {
+    try {
+      await appointmentService.updateAppointmentStatus(apt.id, 'awaiting-nurse');
+      success('Patient checked in (Payment pending). Routed to Nursing Queue.');
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error in quick check-in:', error);
+      toastError('Failed to check in patient.');
+    }
+  };
+
   const handleStartConsultation = (apt) => {
     handleStatusUpdate(apt.id, 'in-session', 'Session Started.');
     navigate('/notes', { 
@@ -314,6 +326,15 @@ export default function Appointments() {
       return (priority[a.status?.toLowerCase()] || 99) - (priority[b.status?.toLowerCase()] || 99);
     });
 
+  const appointmentsByProvider = filteredAppointments.reduce((acc, apt) => {
+    const provider = apt.provider || apt.doctor || 'Unassigned';
+    if (!acc[provider]) acc[provider] = [];
+    acc[provider].push(apt);
+    return acc;
+  }, {});
+
+  const providers = Object.keys(appointmentsByProvider).sort();
+
   const monthName = currentMonth.toLocaleString('default', { month: 'long' });
   const year = currentMonth.getFullYear();
 
@@ -334,15 +355,31 @@ export default function Appointments() {
             </div>
             <p className="text-slate-500 mt-1">Manage patient bookings, scheduling, and clinical arrivals.</p>
           </div>
-          {userData?.role !== 'doctor' && userData?.role !== 'nurse' && (
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
-            >
-              <Plus className="h-5 w-5" />
-              Book Appointment
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+             <div className="bg-slate-100 p-1 rounded-xl flex">
+                <button 
+                  onClick={() => setViewMode('list')}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'list' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  List
+                </button>
+                <button 
+                  onClick={() => setViewMode('board')}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'board' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  Provider Board
+                </button>
+             </div>
+            {(userData?.role !== 'doctor' && userData?.role !== 'nurse' || facilityData?.allowDoctorPatientCreation) && (
+              <button 
+                onClick={() => { setSelectedApt(null); setIsModalOpen(true); }}
+                className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+              >
+                <Plus className="h-5 w-5" />
+                Book Appointment
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -452,243 +489,70 @@ export default function Appointments() {
                    </div>
                    <p className="font-medium text-xs uppercase tracking-widest text-slate-400">No appointments for {new Date(selectedDate).toLocaleDateString('en-GB')}.</p>
                 </div>
+              ) : viewMode === 'board' ? (
+                <div className="flex gap-6 overflow-x-auto pb-6 custom-scrollbar min-h-[500px]">
+                   {providers.map(provider => (
+                     <div key={provider} className="flex-none w-80 bg-slate-50/50 rounded-[2.5rem] p-4 border border-slate-100 flex flex-col gap-4">
+                        <div className="px-4 py-2 flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shadow-sm border border-slate-100">
+                                 <User className="h-5 w-5" />
+                              </div>
+                              <div>
+                                 <p className="text-sm font-bold text-slate-900 leading-tight">{provider}</p>
+                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{appointmentsByProvider[provider].length} Patients</p>
+                              </div>
+                           </div>
+                        </div>
+                        <div className="flex-1 space-y-3">
+                           {appointmentsByProvider[provider].map(apt => (
+                             <AppointmentCard 
+                               key={apt.id} 
+                               apt={apt} 
+                               onViewSummary={handleViewSummary}
+                               onStatusUpdate={handleStatusUpdate}
+                               onEdit={handleEditAppointment}
+                               onDelete={handleDeleteAppointment}
+                               onCancel={handleCancelAppointment}
+                               onStartConsultation={handleStartConsultation}
+                               onPerformTriage={handlePerformTriage}
+                               onQuickCheckIn={handleQuickCheckIn}
+                               onCallIn={handleCallIn}
+                               userData={userData}
+                               activeMenu={activeMenu}
+                               setActiveMenu={setActiveMenu}
+                               routingMenu={routingMenu}
+                               setRoutingMenu={setRoutingMenu}
+                               compact={true}
+                               onCollect={() => { setSelectedApt(apt); setIsPaymentOpen(true); }}
+                             />
+                           ))}
+                        </div>
+                     </div>
+                   ))}
+                </div>
               ) : (
                 filteredAppointments.map((apt, i) => (
-                  <motion.div
+                  <AppointmentCard 
                     key={apt.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6"
-                  >
-                    <div className="flex flex-1 items-center gap-5 min-w-0">
-                      <div className="h-14 w-14 shrink-0 rounded-2xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100 group-hover:border-primary-200 transition-colors shadow-inner">
-                        <span className="text-[9px] font-bold text-primary-600 leading-none mb-1">T-{apt.tokenNumber || '0'}</span>
-                        <div className="h-px w-6 bg-slate-200 mb-1" />
-                        <div className="flex flex-col items-center leading-none">
-                          <span className="text-[11px] font-bold text-slate-800 tracking-tight">
-                            {apt.time || '00:00'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-left min-w-0">
-                        <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-base truncate">
-                          {apt.patient}
-                          <span className={`h-2 w-2 rounded-full shrink-0 ${apt.priority === 'High' ? 'bg-red-500 animate-pulse' : apt.priority === 'Normal' ? 'bg-blue-500' : 'bg-slate-300'}`} />
-                          {apt.labResults && (
-                            <span className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-blue-100">
-                               <Beaker className="h-3 w-3" /> Results Ready
-                            </span>
-                          )}
-                          
-                          {/* Booking Type Badge */}
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest border ${apt.bookingType === 'SD' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                             {apt.bookingType || 'ADV'}
-                          </span>
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-4 mt-1">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="text-slate-300">ID:</span> {apt.patientId || 'NEW'}
-                          </p>
-                          {(apt.patientPhone || apt.mobile || apt.phoneNumber) && (
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                              <span className="text-slate-300">MOB:</span> {apt.patientPhone || apt.mobile || apt.phoneNumber}
-                            </p>
-                          )}
-                          <p className="text-[10px] text-primary-600 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                             <User className="h-3 w-3 text-slate-300" /> {apt.provider || apt.doctor}
-                          </p>
-                          <span className="px-1.5 py-0.5 bg-slate-50 border border-slate-100 rounded text-[9px] text-slate-500 font-bold uppercase tracking-widest">{apt.type}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col md:items-end gap-3 shrink-0">
-                      <span className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border
-                        ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 
-                          apt.status === 'triage' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                          apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                          apt.status === 'calling' ? 'bg-amber-50 text-amber-700 animate-pulse border-amber-200 border-2' :
-                          apt.status?.startsWith('awaiting-') ? 'bg-orange-50 text-orange-700 border-orange-100' :
-                          apt.status === 'completed' ? 'bg-purple-50 text-purple-700 border-purple-100' : 
-                          apt.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-100' : 
-                          'bg-amber-50 text-amber-700 border-amber-100'}
-                      `}>
-                        {apt.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : 
-                         apt.status === 'cancelled' ? <XCircle className="h-3 w-3" /> : 
-                         apt.status === 'calling' ? <Volume2 className="h-3 w-3" /> :
-                         apt.status?.startsWith('awaiting-') ? <ArrowUpRight className="h-3 w-3" /> :
-                         <Clock className="h-3 w-3" />}
-                        {apt.status?.replace('-', ' ')}
-                      </span>
-
-                      <div className="flex items-center gap-2">
-                        {apt.status === 'scheduled' && (userData?.role === 'receptionist' || userData?.role === 'clinic_owner') && (
-                          <button 
-                            onClick={() => { setSelectedApt(apt); setIsPaymentOpen(true); }}
-                            className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-200 flex items-center gap-2"
-                          >
-                            <CreditCard className="h-3 w-3" /> COLLECT & CHECK IN
-                          </button>
-                        )}
-
-                        {apt.status === 'awaiting-lab' && (userData?.role === 'lab_tech' || userData?.role === 'clinic_owner') && (
-                          <button 
-                            onClick={() => navigate('/lab/queue')}
-                            className="px-4 py-2 bg-orange-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-orange-700 transition-all shadow-lg shadow-orange-100 flex items-center gap-2"
-                          >
-                             <Thermometer className="h-3.5 w-3.5" /> PROCESS LAB
-                          </button>
-                        )}
-
-                        {apt.status === 'awaiting-pharmacy' && (userData?.role === 'pharmacist' || userData?.role === 'clinic_owner') && (
-                          <button 
-                            onClick={() => navigate('/pharmacy/queue')}
-                            className="px-4 py-2 bg-indigo-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
-                          >
-                             <Zap className="h-3.5 w-3.5" /> DISPENSE MEDS
-                          </button>
-                        )}
-
-                        {(apt.status === 'arrived' || apt.status === 'triage') && userData?.role === 'doctor' && (
-                          apt.labResultsReady ? (
-                            <button 
-                              onClick={() => handleStartConsultation(apt)}
-                              className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50 flex items-center gap-2"
-                            >
-                              <Beaker className="h-3.5 w-3.5" />
-                              REPORT READY
-                            </button>
-                          ) : (
-                            <button 
-                              onClick={() => handleCallIn(apt.id)}
-                              className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 flex items-center gap-2"
-                            >
-                              <Volume2 className="h-3.5 w-3.5" />
-                              CALL IN
-                            </button>
-                          )
-                        )}
-                        
-                        {apt.status === 'awaiting-nurse' && ['nurse'].includes(userData?.role) && (
-                          <button 
-                            onClick={() => handlePerformTriage(apt)}
-                            className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50"
-                          >
-                            TRIAGE
-                          </button>
-                        )}
-
-                        {(apt.status === 'calling' || apt.status === 'triage') && userData?.role === 'doctor' && (
-                           <button 
-                             onClick={() => handleStartConsultation(apt)}
-                             className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50"
-                           >
-                             START SESSION
-                           </button>
-                        )}
-
-                        {apt.status === 'in-session' && userData?.role === 'doctor' && (
-                          <>
-                            <button 
-                              onClick={() => handleStartConsultation(apt)}
-                              className="px-4 py-2 bg-indigo-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-                            >
-                              RESUME
-                            </button>
-                            <div className="relative">
-                              <button 
-                                onClick={() => setRoutingMenu(routingMenu === apt.id ? null : apt.id)}
-                                className="px-4 py-2 bg-purple-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-50 flex items-center gap-2"
-                              >
-                                ROUTE <ChevronRight className={`h-3 w-3 transition-transform ${routingMenu === apt.id ? 'rotate-90' : ''}`} />
-                              </button>
-
-                              {routingMenu === apt.id && (
-                                <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 z-[70]">
-                                  <button 
-                                    onClick={() => { handleStatusUpdate(apt.id, 'awaiting-nurse', 'Patient routed to Nurse.'); setRoutingMenu(null); }}
-                                    className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-wider flex items-center gap-3"
-                                  >
-                                    <Activity className="h-3.5 w-3.5" /> Nurse
-                                  </button>
-                                  <button 
-                                    onClick={() => { handleStatusUpdate(apt.id, 'awaiting-lab', 'Patient routed to Laboratory.'); setRoutingMenu(null); }}
-                                    className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-wider flex items-center gap-3"
-                                  >
-                                    <Thermometer className="h-3.5 w-3.5" /> Lab
-                                  </button>
-                                  <button 
-                                    onClick={() => { handleStatusUpdate(apt.id, 'awaiting-pharmacy', 'Patient routed to Pharmacy.'); setRoutingMenu(null); }}
-                                    className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-wider flex items-center gap-3"
-                                  >
-                                    <Activity className="h-3.5 w-3.5" /> Pharmacy
-                                  </button>
-                                  <button 
-                                    onClick={() => { handleStatusUpdate(apt.id, 'awaiting-billing', 'Patient routed to Billing.'); setRoutingMenu(null); }}
-                                    className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-wider flex items-center gap-3"
-                                  >
-                                    <Zap className="h-3.5 w-3.5" /> Billing
-                                  </button>
-                                  <div className="h-px bg-slate-100 my-1" />
-                                  <button 
-                                    onClick={() => { handleStatusUpdate(apt.id, 'completed', 'Patient Discharged.'); setRoutingMenu(null); }}
-                                    className="w-full text-left px-4 py-2 text-xs text-emerald-600 hover:bg-emerald-50 font-bold uppercase tracking-wider flex items-center gap-3"
-                                  >
-                                    <CheckCircle2 className="h-3.5 w-3.5" /> Discharge
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </>
-                        )}
-
-                        {['completed', 'cancelled'].includes(apt.status) && (
-                          <button 
-                            onClick={() => handleViewSummary(apt)}
-                            className="px-4 py-2 bg-slate-50 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-slate-100 transition-all border border-slate-100"
-                          >
-                            SUMMARY
-                          </button>
-                        )}
-                        
-                        {!['in-session', 'completed', 'cancelled'].includes(apt.status) && userData?.role !== 'doctor' && userData?.role !== 'nurse' && (
-                          <div className="relative">
-                            <button 
-                              onClick={() => setActiveMenu(activeMenu === apt.id ? null : apt.id)}
-                              className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
-                            
-                            {activeMenu === apt.id && (
-                              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
-                                <button 
-                                  onClick={() => { handleEditAppointment(apt); setActiveMenu(null); }}
-                                  className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
-                                >
-                                  <ExternalLink className="h-3.5 w-3.5" /> Edit
-                                </button>
-                                <button 
-                                  onClick={() => { handleCancelAppointment(apt.id); setActiveMenu(null); }}
-                                  className="w-full text-left px-4 py-2 text-xs text-amber-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
-                                >
-                                  <Clock className="h-3.5 w-3.5" /> Cancel
-                                </button>
-                                <div className="h-px bg-slate-100 my-1" />
-                                <button 
-                                  onClick={() => { handleDeleteAppointment(apt.id); setActiveMenu(null); }}
-                                  className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" /> Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
+                    apt={apt}
+                    index={i}
+                    onViewSummary={handleViewSummary}
+                    onStatusUpdate={handleStatusUpdate}
+                    onEdit={handleEditAppointment}
+                    onDelete={handleDeleteAppointment}
+                    onCancel={handleCancelAppointment}
+                    onStartConsultation={handleStartConsultation}
+                    onPerformTriage={handlePerformTriage}
+                    onQuickCheckIn={handleQuickCheckIn}
+                    onCallIn={handleCallIn}
+                    userData={userData}
+                    activeMenu={activeMenu}
+                    setActiveMenu={setActiveMenu}
+                    routingMenu={routingMenu}
+                    setRoutingMenu={setRoutingMenu}
+                    onCollect={() => { setSelectedApt(apt); setIsPaymentOpen(true); }}
+                  />
                 ))
               )}
             </div>
@@ -699,8 +563,22 @@ export default function Appointments() {
       <AppointmentModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveAppointment}
+        onSave={async (data) => {
+          if (selectedApt) {
+            try {
+              await appointmentService.updateAppointment(selectedApt.id, data);
+              fetchAppointments();
+              success('Appointment updated successfully.');
+            } catch (err) {
+              toastError('Failed to update appointment.');
+            }
+          } else {
+            handleSaveAppointment(data);
+          }
+          setIsModalOpen(false);
+        }}
         initialDate={selectedDate}
+        appointment={selectedApt}
       />
 
       <AppointmentSummaryModal 
@@ -732,4 +610,291 @@ export default function Appointments() {
   );
 }
 
+function AppointmentCard({ 
+  apt, 
+  index = 0, 
+  onViewSummary, 
+  onStatusUpdate, 
+  onEdit, 
+  onDelete, 
+  onCancel, 
+  onStartConsultation, 
+  onPerformTriage, 
+  onQuickCheckIn,
+  onCallIn,
+  userData, 
+  activeMenu, 
+  setActiveMenu, 
+  routingMenu, 
+  setRoutingMenu,
+  compact = false,
+  onCollect
+}) {
+  const navigate = useNavigate();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className={`bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col ${compact ? 'p-4 gap-4' : 'p-6 md:flex-row md:items-center justify-between gap-6'}`}
+    >
+      <div className="flex flex-1 items-center gap-5 min-w-0">
+        <div className="h-14 w-14 shrink-0 rounded-2xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100 group-hover:border-primary-200 transition-colors shadow-inner">
+          <span className="text-[9px] font-bold text-primary-600 leading-none mb-1">T-{apt.tokenNumber || '0'}</span>
+          <div className="h-px w-6 bg-slate-200 mb-1" />
+          <div className="flex flex-col items-center leading-none">
+            <span className="text-[11px] font-bold text-slate-800 tracking-tight">
+              {apt.time || '00:00'}
+            </span>
+          </div>
+        </div>
+        <div className="text-left min-w-0">
+          <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-base truncate">
+            {apt.patient}
+            <span className={`h-2 w-2 rounded-full shrink-0 ${apt.priority === 'High' ? 'bg-red-500 animate-pulse' : apt.priority === 'Normal' ? 'bg-blue-500' : 'bg-slate-300'}`} />
+            {apt.labResults && (
+              <span className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-blue-100">
+                 <Beaker className="h-3 w-3" /> Results Ready
+              </span>
+            )}
+            
+            <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest border ${apt.bookingType === 'SD' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+               {apt.bookingType || 'ADV'}
+            </span>
+            <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest border ${
+              apt.confirmStatus === 'C' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+              apt.confirmStatus === 'NC' ? 'bg-red-50 text-red-600 border-red-100' : 
+              apt.confirmStatus === 'LM' ? 'bg-amber-50 text-amber-600 border-amber-100' : 
+              'bg-slate-50 text-slate-400 border-slate-100'
+            }`}>
+               {apt.confirmStatus || 'NC'}
+            </span>
+          </h3>
+          <div className="flex flex-wrap items-center gap-4 mt-1">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-slate-300">ID:</span> {apt.patientId || 'NEW'}
+            </p>
+            {!compact && (apt.patientPhone || apt.mobile || apt.phoneNumber) && (
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-slate-300">MOB:</span> {apt.patientPhone || apt.mobile || apt.phoneNumber}
+              </p>
+            )}
+            {!compact && (
+              <p className="text-[10px] text-primary-600 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                 <User className="h-3 w-3 text-slate-300" /> {apt.provider || apt.doctor}
+              </p>
+            )}
+            <span className="px-1.5 py-0.5 bg-slate-50 border border-slate-100 rounded text-[9px] text-slate-500 font-bold uppercase tracking-widest">{apt.type}</span>
+            {apt.wardNumber && (
+              <span className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[9px] text-indigo-600 font-black uppercase tracking-widest">
+                {apt.wardNumber}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className={`flex flex-col shrink-0 ${compact ? 'items-stretch' : 'md:items-end'} gap-3`}>
+        <span className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border
+          ${apt.status === 'arrived' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 
+            apt.status === 'triage' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+            apt.status === 'in-session' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+            apt.status === 'calling' ? 'bg-amber-50 text-amber-700 animate-pulse border-amber-200 border-2' :
+            apt.status?.startsWith('awaiting-') ? 'bg-orange-50 text-orange-700 border-orange-100' :
+            apt.status === 'completed' ? 'bg-purple-50 text-purple-700 border-purple-100' : 
+            apt.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-100' : 
+            'bg-amber-50 text-amber-700 border-amber-100'}
+        `}>
+          {apt.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : 
+           apt.status === 'cancelled' ? <XCircle className="h-3 w-3" /> : 
+           apt.status === 'calling' ? <Volume2 className="h-3 w-3" /> :
+           apt.status?.startsWith('awaiting-') ? <ArrowUpRight className="h-3 w-3" /> :
+           <Clock className="h-3 w-3" />}
+          {apt.status?.replace('-', ' ')}
+        </span>
+
+        <div className={`flex items-center gap-2 ${compact ? 'justify-between' : ''}`}>
+            {(apt.status === 'booked' || apt.status === 'scheduled') && (['receptionist', 'clinic_owner', 'admin', 'doctor', 'nurse'].includes(userData?.role)) && (
+              <div className="flex flex-col gap-2 w-full">
+                <button 
+                  onClick={onCollect}
+                  className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-200 flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="h-3 w-3" /> COLLECT & CHECK IN
+                </button>
+                <button 
+                  onClick={() => onQuickCheckIn(apt)}
+                  className="px-4 py-2 bg-white border border-slate-200 text-slate-500 text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="h-3 w-3" /> QUICK CHECK IN
+                </button>
+              </div>
+            )}
+
+            {apt.status === 'awaiting-lab' && (userData?.role === 'lab_tech' || userData?.role === 'clinic_owner') && (
+              <button 
+                onClick={() => navigate('/lab/queue')}
+                className="px-4 py-2 bg-orange-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-orange-700 transition-all shadow-lg shadow-orange-100 flex items-center gap-2"
+              >
+                 <Thermometer className="h-3.5 w-3.5" /> PROCESS LAB
+              </button>
+            )}
+
+            {apt.status === 'awaiting-pharmacy' && (userData?.role === 'pharmacist' || userData?.role === 'clinic_owner') && (
+              <button 
+                onClick={() => navigate('/pharmacy/queue')}
+                className="px-4 py-2 bg-indigo-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
+              >
+                 <Zap className="h-3.5 w-3.5" /> DISPENSE MEDS
+              </button>
+            )}
+
+            {(apt.status === 'arrived' || apt.status === 'triage') && userData?.role === 'doctor' && (
+              apt.labResultsReady ? (
+                <button 
+                  onClick={() => onStartConsultation(apt)}
+                  className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50 flex items-center gap-2"
+                >
+                  <Beaker className="h-3.5 w-3.5" />
+                  REPORT READY
+                </button>
+              ) : (
+                <button 
+                  onClick={() => onCallIn(apt.id)}
+                  className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 flex items-center gap-2"
+                >
+                  <Volume2 className="h-3.5 w-3.5" />
+                  CALL IN
+                </button>
+              )
+            )}
+            
+            {apt.status === 'awaiting-nurse' && ['nurse'].includes(userData?.role) && (
+              <button 
+                onClick={() => onPerformTriage(apt)}
+                className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50"
+              >
+                TRIAGE
+              </button>
+            )}
+
+            {(apt.status === 'calling' || apt.status === 'triage') && userData?.role === 'doctor' && (
+               <button 
+                 onClick={() => onStartConsultation(apt)}
+                 className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50"
+               >
+                 START SESSION
+               </button>
+            )}
+
+            {apt.status === 'in-session' && userData?.role === 'doctor' && (
+              <>
+                <button 
+                  onClick={() => onStartConsultation(apt)}
+                  className="px-4 py-2 bg-indigo-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                >
+                  RESUME
+                </button>
+                <div className="relative">
+                  <button 
+                    onClick={() => setRoutingMenu(routingMenu === apt.id ? null : apt.id)}
+                    className="px-4 py-2 bg-purple-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-50 flex items-center gap-2"
+                  >
+                    ROUTE <ChevronRight className={`h-3 w-3 transition-transform ${routingMenu === apt.id ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {routingMenu === apt.id && (
+                    <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 z-[70]">
+                      <button 
+                        onClick={() => { onStatusUpdate(apt.id, 'awaiting-nurse', 'Patient routed to Nurse.'); setRoutingMenu(null); }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-wider flex items-center gap-3"
+                      >
+                        <Activity className="h-3.5 w-3.5" /> Nurse
+                      </button>
+                      <button 
+                        onClick={() => { onStatusUpdate(apt.id, 'awaiting-lab', 'Patient routed to Laboratory.'); setRoutingMenu(null); }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-wider flex items-center gap-3"
+                      >
+                        <Thermometer className="h-3.5 w-3.5" /> Lab
+                      </button>
+                      <button 
+                        onClick={() => { onStatusUpdate(apt.id, 'awaiting-pharmacy', 'Patient routed to Pharmacy.'); setRoutingMenu(null); }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-wider flex items-center gap-3"
+                      >
+                        <Activity className="h-3.5 w-3.5" /> Pharmacy
+                      </button>
+                      <button 
+                        onClick={() => { onStatusUpdate(apt.id, 'awaiting-billing', 'Patient routed to Billing.'); setRoutingMenu(null); }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-wider flex items-center gap-3"
+                      >
+                        <Zap className="h-3.5 w-3.5" /> Billing
+                      </button>
+                      <div className="h-px bg-slate-100 my-1" />
+                      <button 
+                        onClick={() => { onStatusUpdate(apt.id, 'completed', 'Patient Discharged.'); setRoutingMenu(null); }}
+                        className="w-full text-left px-4 py-2 text-xs text-emerald-600 hover:bg-emerald-50 font-bold uppercase tracking-wider flex items-center gap-3"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Discharge
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {['completed', 'cancelled'].includes(apt.status) && (
+              <button 
+                onClick={() => onViewSummary(apt)}
+                className="px-4 py-2 bg-slate-50 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-slate-100 transition-all border border-slate-100"
+              >
+                SUMMARY
+              </button>
+            )}
+            
+            {!['in-session', 'completed', 'cancelled'].includes(apt.status) && userData?.role !== 'doctor' && userData?.role !== 'nurse' && (
+              <div className="relative">
+                <button 
+                  onClick={() => setActiveMenu(activeMenu === apt.id ? null : apt.id)}
+                  className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+                
+                {activeMenu === apt.id && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
+                    <button 
+                      onClick={() => { onEdit(apt); setActiveMenu(null); }}
+                      className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> Edit
+                    </button>
+                    <button 
+                      onClick={() => { onEdit(apt); setActiveMenu(null); }}
+                      className="w-full text-left px-4 py-2 text-xs text-primary-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <CalendarIcon className="h-3.5 w-3.5" /> Reschedule
+                    </button>
+                    <button 
+                      onClick={() => { onCancel(apt.id); setActiveMenu(null); }}
+                      className="w-full text-left px-4 py-2 text-xs text-amber-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <Clock className="h-3.5 w-3.5" /> Cancel
+                    </button>
+                    <div className="h-px bg-slate-100 my-1" />
+                    <button 
+                      onClick={() => { onDelete(apt.id); setActiveMenu(null); }}
+                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 

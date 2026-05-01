@@ -88,6 +88,7 @@ const getMenuItems = (role) => [
       { label: 'Clinical Forms', path: '/clinical-forms', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Laboratory Registry', path: '/lab/queue', roles: ['lab_tech', 'clinic_owner'] },
       { label: 'Diagnostics & Labs', path: '/investigation', roles: ['doctor', 'clinic_owner', 'nurse'] },
+      { label: 'Prescriptions', path: '/prescriptions', roles: ['doctor', 'clinic_owner'] },
       { label: 'Ward / In-Patient', path: '/ward', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Waitlist TV', path: '/waitlist-tv', roles: ['doctor', 'nurse', 'receptionist', 'clinic_owner', 'admin'] },
     ]
@@ -340,6 +341,13 @@ export default function Sidebar({ isOpen, onClose }) {
               <p className="text-sm font-medium truncate text-slate-900">{userData?.name || 'Jon Day'}</p>
               <p className="text-xs text-slate-500 truncate capitalize">{role}</p>
             </div>
+            <button 
+              onClick={logout}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              title="Log Out"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
         </div>
 

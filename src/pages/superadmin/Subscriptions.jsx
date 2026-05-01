@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import facilityService from '../../services/facilityService';
 import userService from '../../services/userService';
@@ -21,7 +22,8 @@ import {
   Shield,
   AlertTriangle,
   X,
-  UserPlus
+  UserPlus,
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 const PLANS = [
@@ -42,6 +44,7 @@ const PLANS = [
   }
 ];
 export default function Subscriptions() {
+  const navigate = useNavigate();
   const { userData } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -368,9 +371,18 @@ export default function Subscriptions() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Subscription Management</h1>
-            <p className="text-slate-500 font-medium">Manage client plans, limits, and billing status.</p>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="h-10 w-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all shadow-sm active:scale-95"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Subscription Management</h1>
+              <p className="text-slate-500 font-medium">Manage client plans, limits, and billing status.</p>
+            </div>
           </div>
         </div>
 

@@ -378,15 +378,8 @@ export default function Header({ onMenuClick }) {
 
         <div className="flex items-center gap-3">
           <div className="text-right flex flex-col items-end">
-            <p className="text-sm font-bold text-slate-900 leading-tight mb-0.5">{userData?.name || 'Jon Day'}</p>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1.5">{role}</p>
-            <button 
-              onClick={logout}
-              className="group/logout flex items-center gap-1.5 text-[9px] font-black text-slate-400 hover:text-red-500 transition-colors uppercase tracking-[0.2em]"
-            >
-              <LogOut className="h-3 w-3 group-hover/logout:-translate-x-0.5 transition-transform" />
-              Log Out
-            </button>
+            <p className="text-sm font-bold text-slate-900 leading-tight">{userData?.name || 'Jon Day'}</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">{role}</p>
           </div>
           <div className="h-10 w-10 bg-slate-100 rounded-xl overflow-hidden shadow-inner flex items-center justify-center text-primary-600 font-bold border border-slate-200">
             {userData?.name?.split(' ').map(n => n[0]).join('') || <User className="h-6 w-6 text-slate-400" />}

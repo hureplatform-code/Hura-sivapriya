@@ -19,7 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
 
-export default function AppointmentModal({ isOpen, onClose, onSave, initialDate }) {
+export default function AppointmentModal({ isOpen, onClose, onSave, initialDate, appointment }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const { userData } = useAuth();
@@ -34,23 +34,6 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
   const [facilityProfile, setFacilityProfile] = useState(null);
   const [lastVisitMap, setLastVisitMap] = useState({});
 
-  const formatLastVisitRelative = (lastDate) => {
-    if (!lastDate) return null;
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const visitDate = new Date(lastDate);
-    visitDate.setHours(0,0,0,0);
-    
-    const diffTime = today - visitDate;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return "Visited today";
-    if (diffDays === 1) return "Visited yesterday";
-    if (diffDays < 30) return `${diffDays} days ago`;
-    if (diffDays < 60) return "Last month";
-    return `Last visit: ${lastDate}`;
-  };
-
   const [formData, setFormData] = useState({
     patientId: '',
     patientName: '',
@@ -58,52 +41,63 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
     type: 'Consultation',
     date: initialDate || (() => {
       const now = new Date();
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     })(),
     time: '09:00',
     notes: '',
     priority: 'Normal',
-    consultationFee: 1000
+    consultationFee: 1000,
+    confirmStatus: 'NC',
+    wardNumber: ''
   });
 
   useEffect(() => {
     if (isOpen && userData?.facilityId) {
-      // Reset form on open
-      setSearchQuery('');
-      setSelectedPatient(null);
-      setShowResults(false);
-      
       const loadInitialData = async () => {
         try {
           const profileData = await facilityService.getProfile(userData.facilityId);
           if (profileData) setFacilityProfile(profileData);
           
-          setFormData(prev => ({
-            ...prev,
-            patientId: '',
-            patientName: '',
-            provider: doctors[0]?.name || '', 
-            type: 'Consultation',
-            date: initialDate || (() => {
-              const now = new Date();
-              const y = now.getFullYear();
-              const m = String(now.getMonth() + 1).padStart(2, '0');
-              const d = String(now.getDate()).padStart(2, '0');
-              return `${y}-${m}-${d}`;
-            })(),
-            time: (() => {
-              const now = new Date();
-              const h = String(now.getHours()).padStart(2, '0');
-              const m = String(now.getMinutes()).padStart(2, '0');
-              return `${h}:${m}`;
-            })(),
-            notes: '',
-            priority: 'Normal',
-            consultationFee: profileData?.consultationFee || 1000
-          }));
+          if (appointment) {
+            setFormData({
+              patientId: appointment.patientId || '',
+              patientName: appointment.patient || '',
+              provider: appointment.provider || appointment.doctor || '',
+              type: appointment.type || 'Consultation',
+              date: appointment.date || appointment.app_date || initialDate,
+              time: appointment.time || '09:00',
+              notes: appointment.notes || '',
+              priority: appointment.priority || 'Normal',
+              consultationFee: appointment.consultationFee || profileData?.consultationFee || 1000,
+              confirmStatus: appointment.confirmStatus || 'NC',
+              wardNumber: appointment.wardNumber || ''
+            });
+            setSelectedPatient({ id: appointment.patientId, name: appointment.patient });
+            setSearchQuery(appointment.patient || '');
+          } else {
+            // Reset form for new appointment
+            setSearchQuery('');
+            setSelectedPatient(null);
+            setFormData({
+              patientId: '',
+              patientName: '',
+              provider: doctors[0]?.name || '', 
+              type: 'Consultation',
+              date: initialDate || (() => {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              })(),
+              time: (() => {
+                const now = new Date();
+                return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+              })(),
+              notes: '',
+              priority: 'Normal',
+              consultationFee: profileData?.consultationFee || 1000,
+              confirmStatus: 'NC',
+              wardNumber: ''
+            });
+          }
         } catch (err) {
           console.error("Error loading profile:", err);
         }
@@ -113,26 +107,20 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
       fetchPatients();
       fetchDoctors();
     }
-  }, [isOpen, initialDate, userData?.facilityId]);
+  }, [isOpen, initialDate, userData?.facilityId, appointment]);
 
-  // Handle doctor selection once list is loaded
+  // Handle doctor selection once list is loaded (only if NOT editing)
   useEffect(() => {
-    if (doctors.length > 0 && !formData.provider) {
+    if (doctors.length > 0 && !formData.provider && !appointment) {
        setFormData(prev => ({ ...prev, provider: doctors[0].name }));
     }
-  }, [doctors]);
+  }, [doctors, appointment]);
 
   const fetchDoctors = async () => {
     try {
       const data = await userService.getAllUsers(userData?.facilityId);
-      // Include only formal Doctors
       const docs = data.filter(u => u.role === 'doctor');
       setDoctors(docs);
-      
-      // Auto-select first matching provider if form is empty
-      if (docs.length > 0 && !formData.provider) {
-        setFormData(prev => ({ ...prev, provider: docs[0].name }));
-      }
     } catch (error) {
       console.error("Error fetching doctors:", error);
     }
@@ -141,7 +129,6 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
   const fetchPatients = async () => {
     if (!userData?.facilityId) return;
     try {
-      // Fetch both simultaneously but handle failure individually
       const [patientData, recentAppts] = await Promise.allSettled([
         patientService.getAllPatients(userData.facilityId),
         appointmentService.getAppointmentsByFacility(userData.facilityId, 500)
@@ -219,11 +206,16 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
         patient: selectedPatient.name,
         patientId: selectedPatient.id,
         patientPhone: sanitizedPhone,
-        status: 'scheduled',
+        status: appointment?.status || 'scheduled',
         bookingType: isSameDay ? 'SD' : 'ADV',
-        createdAt: new Date().toISOString(),
-        consultationFee: parseFloat(formData.consultationFee) // Ensure it's a number
+        confirmStatus: formData.confirmStatus,
+        createdAt: appointment?.createdAt || new Date().toISOString(),
+        consultationFee: parseFloat(formData.consultationFee)
       };
+
+      if (appointment?.id) {
+        appointmentData.id = appointment.id;
+      }
       
       if (onSave) {
         await onSave(appointmentData);
@@ -265,15 +257,15 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                   <div className="h-20 w-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4">
                     <CheckCircle2 className="h-10 w-10" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-slate-900">Appointment Booked!</h3>
-                  <p className="text-slate-500 font-medium">The patient will receive a confirmation shortly.</p>
+                  <h3 className="text-2xl font-semibold text-slate-900">{appointment ? 'Changes Saved!' : 'Appointment Booked!'}</h3>
+                  <p className="text-slate-500 font-medium">{appointment ? 'The appointment record has been updated.' : 'The patient will receive a confirmation shortly.'}</p>
                 </div>
               ) : (
                 <>
                   <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                     <div>
-                      <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Schedule Patient</h3>
-                      <p className="text-sm text-slate-500 font-medium mt-1">Book a new consultation or follow-up session.</p>
+                      <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">{appointment ? 'Edit Appointment' : 'Schedule Patient'}</h3>
+                      <p className="text-sm text-slate-500 font-medium mt-1">{appointment ? 'Modify provider, date, or consultation details.' : 'Book a new consultation or follow-up session.'}</p>
                     </div>
                     <button 
                       onClick={onClose}
@@ -288,14 +280,16 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                       <div className="relative">
                         <div className="flex items-center justify-between ml-1 mb-2">
                           <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Patient Search</label>
-                          <button 
-                            type="button"
-                            onClick={() => setIsQuickPatientOpen(true)}
-                            className="text-[10px] font-medium text-primary-600 uppercase tracking-widest hover:text-primary-700 flex items-center gap-1"
-                          >
-                            <UserPlus className="h-3 w-3" />
-                            New Patient
-                          </button>
+                          {!appointment && (
+                            <button 
+                              type="button"
+                              onClick={() => setIsQuickPatientOpen(true)}
+                              className="text-[10px] font-medium text-primary-600 uppercase tracking-widest hover:text-primary-700 flex items-center gap-1"
+                            >
+                              <UserPlus className="h-3 w-3" />
+                              New Patient
+                            </button>
+                          )}
                         </div>
                         <div className="relative group">
                           <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
@@ -304,20 +298,21 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                           <input
                             type="text"
                             value={searchQuery}
+                            readOnly={!!appointment}
                             onChange={(e) => {
                               setSearchQuery(e.target.value);
                               setShowResults(true);
                               setSelectedPatient(null);
                             }}
-                            onFocus={() => setShowResults(true)}
+                            onFocus={() => !appointment && setShowResults(true)}
                             required
-                            className="block w-full pl-14 pr-6 py-4.5 bg-slate-50 border-2 border-transparent focus:bg-white focus:ring-0 focus:border-primary-500 rounded-[1.5rem] transition-all duration-300 text-slate-900 placeholder-slate-400 text-sm font-medium shadow-inner"
+                            className={`block w-full pl-14 pr-6 py-4.5 border-2 rounded-[1.5rem] transition-all duration-300 text-sm font-medium shadow-inner ${appointment ? 'bg-slate-50 border-transparent text-slate-400' : 'bg-slate-50 border-transparent focus:bg-white focus:ring-0 focus:border-primary-500 text-slate-900 placeholder-slate-400'}`}
                             placeholder="Search by Name, Phone, or OP Number (ID)..."
                           />
                         </div>
 
                         <AnimatePresence>
-                          {showResults && searchQuery.length > 0 && (
+                          {showResults && searchQuery.length > 0 && !appointment && (
                             <motion.div 
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -442,27 +437,50 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Consultation Fee ({userData?.currency || 'KSH'})</label>
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Fee ({userData?.currency || 'KSH'})</label>
                           <input 
                             type="number" 
                             value={formData.consultationFee}
                             onChange={(e) => setFormData(prev => ({ ...prev, consultationFee: e.target.value }))}
                             className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-bold shadow-inner outline-none transition-all" 
-                            placeholder="Enter fee amount..." 
+                            placeholder="Amount..." 
                           />
                         </div>
                         <div className="space-y-2">
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Ward / Room</label>
+                          <input 
+                            type="text" 
+                            value={formData.wardNumber}
+                            onChange={(e) => setFormData(prev => ({ ...prev, wardNumber: e.target.value }))}
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-bold shadow-inner outline-none transition-all" 
+                            placeholder="e.g. Ward 4, Room 102" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Status</label>
+                          <select 
+                             value={formData.confirmStatus}
+                             onChange={(e) => setFormData(prev => ({ ...prev, confirmStatus: e.target.value }))}
+                             className="block w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-bold outline-none appearance-none transition-all"
+                          >
+                            <option value="NC">NC - Not Confirmed</option>
+                            <option value="C">C - Confirmed</option>
+                            <option value="LM">LM - Left Message</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
                           <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest ml-1 block">Notes / Reason for visit</label>
                           <textarea 
-                            rows="1" 
+                            rows="2" 
                             value={formData.notes}
                             onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                             className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all resize-none shadow-inner" 
                             placeholder="Reason for visit..." 
                           />
-                        </div>
                       </div>
                     </div>
 
@@ -484,7 +502,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
                         ) : (
                           <>
                             <CheckCircle2 className="h-5 w-5" />
-                            Confirm Appointment
+                            {appointment ? 'Save Changes' : 'Confirm Appointment'}
                           </>
                         )}
                       </button>
@@ -505,3 +523,4 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate 
     </>
   );
 }
+

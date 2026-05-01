@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  CURRENCY: 'USD',
+  CURRENCY: 'KES',
   HOSPITAL_NAME: 'Hure Care',
   DEFAULT_TAX_PERCENT: 0,
   ROLES: [

@@ -215,7 +215,7 @@ export default function Dashboard() {
         setStats([
           { label: focusLabel, value: activeToday.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/appointments' },
           { label: 'Clinical Documentation', value: pendingNotes.toString() + ' Pending', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', path: '/notes' },
-          { label: 'Workload Status', value: 'Steady', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50', path: '/appointments' },
+          { label: 'Overdue Notes (>24h)', value: overdueNotes.toString(), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/notes' },
           { label: 'Discharged Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/appointments' },
         ]);
         const todayApts = appointments

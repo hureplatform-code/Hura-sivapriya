@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import auditService from '../../services/auditService';
 import { 
@@ -14,11 +15,13 @@ import {
   ChevronRight,
   FileText,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function GlobalAudit() {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -89,12 +92,21 @@ export default function GlobalAudit() {
     <DashboardLayout>
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
-              <History className="h-8 w-8 text-primary-600" />
-              Global Audit Trail
-            </h1>
-            <p className="text-slate-500 mt-1 font-medium italic">Immutable oversight of all platform and clinic operations.</p>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="h-10 w-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all shadow-sm active:scale-95"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
+                <History className="h-8 w-8 text-primary-600" />
+                Global Audit Trail
+              </h1>
+              <p className="text-slate-500 mt-1 font-medium italic">Immutable oversight of all platform and clinic operations.</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
              <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest border border-emerald-100 flex items-center gap-2">

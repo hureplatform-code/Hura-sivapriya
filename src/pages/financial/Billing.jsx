@@ -187,7 +187,7 @@ export default function Billing() {
       doc.text(`Insurance: ${inv.stage === 2 ? 'Covered Visit' : 'Mixed Billing'}`, 20, 82);
       doc.text(`Invoice Status: ${inv.status?.toUpperCase()}`, 20, 89);
       
-      doc.text(`Pay Mode: ${inv.payMode === '2' ? 'Insurance Direct' : 'Cash/Other'}`, pageWidth - 20, 75, { align: 'right' });
+      doc.text(`Pay Mode: ${inv.payMode === 'insurance' ? 'Insurance Direct' : inv.payMode || 'Cash'}`, pageWidth - 20, 75, { align: 'right' });
       doc.text(`Claim ID: CLM-${inv.id?.slice(-8).toUpperCase()}`, pageWidth - 20, 82, { align: 'right' });
 
       // Invoice Table
@@ -577,6 +577,7 @@ export default function Billing() {
 
 function BillGenerator({ onClose, onSave }) {
   const { userData } = useAuth();
+  const { error: toastError } = useToast();
   const [stage, setStage] = useState(1);
   const [patientId, setPatientId] = useState('');
   const [appointmentId, setAppointmentId] = useState('');
@@ -590,7 +591,9 @@ function BillGenerator({ onClose, onSave }) {
     taxPercent: '0',
     discount: '0.00',
     insuranceScheme: '',
-    insuranceMemberNo: ''
+    insuranceMemberNo: '',
+    transactionRef: '',
+    partialPaymentAmount: '0.00'
   });
 
   useEffect(() => {
@@ -656,12 +659,13 @@ function BillGenerator({ onClose, onSave }) {
 
   const handleSave = async () => {
     if (!patientId) {
-       // We need a way to notify parent to show notification, or pass a toast handler.
-       // Since BillGenerator is a child, passing a prop is best.
-       // For now, I'll allow onClose to pass back an error, or just console.error.
-       // Actually, I'll duplicate the simple alert replacement with a small local error state or just return.
        console.error("Select patient");
        return; 
+    }
+
+    if (formData.payMode !== 'cash' && !formData.transactionRef) {
+       toastError("Transaction Reference is required for non-cash payments.");
+       return;
     }
     const patient = patients.find(p => p.id === patientId);
     
@@ -785,12 +789,27 @@ function BillGenerator({ onClose, onSave }) {
                 onChange={(e) => setFormData({...formData, payMode: e.target.value})}
                 className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium outline-none shadow-inner"
               >
-                <option value="1">Cash Payment</option>
-                <option value="2">Insurance Claim</option>
-                <option value="3">M-Pesa / Digital</option>
+                <option value="cash">Cash Payment</option>
+                <option value="mpesa">M-Pesa (Manual)</option>
+                <option value="card">Card (POS Machine)</option>
+                <option value="credit">Credit on Account</option>
+                <option value="insurance">Bill to Insurance</option>
               </select>
             </div>
-            {formData.payMode === '2' && (
+            {formData.payMode !== 'cash' && (
+              <div className="space-y-4">
+                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Transaction Reference / Receipt #</label>
+                <input 
+                  type="text"
+                  required
+                  value={formData.transactionRef}
+                  onChange={(e) => setFormData({...formData, transactionRef: e.target.value})}
+                  placeholder="Enter M-Pesa code or POS Ref..."
+                  className="w-full p-5 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-slate-200 rounded-3xl text-sm font-medium outline-none shadow-inner"
+                />
+              </div>
+            )}
+            {formData.payMode === 'insurance' && (
               <>
                 <div className="space-y-4">
                   <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest pl-2">Insurance Scheme</label>
