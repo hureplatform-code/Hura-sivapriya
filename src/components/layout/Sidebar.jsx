@@ -155,7 +155,7 @@ const getMenuItems = (role) => [
 ];
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { userData, logout } = useAuth();
+  const { userData, logout, actingRole } = useAuth();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState({});
 
@@ -167,7 +167,7 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   // Determine role. Do NOT default to 'doctor' silently.
-  const role = userData?.role;
+  const role = actingRole || userData?.role;
 
   // If user is logged in (currentUser exists) but userData/role is missing, 
   // waiting for AuthContext or data is corrupted.

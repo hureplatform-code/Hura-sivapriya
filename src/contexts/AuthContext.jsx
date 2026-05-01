@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [activeStaffCount, setActiveStaffCount] = useState(0);
   const [facilityData, setFacilityData] = useState(null);
+  const [actingRole, setActingRole] = useState(null);
 
   async function login(email, password) {
     const result = await signInWithEmailAndPassword(auth, email, password);
@@ -103,6 +104,7 @@ export function AuthProvider({ children }) {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserData(data);
+            if (!actingRole) setActingRole(data.role);
 
             // Fetch facility data immediately if needed
             if (data.facilityId && data.role !== 'superadmin') {
@@ -148,6 +150,7 @@ export function AuthProvider({ children }) {
         setSubscriptionStatus(null);
         setVerificationStatus(null);
         setActiveStaffCount(0);
+        setActingRole(null);
         setLoading(false);
         setInitialized(true);
       }
@@ -191,7 +194,9 @@ export function AuthProvider({ children }) {
     verificationStatus,
     activeStaffCount,
     loading,
-    initialized
+    initialized,
+    actingRole,
+    setActingRole
   };
   return (
     <AuthContext.Provider value={value}>

@@ -50,7 +50,7 @@ export default function Appointments() {
   const [isTriageOpen, setIsTriageOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [triageApt, setTriageApt] = useState(null);
-  const { userData, facilityData } = useAuth();
+  const { userData, facilityData, actingRole } = useAuth();
   const [activeMenu, setActiveMenu] = useState(null);
   const [routingMenu, setRoutingMenu] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -547,6 +547,7 @@ export default function Appointments() {
                     onQuickCheckIn={handleQuickCheckIn}
                     onCallIn={handleCallIn}
                     userData={userData}
+                    actingRole={actingRole}
                     activeMenu={activeMenu}
                     setActiveMenu={setActiveMenu}
                     routingMenu={routingMenu}
@@ -623,6 +624,7 @@ function AppointmentCard({
   onQuickCheckIn,
   onCallIn,
   userData, 
+  actingRole,
   activeMenu, 
   setActiveMenu, 
   routingMenu, 
@@ -631,6 +633,7 @@ function AppointmentCard({
   onCollect
 }) {
   const navigate = useNavigate();
+  const role = actingRole || userData?.role;
 
   return (
     <motion.div
@@ -750,7 +753,7 @@ function AppointmentCard({
               </button>
             )}
 
-            {(apt.status === 'arrived' || apt.status === 'triage') && userData?.role === 'doctor' && (
+            {(apt.status === 'arrived' || apt.status === 'triage') && (userData?.role === 'doctor' || actingRole === 'doctor') && (
               apt.labResultsReady ? (
                 <button 
                   onClick={() => onStartConsultation(apt)}
@@ -779,7 +782,7 @@ function AppointmentCard({
               </button>
             )}
 
-            {(apt.status === 'calling' || apt.status === 'triage') && userData?.role === 'doctor' && (
+            {(apt.status === 'calling' || apt.status === 'triage') && (userData?.role === 'doctor' || actingRole === 'doctor') && (
                <button 
                  onClick={() => onStartConsultation(apt)}
                  className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50"
@@ -788,7 +791,7 @@ function AppointmentCard({
                </button>
             )}
 
-            {apt.status === 'in-session' && userData?.role === 'doctor' && (
+            {apt.status === 'in-session' && (userData?.role === 'doctor' || actingRole === 'doctor') && (
               <>
                 <button 
                   onClick={() => onStartConsultation(apt)}

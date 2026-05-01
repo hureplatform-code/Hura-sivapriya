@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bell, User, X, FileText, Calendar, Users, Menu, LogOut } from 'lucide-react';
+import { Search, Bell, User, X, FileText, Calendar, Users, Menu, LogOut, Zap } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import patientService from '../../services/patientService';
@@ -10,9 +10,9 @@ import inventoryService from '../../services/inventoryService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header({ onMenuClick }) {
-  const { userData, logout } = useAuth();
+  const { userData, logout, actingRole, setActingRole } = useAuth();
   const navigate = useNavigate();
-  const role = userData?.role || 'Superadmin';
+  const role = actingRole || userData?.role || 'Superadmin';
   const [notifications, setNotifications] = React.useState([]);
   const [showNotifications, setShowNotifications] = React.useState(false);
   const notificationRef = React.useRef(null);
@@ -379,7 +379,18 @@ export default function Header({ onMenuClick }) {
         <div className="flex items-center gap-3">
           <div className="text-right flex flex-col items-end">
             <p className="text-sm font-bold text-slate-900 leading-tight">{userData?.name || 'Jon Day'}</p>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">{role}</p>
+            <div className="flex flex-col items-end">
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">{role.replace('_', ' ')}</p>
+              {userData?.role === 'clinic_owner' && (
+                <button 
+                  onClick={() => setActingRole(actingRole === 'clinic_owner' ? 'doctor' : 'clinic_owner')}
+                  className="mt-1 flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-600 rounded text-[8px] font-bold uppercase tracking-widest hover:bg-primary-100 transition-colors border border-primary-100"
+                >
+                  <Zap className="h-2.5 w-2.5" />
+                  Switch to {actingRole === 'clinic_owner' ? 'Doctor' : 'Admin'}
+                </button>
+              )}
+            </div>
           </div>
           <div className="h-10 w-10 bg-slate-100 rounded-xl overflow-hidden shadow-inner flex items-center justify-center text-primary-600 font-bold border border-slate-200">
             {userData?.name?.split(' ').map(n => n[0]).join('') || <User className="h-6 w-6 text-slate-400" />}
