@@ -60,10 +60,7 @@ export default function Billing() {
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('patient') || '');
   const [activeMenu, setActiveMenu] = useState(null);
-  const { userData, subscriptionStatus, verificationStatus } = useAuth();
-  const isTrialExpired = subscriptionStatus?.expiryDate && new Date(subscriptionStatus.expiryDate) < new Date();
-  const isUnverified = verificationStatus !== 'verified';
-  const isRestricted = isTrialExpired && isUnverified;
+  const { userData, subscriptionStatus, verificationStatus, isReadOnly } = useAuth();
   const { success, info, error: toastError } = useToast();
   const [billingStats, setBillingStats] = useState({
     revenue: 0,
@@ -369,13 +366,13 @@ export default function Billing() {
           </div>
           <button 
             onClick={() => {
-              if (isRestricted) {
-                  toastError('Access Restricted: Please complete facility verification and settle outstanding subscription to generate new invoices.');
+              if (isReadOnly) {
+                  toastError('Access Restricted: Your subscription is inactive. Please renew to continue using HURE Care.');
                   return;
               }
               setIsCreating(true);
             }}
-            className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-2xl transition-all shadow-xl active:scale-95 ${isRestricted ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
+            className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-2xl transition-all shadow-xl active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
           >
             <Plus className="h-5 w-5" />
             Generate New Invoice
@@ -520,7 +517,14 @@ export default function Billing() {
                                 </button>
                                 {inv.status !== 'paid' && (
                                   <button 
-                                    onClick={() => { handleMarkAsPaid(inv); setActiveMenu(null); }}
+                                    onClick={() => { 
+                                      if (isReadOnly) {
+                                          toastError('Access Restricted: Your subscription is inactive.');
+                                          return;
+                                      }
+                                      handleMarkAsPaid(inv); 
+                                      setActiveMenu(null); 
+                                    }}
                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 transition-colors"
                                   >
                                     <CheckCircle2 className="h-4 w-4" />
@@ -529,7 +533,14 @@ export default function Billing() {
                                 )}
                                 <div className="h-px bg-slate-50 my-1"></div>
                                 <button 
-                                  onClick={() => { handleVoidInvoice(inv); setActiveMenu(null); }}
+                                  onClick={() => { 
+                                    if (isReadOnly) {
+                                        toastError('Access Restricted: Your subscription is inactive.');
+                                        return;
+                                    }
+                                    handleVoidInvoice(inv); 
+                                    setActiveMenu(null); 
+                                  }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                                 >
                                   <AlertCircle className="h-4 w-4" />

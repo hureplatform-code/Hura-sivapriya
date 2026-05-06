@@ -4,9 +4,11 @@ import Header from './Header';
 import { useInactivityTimer } from '../../hooks/useInactivityTimer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Clock, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardLayout({ children }) {
   const { isWarning, timeLeft, resetTimer } = useInactivityTimer();
+  const { subscriptionMessage } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
@@ -18,7 +20,13 @@ export default function DashboardLayout({ children }) {
         <div className="print:hidden">
           <Header onMenuClick={() => setSidebarOpen(true)} />
         </div>
-        <div className="p-4 md:p-8 print:p-0">
+        <div className="p-4 md:p-8 print:p-0 space-y-4">
+          {subscriptionMessage && (
+            <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3 text-red-700 animate-pulse">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <p className="text-sm font-medium">{subscriptionMessage}</p>
+            </div>
+          )}
           {children}
         </div>
       </main>

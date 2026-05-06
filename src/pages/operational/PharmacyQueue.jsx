@@ -27,7 +27,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PaymentCollectionModal from '../../components/modals/PaymentCollectionModal';
 
 export default function PharmacyQueue() {
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
   const { success, error: toastError } = useToast();
   
   const [queue, setQueue] = useState([]);
@@ -353,14 +353,20 @@ export default function PharmacyQueue() {
                 )}
               </div>
 
-               <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-center p-8">
-                  <button 
-                    onClick={() => setShowPaymentModal(true)}
-                    className="w-full max-w-sm px-8 py-4 bg-slate-900 text-white font-bold text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 transition-all"
-                  >
-                     <CreditCard className="h-4 w-4" /> Generate Medication Bill
-                  </button>
-               </div>
+                <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-center p-8">
+                   <button 
+                     onClick={() => {
+                       if (isReadOnly) {
+                           toastError('Access Restricted: Your subscription is inactive.');
+                           return;
+                       }
+                       setShowPaymentModal(true);
+                     }}
+                     className={`w-full max-w-sm px-8 py-4 text-white font-bold text-xs uppercase tracking-[0.2em] rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale shadow-none' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
+                   >
+                      <CreditCard className="h-4 w-4" /> Generate Medication Bill
+                   </button>
+                </div>
             </motion.div>
           </div>
         )}

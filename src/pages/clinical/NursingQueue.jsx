@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TriageModal from '../../components/modals/TriageModal';
 
 export default function NursingQueue() {
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
   const { success, error: toastError } = useToast();
   
   const [queue, setQueue] = useState([]);
@@ -305,7 +305,13 @@ export default function NursingQueue() {
                                    <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">This patient has arrived and is waiting for initial vitals collection before seeing the doctor.</p>
                                  </div>
                                  <button 
-                                   onClick={handlePerformTriage}
+                                   onClick={() => {
+                                     if (isReadOnly) {
+                                         toastError('Access Restricted: Your subscription is inactive.');
+                                         return;
+                                     }
+                                     handlePerformTriage();
+                                   }}
                                    className="px-8 py-4 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 active:scale-95"
                                  >
                                     Start Triage Now
@@ -316,13 +322,25 @@ export default function NursingQueue() {
                      {clinicalRecord && (
                         <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-end gap-3 flex-wrap">
                            <button 
-                             onClick={handleRouteToBilling}
+                             onClick={() => {
+                               if (isReadOnly) {
+                                   toastError('Access Restricted: Your subscription is inactive.');
+                                   return;
+                               }
+                               handleRouteToBilling();
+                             }}
                              className="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
                            >
                               Route to Billing
                            </button>
                            <button 
-                             onClick={handleReturnToDoctor}
+                             onClick={() => {
+                               if (isReadOnly) {
+                                   toastError('Access Restricted: Your subscription is inactive.');
+                                   return;
+                               }
+                               handleReturnToDoctor();
+                             }}
                              className="px-8 py-4 bg-blue-600 text-white font-medium text-[10px] uppercase tracking-widest rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
                            >
                               Tasks Complete (Return to Doctor)

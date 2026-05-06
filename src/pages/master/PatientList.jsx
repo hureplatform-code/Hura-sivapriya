@@ -37,10 +37,7 @@ export default function PatientList() {
   const [genderFilter, setGenderFilter] = useState('All');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-  const { userData, facilityData, subscriptionStatus, verificationStatus } = useAuth();
-  const isTrialExpired = subscriptionStatus?.expiryDate && new Date(subscriptionStatus.expiryDate) < new Date();
-  const isUnverified = verificationStatus !== 'verified';
-  const isRestricted = isTrialExpired && isUnverified;
+  const { userData, facilityData, subscriptionStatus, verificationStatus, isReadOnly } = useAuth();
   const { success, error: toastError, warning } = useToast();
   const { confirm } = useConfirm();
 
@@ -159,13 +156,13 @@ export default function PatientList() {
           {(userData?.role !== 'doctor' || facilityData?.allowDoctorPatientCreation) && (
             <button 
               onClick={() => {
-                if (isRestricted) {
-                    toastError('Access Restricted: Please complete facility verification and settle outstanding subscription to register new patients.');
+                if (isReadOnly) {
+                    toastError('Access Restricted: Your subscription is inactive. Please renew to continue using HURE Care.');
                     return;
                 }
                 setIsRegisterModalOpen(true);
               }}
-              className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-2xl transition-all shadow-lg active:scale-95 ${isRestricted ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'}`}
+              className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-2xl transition-all shadow-lg active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'}`}
             >
               <UserPlus className="h-5 w-5" />
               Register New Patient
@@ -321,7 +318,15 @@ export default function PatientList() {
                                   </button>
                                   <div className="h-px bg-slate-100 my-1" />
                                   <button 
-                                    onClick={(e) => { e.stopPropagation(); handleDeletePatient(pat.id); setActiveMenu(null); }}
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      if (isReadOnly) {
+                                          toastError('Access Restricted: Your subscription is inactive.');
+                                          return;
+                                      }
+                                      handleDeletePatient(pat.id); 
+                                      setActiveMenu(null); 
+                                    }}
                                     className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 font-medium flex items-center gap-2"
                                   >
                                     <Trash2 className="h-4 w-4" /> Delete Patient

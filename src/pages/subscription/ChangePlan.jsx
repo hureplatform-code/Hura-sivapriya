@@ -1,75 +1,144 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { Zap, CheckCircle2, ArrowUpRight, Shield, Loader2 } from 'lucide-react';
+import { Zap, CheckCircle2, ArrowUpRight, Shield, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import facilityService from '../../services/facilityService';
 import { APP_CONFIG } from '../../config';
+import { useAuth } from '../../contexts/AuthContext';
 
 const plans = [
   { 
-    name: 'Basic Clinic', 
-    price: '49', 
-    features: ['Up to 500 Patients', '2 Doctors', 'Basic Reporting', 'Email Support'],
+    name: 'Essential', 
+    price: 10000, 
+    features: ['Up to 10 Staff Members', '1 Location', 'Basic Reporting', 'Email Support'],
     recommended: false,
-    color: 'slate'
+    color: 'slate',
+    maxStaff: 10,
+    maxLocations: 1
   },
   { 
-    name: 'Enterprise Growth', 
-    price: '149', 
-    features: ['Unlimited Patients', 'Unlimited Doctors', 'Advanced Analytics', 'Clinic Multi-branch', '24/7 Priority Support'],
+    name: 'Professional', 
+    price: 18000, 
+    features: ['Up to 30 Staff Members', '2 Locations', 'Advanced Analytics', 'Priority Support'],
     recommended: true,
-    color: 'primary'
+    color: 'primary',
+    maxStaff: 30,
+    maxLocations: 2
   },
   { 
-    name: 'Hospital Network', 
-    price: '449', 
-    features: ['Multiple Facilities', 'Custom Integrations', 'Dedicated Account Manager', 'White-label Options'],
+    name: 'Enterprise', 
+    price: 30000, 
+    features: ['Up to 75 Staff Members', '5 Locations', 'Dedicated Account Manager', 'White-label Options'],
     recommended: false,
-    color: 'indigo'
+    color: 'indigo',
+    maxStaff: 75,
+    maxLocations: 5
   }
 ];
 
 export default function ChangePlan() {
-  const [loading, setLoading] = React.useState(false);
-  const [currentPlan, setCurrentPlan] = React.useState('');
-  const [notification, setNotification] = React.useState(null);
+  const { userData, facilityData } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState('');
+  const [notification, setNotification] = useState(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchCurrentPlan();
+    
+    // Load Paystack script
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.async = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      document.body.removeChild(script);
+    }
   }, []);
 
   const fetchCurrentPlan = async () => {
     try {
-      const profile = await facilityService.getProfile();
-      if (profile?.plan) setCurrentPlan(profile.plan);
+      if (facilityData?.subscription?.planName) {
+        setCurrentPlan(facilityData.subscription.planName);
+      }
     } catch (e) {
       console.error("Fetch plan error:", e);
     }
   };
 
-  const handlePlanSelect = async (planName) => {
-    if (planName === currentPlan) return;
-    
+  const initializePayment = (plan) => {
     setLoading(true);
-    try {
-      await facilityService.updateProfile({ plan: planName });
-      setCurrentPlan(planName);
-      setNotification(`Successfully switched to ${planName} plan!`);
-      setTimeout(() => setNotification(null), 3000);
-    } catch (e) {
-      console.error("Plan select error:", e);
-      setNotification(`Failed to switch plan.`);
-    } finally {
-      setLoading(false);
-    }
+    const handler = window.PaystackPop.setup({
+      key: 'pk_test_d9ad39cd6fd776742957c7d8732fb048ba246998', 
+      email: userData?.email || 'admin@hurecare.com',
+      amount: plan.price * 100, // Paystack works with kobo/cents
+      currency: 'KES',
+      ref: '' + Math.floor((Math.random() * 1000000000) + 1), // Generate random reference
+      metadata: {
+        custom_fields: [
+          {
+            display_name: "Facility ID",
+            variable_name: "facility_id",
+            value: userData?.facilityId
+          },
+          {
+            display_name: "Plan Name",
+            variable_name: "plan_name",
+            value: plan.name
+          }
+        ]
+      },
+      callback: async (response) => {
+        // Successful payment
+        try {
+          const subscriptionData = {
+            planId: plan.name.toLowerCase(),
+            planName: plan.name,
+            maxStaff: plan.maxStaff,
+            maxLocations: plan.maxLocations,
+            startDate: new Date().toISOString(),
+            expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'active',
+            paymentReference: response.reference,
+            lastPaymentAmount: plan.price,
+            lastPaymentDate: new Date().toISOString()
+          };
+          
+          await facilityService.updateSubscription(userData?.facilityId, subscriptionData);
+          setCurrentPlan(plan.name);
+          setNotification({ type: 'success', message: `Successfully upgraded to ${plan.name} plan!` });
+        } catch (error) {
+          console.error("Error updating subscription:", error);
+          setNotification({ type: 'error', message: 'Payment successful but failed to update subscription. Please contact support.' });
+        } finally {
+          setLoading(false);
+          setTimeout(() => setNotification(null), 5000);
+        }
+      },
+      onClose: () => {
+        setLoading(false);
+        setNotification({ type: 'error', message: 'Payment window closed. Subscription not updated.' });
+        setTimeout(() => setNotification(null), 3000);
+      }
+    });
+    
+    handler.openIframe();
   };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Change Plan</h1>
-          <p className="text-slate-500 mt-1">Scale your hospital operations by choosing a plan that fits your needs.</p>
+          <p className="text-slate-500 mt-1">Upgrade your clinic operations by choosing a plan that fits your needs.</p>
         </div>
+
+        {notification && (
+          <div className={`p-4 rounded-xl flex items-center gap-3 ${notification.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+            {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+            <span className="font-medium">{notification.message}</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {plans.map((plan, i) => (
@@ -92,7 +161,7 @@ export default function ChangePlan() {
 
               <h3 className="text-xl font-semibold text-slate-900">{plan.name}</h3>
               <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-2xl font-semibold text-slate-900">{APP_CONFIG.CURRENCY} {plan.price}</span>
+                <span className="text-2xl font-semibold text-slate-900">KES {plan.price.toLocaleString()}</span>
                 <span className="text-sm font-medium text-slate-400">/mo</span>
               </div>
 
@@ -106,9 +175,9 @@ export default function ChangePlan() {
               </div>
 
               <button 
-                disabled={loading}
-                onClick={() => handlePlanSelect(plan.name)}
-                className={`w-full mt-10 py-4 rounded-2xl font-medium text-xs uppercase tracking-widest transition-all 
+                disabled={loading || plan.name === currentPlan}
+                onClick={() => initializePayment(plan)}
+                className={`w-full mt-10 py-4 rounded-2xl font-medium text-xs uppercase tracking-widest transition-all flex items-center justify-center 
                   ${plan.name === currentPlan 
                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default' 
                     : 'bg-primary-600 text-white shadow-lg shadow-primary-100 hover:bg-primary-700 active:scale-95 disabled:opacity-50'}`}

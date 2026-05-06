@@ -553,3 +553,84 @@ exports.flagIncompleteNotes = functions.pubsub.schedule('0 23 * * *')
         functions.logger.info(`Successfully flagged ${snap.size} incomplete clinical notes.`);
         return null;
     });
+
+// ─────────────────────────────────────────────
+// PAYSTACK WEBHOOK
+// ─────────────────────────────────────────────
+const crypto = require('crypto');
+const PAYSTACK_SECRET_KEY = 'sk_test_60922b219c3c738813196b5d2f1f68e788080124';
+
+exports.paystackWebhook = functions.https.onRequest(async (req, res) => {
+    try {
+        const hash = crypto.createHmac('sha512', PAYSTACK_SECRET_KEY).update(JSON.stringify(req.body)).digest('hex');
+        if (hash !== req.headers['x-paystack-signature']) {
+            return res.status(401).send("Invalid signature");
+        }
+
+        const event = req.body;
+
+        if (event.event === 'charge.success') {
+            const data = event.data;
+            const metadata = data.metadata || {};
+            const customFields = metadata.custom_fields || [];
+            
+            let facilityId = null;
+            let planName = 'Essential';
+
+            for (const field of customFields) {
+                if (field.variable_name === 'facility_id') facilityId = field.value;
+                if (field.variable_name === 'plan_name') planName = field.value;
+            }
+
+            if (facilityId) {
+                const planId = planName.toLowerCase();
+                let maxStaff = 10;
+                let maxLocations = 1;
+                
+                if (planName === 'Professional') { maxStaff = 30; maxLocations = 2; }
+                else if (planName === 'Enterprise') { maxStaff = 75; maxLocations = 5; }
+
+                const subscriptionData = {
+                    planId,
+                    planName,
+                    maxStaff,
+                    maxLocations,
+                    startDate: new Date().toISOString(),
+                    expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    status: 'active',
+                    paymentReference: data.reference,
+                    lastPaymentAmount: data.amount / 100,
+                    lastPaymentDate: new Date().toISOString()
+                };
+
+                await db.collection('facility_profile').doc(facilityId).update({
+                    subscription: subscriptionData,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                
+                await db.collection('subscription_payments').add({
+                    facilityId,
+                    reference: data.reference,
+                    amount: data.amount / 100,
+                    plan: planName,
+                    status: 'success',
+                    date: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                functions.logger.info(`Subscription activated for facility ${facilityId} via Paystack`);
+            }
+        } else if (event.event === 'charge.failed' || event.event === 'subscription.disable') {
+             await db.collection('subscription_payments').add({
+                 reference: event.data.reference || 'unknown',
+                 amount: (event.data.amount || 0) / 100,
+                 status: 'failed',
+                 date: admin.firestore.FieldValue.serverTimestamp()
+             });
+        }
+
+        res.status(200).send("Success");
+    } catch (err) {
+        functions.logger.error("Error processing Paystack webhook", err);
+        res.status(500).send("Error");
+    }
+});

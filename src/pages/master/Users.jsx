@@ -39,7 +39,7 @@ export default function Users() {
   const [facilities, setFacilities] = useState({});
   const [facilityUsage, setFacilityUsage] = useState({}); // { facilityId: { count: 3, max: 5, plan: 'Pro' } }
 
-  const { currentUser, userData, activeStaffCount, subscriptionStatus } = useAuth(); // Get userData for facilityId
+  const { currentUser, userData, activeStaffCount, subscriptionStatus, isReadOnly } = useAuth(); // Get userData for facilityId
 
   useEffect(() => {
     if (userData) {
@@ -99,6 +99,10 @@ export default function Users() {
   };
 
   const handleCreateNew = () => {
+    if (isReadOnly) {
+       toastError('Access Restricted: Your subscription is inactive.');
+       return;
+    }
     if (userData?.role === 'clinic_owner' && subscriptionStatus) {
        if (activeStaffCount >= subscriptionStatus.maxStaff) {
           warning(`Plan Limit Reached! Your plan allows max ${subscriptionStatus.maxStaff} staff members.`);
@@ -110,6 +114,10 @@ export default function Users() {
   };
 
   const handleEdit = (user) => {
+    if (isReadOnly) {
+       toastError('Access Restricted: Your subscription is inactive.');
+       return;
+    }
     setSelectedUser(user);
     setIsModalOpen(true);
   };
@@ -245,7 +253,7 @@ export default function Users() {
           {userData?.role !== 'superadmin' && (
             <button 
               onClick={handleCreateNew}
-              className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+              className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-2xl transition-all shadow-lg active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'}`}
             >
               <Plus className="h-5 w-5" />
               Add New User

@@ -26,7 +26,7 @@ import patientService from '../../services/patientService';
 
 export default function Ward() {
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
   const [wards, setWards] = useState([]);
   const [selectedWard, setSelectedWard] = useState(null);
   const [isAdmitting, setIsAdmitting] = useState(false);
@@ -140,15 +140,24 @@ export default function Ward() {
           </div>
           <div className="flex gap-4">
             <button 
-              onClick={() => setIsAddingWard(true)}
-              className="flex items-center gap-2 px-8 py-4 bg-white text-slate-900 border border-slate-200 font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+              onClick={() => {
+                if (isReadOnly) {
+                    // No toast injected here, but we can add it or use alert
+                    return;
+                }
+                setIsAddingWard(true);
+              }}
+              className={`flex items-center gap-2 px-8 py-4 border font-medium text-xs uppercase tracking-widest rounded-xl transition-all shadow-sm active:scale-95 ${isReadOnly ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed grayscale' : 'bg-white text-slate-900 border-slate-200 hover:bg-slate-50'}`}
             >
               <Plus className="h-5 w-5" />
               New Facility Unit
             </button>
             <button 
-              onClick={() => setIsAdmitting(true)}
-              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+              onClick={() => {
+                if (isReadOnly) return;
+                setIsAdmitting(true);
+              }}
+              className={`flex items-center gap-2 px-8 py-4 font-medium text-xs uppercase tracking-widest rounded-xl transition-all shadow-2xl active:scale-95 ${isReadOnly ? 'bg-slate-300 text-white cursor-not-allowed grayscale shadow-none' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'}`}
             >
               <UserPlus className="h-5 w-5" />
               Admit New Patient
@@ -265,25 +274,35 @@ export default function Ward() {
                                     <h4 className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50/50">Management</h4>
                                     {bed.status === 'occupied' ? (
                                       <button 
-                                        onClick={() => handleStatusChange(bed, 'empty')}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                        onClick={() => {
+                                          if (isReadOnly) return;
+                                          handleStatusChange(bed, 'empty');
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReadOnly ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-600 hover:bg-emerald-50'}`}
                                       >
                                         <CheckCircle2 className="h-4 w-4" />
                                         Discharge Patient
                                       </button>
                                     ) : (
                                       <button 
-                                        onClick={() => { setIsAdmitting(true); setActiveBedMenu(null); }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                                        onClick={() => { 
+                                          if (isReadOnly) return;
+                                          setIsAdmitting(true); 
+                                          setActiveBedMenu(null); 
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReadOnly ? 'text-slate-300 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
                                       >
                                         <UserPlus className="h-4 w-4" />
                                         Admit Patient
                                       </button>
                                     )}
                                     <button 
-                                      onClick={() => handleStatusChange(bed, bed.status === 'maintenance' ? 'empty' : 'maintenance')}
+                                      onClick={() => {
+                                        if (isReadOnly) return;
+                                        handleStatusChange(bed, bed.status === 'maintenance' ? 'empty' : 'maintenance');
+                                      }}
                                       className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors
-                                        ${bed.status === 'maintenance' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'}
+                                        ${isReadOnly ? 'text-slate-300 cursor-not-allowed' : bed.status === 'maintenance' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'}
                                       `}
                                     >
                                       <AlertCircle className="h-4 w-4" />
@@ -336,12 +355,13 @@ export default function Ward() {
                              </button>
                              <button 
                                 onClick={async () => {
+                                   if (isReadOnly) return;
                                    if(confirm(`Discharge ${bed.patient}?`)) {
                                       await wardService.dischargePatient(selectedWard.id, bed.id);
                                       fetchWards();
                                    }
                                 }}
-                                className="flex-1 py-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-red-100 transition-all font-medium">
+                                className={`flex-1 py-3 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all font-medium ${isReadOnly ? 'bg-slate-50 text-slate-300 cursor-not-allowed grayscale' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
                                 Discharge
                              </button>
                           </div>
@@ -349,10 +369,11 @@ export default function Ward() {
                      ) : (
                        <div className="mt-8">
                           <button 
-                            disabled={bed.status === 'cleaning'}
+                            disabled={bed.status === 'cleaning' || isReadOnly}
                             onClick={() => {
                                // Open admission with pre-selected bed
-                               setIsAdmitting({ wardId: selectedWard.id, bedId: bed.id });
+                                if (isReadOnly) return;
+                                setIsAdmitting({ wardId: selectedWard.id, bedId: bed.id });
                             }}
                             className="w-full py-4 border-2 border-dashed border-slate-100 text-slate-400 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-slate-50 hover:border-slate-200 transition-all disabled:opacity-50"
                           >
@@ -364,9 +385,12 @@ export default function Ward() {
                  ))}
                                   {selectedWard && (
                     <motion.button 
-                      whileHover={{ scale: 1.02 }}
-                      onClick={() => setIsAddingBed(selectedWard.id)}
-                      className="p-8 border-4 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-300 hover:bg-slate-50 hover:border-slate-200 transition-all"
+                      whileHover={isReadOnly ? {} : { scale: 1.02 }}
+                      onClick={() => {
+                        if (isReadOnly) return;
+                        setIsAddingBed(selectedWard.id);
+                      }}
+                      className={`p-8 border-4 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 transition-all ${isReadOnly ? 'bg-slate-50 text-slate-200 border-slate-100 cursor-not-allowed grayscale' : 'text-slate-300 hover:bg-slate-50 hover:border-slate-200 border-slate-100'}`}
                     >
                       <Plus className="h-10 w-10" />
                       <span className="font-medium text-xs uppercase tracking-widest">Expansion Slot</span>

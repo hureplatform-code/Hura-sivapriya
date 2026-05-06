@@ -50,7 +50,7 @@ export default function Appointments() {
   const [isTriageOpen, setIsTriageOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [triageApt, setTriageApt] = useState(null);
-  const { userData, facilityData, actingRole } = useAuth();
+  const { userData, facilityData, actingRole, isReadOnly } = useAuth();
   const [activeMenu, setActiveMenu] = useState(null);
   const [routingMenu, setRoutingMenu] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -372,8 +372,15 @@ export default function Appointments() {
              </div>
             {(userData?.role !== 'doctor' && userData?.role !== 'nurse' || facilityData?.allowDoctorPatientCreation) && (
               <button 
-                onClick={() => { setSelectedApt(null); setIsModalOpen(true); }}
-                className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+                onClick={() => { 
+                  if (isReadOnly) {
+                      toastError('Access Restricted: Your subscription is inactive.');
+                      return;
+                  }
+                  setSelectedApt(null); 
+                  setIsModalOpen(true); 
+                }}
+                className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-xl transition-all shadow-lg active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'}`}
               >
                 <Plus className="h-5 w-5" />
                 Book Appointment
@@ -519,12 +526,20 @@ export default function Appointments() {
                                onQuickCheckIn={handleQuickCheckIn}
                                onCallIn={handleCallIn}
                                userData={userData}
+                               isReadOnly={isReadOnly}
                                activeMenu={activeMenu}
                                setActiveMenu={setActiveMenu}
                                routingMenu={routingMenu}
                                setRoutingMenu={setRoutingMenu}
                                compact={true}
-                               onCollect={() => { setSelectedApt(apt); setIsPaymentOpen(true); }}
+                               onCollect={() => { 
+                                 if (isReadOnly) {
+                                     toastError('Access Restricted: Your subscription is inactive.');
+                                     return;
+                                 }
+                                 setSelectedApt(apt); 
+                                 setIsPaymentOpen(true); 
+                               }}
                              />
                            ))}
                         </div>
@@ -548,11 +563,19 @@ export default function Appointments() {
                     onCallIn={handleCallIn}
                     userData={userData}
                     actingRole={actingRole}
+                    isReadOnly={isReadOnly}
                     activeMenu={activeMenu}
                     setActiveMenu={setActiveMenu}
                     routingMenu={routingMenu}
                     setRoutingMenu={setRoutingMenu}
-                    onCollect={() => { setSelectedApt(apt); setIsPaymentOpen(true); }}
+                    onCollect={() => { 
+                      if (isReadOnly) {
+                          toastError('Access Restricted: Your subscription is inactive.');
+                          return;
+                      }
+                      setSelectedApt(apt); 
+                      setIsPaymentOpen(true); 
+                    }}
                   />
                 ))
               )}
@@ -625,6 +648,7 @@ function AppointmentCard({
   onCallIn,
   userData, 
   actingRole,
+  isReadOnly,
   activeMenu, 
   setActiveMenu, 
   routingMenu, 
@@ -633,6 +657,7 @@ function AppointmentCard({
   onCollect
 }) {
   const navigate = useNavigate();
+  const { error: toastError } = useToast();
   const role = actingRole || userData?.role;
 
   return (
@@ -727,7 +752,13 @@ function AppointmentCard({
                   <CreditCard className="h-3 w-3" /> COLLECT & CHECK IN
                 </button>
                 <button 
-                  onClick={() => onQuickCheckIn(apt)}
+                  onClick={() => {
+                    if (isReadOnly) {
+                        toastError('Access Restricted: Your subscription is inactive.');
+                        return;
+                    }
+                    onQuickCheckIn(apt);
+                  }}
                   className="px-4 py-2 bg-white border border-slate-200 text-slate-500 text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <CheckCircle2 className="h-3 w-3" /> QUICK CHECK IN
@@ -764,7 +795,13 @@ function AppointmentCard({
                 </button>
               ) : (
                 <button 
-                  onClick={() => onCallIn(apt.id)}
+                  onClick={() => {
+                    if (isReadOnly) {
+                        toastError('Access Restricted: Your subscription is inactive.');
+                        return;
+                    }
+                    onCallIn(apt.id);
+                  }}
                   className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50 flex items-center gap-2"
                 >
                   <Volume2 className="h-3.5 w-3.5" />
@@ -775,7 +812,13 @@ function AppointmentCard({
             
             {apt.status === 'awaiting-nurse' && ['nurse'].includes(userData?.role) && (
               <button 
-                onClick={() => onPerformTriage(apt)}
+                onClick={() => {
+                  if (isReadOnly) {
+                      toastError('Access Restricted: Your subscription is inactive.');
+                      return;
+                  }
+                  onPerformTriage(apt);
+                }}
                 className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-50"
               >
                 TRIAGE
@@ -784,7 +827,13 @@ function AppointmentCard({
 
             {(apt.status === 'calling' || apt.status === 'triage') && (userData?.role === 'doctor' || actingRole === 'doctor') && (
                <button 
-                 onClick={() => onStartConsultation(apt)}
+                 onClick={() => {
+                   if (isReadOnly) {
+                       toastError('Access Restricted: Your subscription is inactive.');
+                       return;
+                   }
+                   onStartConsultation(apt);
+                 }}
                  className="px-4 py-2 bg-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-50"
                >
                  START SESSION
@@ -794,14 +843,26 @@ function AppointmentCard({
             {apt.status === 'in-session' && (userData?.role === 'doctor' || actingRole === 'doctor') && (
               <>
                 <button 
-                  onClick={() => onStartConsultation(apt)}
+                  onClick={() => {
+                    if (isReadOnly) {
+                        toastError('Access Restricted: Your subscription is inactive.');
+                        return;
+                    }
+                    onStartConsultation(apt);
+                  }}
                   className="px-4 py-2 bg-indigo-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
                 >
                   RESUME
                 </button>
                 <div className="relative">
                   <button 
-                    onClick={() => setRoutingMenu(routingMenu === apt.id ? null : apt.id)}
+                    onClick={() => {
+                      if (isReadOnly) {
+                          toastError('Access Restricted: Your subscription is inactive.');
+                          return;
+                      }
+                      setRoutingMenu(routingMenu === apt.id ? null : apt.id);
+                    }}
                     className="px-4 py-2 bg-purple-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-50 flex items-center gap-2"
                   >
                     ROUTE <ChevronRight className={`h-3 w-3 transition-transform ${routingMenu === apt.id ? 'rotate-90' : ''}`} />
@@ -867,7 +928,14 @@ function AppointmentCard({
                 {activeMenu === apt.id && (
                   <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50">
                     <button 
-                      onClick={() => { onEdit(apt); setActiveMenu(null); }}
+                      onClick={() => { 
+                        if (isReadOnly) {
+                            toastError('Access Restricted: Your subscription is inactive.');
+                            return;
+                        }
+                        onEdit(apt); 
+                        setActiveMenu(null); 
+                      }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
                     >
                       <ExternalLink className="h-3.5 w-3.5" /> Edit
@@ -879,14 +947,28 @@ function AppointmentCard({
                       <CalendarIcon className="h-3.5 w-3.5" /> Reschedule
                     </button>
                     <button 
-                      onClick={() => { onCancel(apt.id); setActiveMenu(null); }}
+                      onClick={() => { 
+                        if (isReadOnly) {
+                            toastError('Access Restricted: Your subscription is inactive.');
+                            return;
+                        }
+                        onCancel(apt.id); 
+                        setActiveMenu(null); 
+                      }}
                       className="w-full text-left px-4 py-2 text-xs text-amber-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
                     >
                       <Clock className="h-3.5 w-3.5" /> Cancel
                     </button>
                     <div className="h-px bg-slate-100 my-1" />
                     <button 
-                      onClick={() => { onDelete(apt.id); setActiveMenu(null); }}
+                      onClick={() => { 
+                        if (isReadOnly) {
+                            toastError('Access Restricted: Your subscription is inactive.');
+                            return;
+                        }
+                        onDelete(apt.id); 
+                        setActiveMenu(null); 
+                      }}
                       className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-slate-50 font-bold uppercase tracking-widest flex items-center gap-2"
                     >
                       <Trash2 className="h-3.5 w-3.5" /> Delete

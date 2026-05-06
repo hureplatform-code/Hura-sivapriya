@@ -233,7 +233,7 @@ export const TEST_CATALOG = {
 export default function LabEntry() {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
   const { success, error: toastError } = useToast();
   const fileInputRef = useRef(null);
   
@@ -621,23 +621,41 @@ export default function LabEntry() {
                </div>
              ) : (
                <button 
-                  onClick={() => handleComplete("awaiting-billing")}
-                  className="px-6 py-3 bg-violet-50 border border-violet-100 text-violet-600 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-violet-100 transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                  onClick={() => {
+                    if (isReadOnly) {
+                        toastError('Access Restricted: Your subscription is inactive.');
+                        return;
+                    }
+                    handleComplete("awaiting-billing");
+                  }}
+                  className={`px-6 py-3 text-violet-600 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-sm active:scale-95 flex items-center gap-2 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-violet-50 border border-violet-100 hover:bg-violet-100'}`}
                 >
                    <CreditCard className="h-3.5 w-3.5" /> Billing
                 </button>
              )}
              {(appointment.provider || appointment.doctor) ? (
                <button 
-                 onClick={() => handleComplete('arrived')}
-                 className="px-8 py-3 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-md active:scale-95 flex items-center gap-2"
+                 onClick={() => {
+                   if (isReadOnly) {
+                       toastError('Access Restricted: Your subscription is inactive.');
+                       return;
+                   }
+                   handleComplete('arrived');
+                 }}
+                 className={`px-8 py-3 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-slate-900 hover:bg-slate-800'}`}
                >
                   <CheckCircle2 className="h-3.5 w-3.5" /> Complete & Return
                </button>
              ) : (
                <button 
-                 onClick={() => handleComplete('completed')}
-                 className="px-8 py-3 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-md active:scale-95 flex items-center gap-2"
+                 onClick={() => {
+                   if (isReadOnly) {
+                       toastError('Access Restricted: Your subscription is inactive.');
+                       return;
+                   }
+                   handleComplete('completed');
+                 }}
+                 className={`px-8 py-3 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-slate-900 hover:bg-slate-800'}`}
                >
                   <CheckCircle2 className="h-3.5 w-3.5" /> Complete Investigation
                </button>

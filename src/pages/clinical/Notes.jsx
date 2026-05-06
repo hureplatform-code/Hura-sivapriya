@@ -81,7 +81,7 @@ export default function Notes() {
     else toastError(message);
   };
 
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
 
   useEffect(() => {
     fetchNotes();
@@ -354,19 +354,23 @@ export default function Notes() {
                         )}
                       </td>
                       <td className="py-4 px-6 text-right">
-                        <button 
-                          onClick={() => {
-                             if (note.status === 'draft') {
-                                setEditingNoteId(note.id);
-                                setIsCreating(true);
-                             } else {
-                                setViewingNote(note);
-                             }
-                          }}
-                          className="px-4 py-1.5 bg-slate-900 text-white rounded-lg hover:bg-indigo-600 transition-all font-bold text-[11px] active:scale-95"
-                        >
-                          {note.status === 'draft' ? 'Resume' : 'View'}
-                        </button>
+                         <button 
+                           onClick={() => {
+                              if (note.status === 'draft') {
+                                 if (isReadOnly) {
+                                     toastError('Access Restricted: Your subscription is inactive.');
+                                     return;
+                                 }
+                                 setEditingNoteId(note.id);
+                                 setIsCreating(true);
+                              } else {
+                                 setViewingNote(note);
+                              }
+                           }}
+                           className="px-4 py-1.5 bg-slate-900 text-white rounded-lg hover:bg-indigo-600 transition-all font-bold text-[11px] active:scale-95"
+                         >
+                           {note.status === 'draft' ? 'Resume' : 'View'}
+                         </button>
                       </td>
                     </motion.tr>
                     );
@@ -537,7 +541,7 @@ function PatientHistoryModal({ patient, onClose, onViewNote }) {
   );
 }
 function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', initialPatientName = '', initialAppointmentId = '', initialRecordId = null }) {
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
   const [patients, setPatients] = useState([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [patientId, setPatientId] = useState(initialPatientId);
@@ -881,6 +885,10 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
   };
 
   const handleSave = async (status = 'signed') => {
+    if (isReadOnly) {
+        showNotification('error', 'Access Restricted: Your subscription is inactive.');
+        return;
+    }
     if (!patientId) { showNotification('error', 'Select a patient.'); return; }
     try {
       const patient = patients.find(p => p.id === patientId);
@@ -1758,8 +1766,14 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                      </div>
                   </div>
                   <button 
-                    onClick={() => setFormData({ ...formData, prescriptions: [...formData.prescriptions, { medicine: '', dosage: '', frequency: '', duration: '', route: 'Oral' }] })}
-                    className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                    onClick={() => {
+                      if (isReadOnly) {
+                          showNotification('error', 'Access Restricted: Your subscription is inactive.');
+                          return;
+                      }
+                      setFormData({ ...formData, prescriptions: [...formData.prescriptions, { medicine: '', dosage: '', frequency: '', duration: '', route: 'Oral' }] });
+                    }}
+                    className={`flex items-center gap-2 px-8 py-3 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-xl active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
                   >
                     <Plus className="h-4 w-4" /> Add Medication
                   </button>
@@ -1958,8 +1972,14 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                      </div>
                   </div>
                   <button 
-                    onClick={() => setFormData({ ...formData, labRequests: [...(formData.labRequests || []), { test: '', priority: 'routine', instructions: '' }] })}
-                    className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                    onClick={() => {
+                      if (isReadOnly) {
+                          showNotification('error', 'Access Restricted: Your subscription is inactive.');
+                          return;
+                      }
+                      setFormData({ ...formData, labRequests: [...(formData.labRequests || []), { test: '', priority: 'routine', instructions: '' }] });
+                    }}
+                    className={`flex items-center gap-2 px-8 py-3 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-xl active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
                   >
                     <Plus className="h-4 w-4" /> Request Test
                   </button>
@@ -2616,8 +2636,14 @@ function NoteViewer({ note, onClose, onEdit }) {
         <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
           {note.status === 'draft' && (
              <button 
-                onClick={() => onEdit(note.id)}
-                className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95"
+                onClick={() => {
+                  if (isReadOnly) {
+                      toastError('Access Restricted: Your subscription is inactive.');
+                      return;
+                  }
+                  onEdit(note.id);
+                }}
+                className={`px-8 py-3 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale shadow-none' : 'bg-indigo-600 shadow-xl shadow-indigo-200 hover:bg-indigo-700'}`}
              >
                 Edit Script
              </button>

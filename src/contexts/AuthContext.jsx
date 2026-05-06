@@ -183,6 +183,15 @@ export function AuthProvider({ children }) {
     fetchSubData();
   }, [userData]);
 
+  const isSubscriptionInactive = userData?.role !== 'superadmin' && (
+    (subscriptionStatus?.status !== 'active' && subscriptionStatus?.status !== 'trial') ||
+    (subscriptionStatus?.expiryDate && new Date(subscriptionStatus.expiryDate) < new Date())
+  );
+
+  const isReadOnly = isSubscriptionInactive || (userData?.role !== 'superadmin' && verificationStatus !== 'verified' && subscriptionStatus?.status === 'trial' && subscriptionStatus?.expiryDate && new Date(subscriptionStatus.expiryDate) < new Date());
+
+  const subscriptionMessage = isSubscriptionInactive ? "Your subscription is inactive. Please renew to continue using HURE Care." : null;
+
   const value = {
     currentUser,
     userData,
@@ -196,7 +205,10 @@ export function AuthProvider({ children }) {
     loading,
     initialized,
     actingRole,
-    setActingRole
+    setActingRole,
+    isSubscriptionInactive,
+    isReadOnly,
+    subscriptionMessage
   };
   return (
     <AuthContext.Provider value={value}>

@@ -36,7 +36,7 @@ export default function Branches() {
     status: 'Active'
   });
 
-  const { userData, subscriptionStatus } = useAuth();
+  const { userData, subscriptionStatus, isReadOnly } = useAuth();
   const { warning, success, error: toastError } = useToast();
   const { confirm } = useConfirm();
 
@@ -60,6 +60,10 @@ export default function Branches() {
 
   const handleSaveBranch = async (e) => {
     e.preventDefault();
+    if (isReadOnly) {
+       toastError('Access Restricted: Your subscription is inactive.');
+       return;
+    }
     if (!editingItem && userData?.role === 'clinic_owner' && subscriptionStatus) {
        // maxLocations includes main clinic. Allowed branches = maxLocations - 1
        const allowedBranches = Math.max(0, (subscriptionStatus.maxLocations || 1) - 1);
@@ -107,6 +111,10 @@ export default function Branches() {
   };
 
   const openEdit = (branch) => {
+    if (isReadOnly) {
+       toastError('Access Restricted: Your subscription is inactive.');
+       return;
+    }
     setEditingItem(branch);
     setNewBranch({
       name: branch.name,
@@ -119,6 +127,10 @@ export default function Branches() {
   };
 
   const handleDeleteBranch = async (id) => {
+    if (isReadOnly) {
+       toastError('Access Restricted: Your subscription is inactive.');
+       return;
+    }
     const isConfirmed = await confirm({
       title: 'Remove Branch',
       message: 'Are you sure you want to completely remove this branch? Data linked to this branch will remain in the database but access will be severed.',
@@ -160,6 +172,10 @@ export default function Branches() {
           </div>
           <button 
             onClick={() => {
+              if (isReadOnly) {
+                  toastError('Access Restricted: Your subscription is inactive.');
+                  return;
+              }
               if (userData?.role === 'clinic_owner' && subscriptionStatus) {
                  const allowedBranches = Math.max(0, (subscriptionStatus.maxLocations || 1) - 1);
                  if (branches.length >= allowedBranches) {
@@ -171,7 +187,7 @@ export default function Branches() {
               setNewBranch({ name: '', location: '', phone: '', email: '', status: 'Active' });
               setShowAdd(true);
             }}
-            className="flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 active:scale-95"
+            className={`flex items-center gap-2 px-8 py-4 text-white font-medium rounded-2xl transition-all shadow-lg active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'}`}
           >
             <Plus className="h-5 w-5" /> Add Location
           </button>

@@ -67,7 +67,7 @@ export default function Profile() {
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
 
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
 
   useEffect(() => {
     if (userData?.facilityId) {
@@ -114,6 +114,10 @@ export default function Profile() {
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    if (isReadOnly) {
+       showNotification('Access Restricted: Your subscription is inactive.');
+       return;
+    }
     setLoading(true);
     try {
       // Ensure we don't accidentally wipe existing logoUrl if no new file provided
@@ -144,8 +148,8 @@ export default function Profile() {
           <button 
             type="submit" 
             form="profile-form"
-            disabled={loading}
-            className="flex items-center gap-2 px-8 py-3.5 bg-primary-600 text-white font-medium rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 disabled:opacity-70 active:scale-95"
+            disabled={loading || isReadOnly}
+            className={`flex items-center gap-2 px-8 py-3.5 text-white font-medium rounded-2xl transition-all shadow-lg active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale shadow-none' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'}`}
           >
             {loading ? (
               <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

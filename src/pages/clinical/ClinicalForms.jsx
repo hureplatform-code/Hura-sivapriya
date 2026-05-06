@@ -34,7 +34,7 @@ const formTemplates = [
 
 export default function ClinicalForms() {
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
   const [selectedForm, setSelectedForm] = useState(null);
   const [patientSearch, setPatientSearch] = useState('');
   const [patients, setPatients] = useState([]);
@@ -283,10 +283,13 @@ export default function ClinicalForms() {
                                  
                                  {selectedForm.id === 'intake' && selectedPatient && (
                                     <button 
-                                      onClick={generateLink}
-                                      className="mt-4 px-6 py-3 bg-primary-600 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 transition"
+                                      onClick={() => {
+                                        if (isReadOnly) return;
+                                        generateLink();
+                                      }}
+                                      className={`mt-4 px-6 py-3 text-white font-medium text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale shadow-none' : 'bg-primary-600 shadow-primary-200 hover:bg-primary-700'}`}
                                     >
-                                      Generate Secure Link for Patient
+                                      {isReadOnly ? 'Access Restricted' : 'Generate Secure Link for Patient'}
                                     </button>
                                  )}
                              </div>
@@ -324,7 +327,15 @@ export default function ClinicalForms() {
                                               <td className="p-4 text-slate-500">{item.patientId}</td>
                                               <td className="p-4 text-xs">{new Date(item.submittedAt || Date.now()).toLocaleTimeString()}</td>
                                               <td className="p-4 text-right">
-                                                 <button onClick={() => setReviewingIntake(item)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all">Review</button>
+                                                 <button 
+                                                   onClick={() => {
+                                                     if (isReadOnly) return;
+                                                     setReviewingIntake(item);
+                                                   }}
+                                                   className={`px-4 py-2 text-white rounded-lg text-[10px] uppercase tracking-widest transition-all ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale' : 'bg-slate-900 hover:bg-slate-800'}`}
+                                                 >
+                                                   {isReadOnly ? 'Restricted' : 'Review'}
+                                                 </button>
                                               </td>
                                            </tr>
                                         )))}
@@ -396,9 +407,23 @@ export default function ClinicalForms() {
                       </div>
                   </div>
                   <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                     <button onClick={handleRejectIntake} className="px-6 py-3 font-bold text-xs uppercase tracking-widest text-slate-500 hover:text-red-500 transition-colors">Reject Form</button>
-                     <button onClick={handleAcceptIntake} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4" /> Accept & Update Record
+                     <button 
+                        onClick={() => {
+                          if (isReadOnly) return;
+                          handleRejectIntake();
+                        }}
+                        className={`px-6 py-3 font-bold text-xs uppercase tracking-widest transition-colors ${isReadOnly ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-red-500'}`}
+                     >
+                       Reject Form
+                     </button>
+                     <button 
+                        onClick={() => {
+                          if (isReadOnly) return;
+                          handleAcceptIntake();
+                        }}
+                        className={`px-6 py-3 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center gap-2 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale shadow-none' : 'bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700'}`}
+                     >
+                        <CheckCircle2 className="h-4 w-4" /> {isReadOnly ? 'Access Restricted' : 'Accept & Update Record'}
                      </button>
                   </div>
                </motion.div>

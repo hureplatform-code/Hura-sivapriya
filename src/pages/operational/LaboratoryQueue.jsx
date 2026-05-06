@@ -24,7 +24,7 @@ import AppointmentModal from '../../components/modals/AppointmentModal';
 
 export default function LaboratoryQueue() {
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
   const { success, error: toastError } = useToast();
   
   const [queue, setQueue] = useState([]);
@@ -178,12 +178,18 @@ export default function LaboratoryQueue() {
              >
                <RotateCcw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} /> Sync Queue
              </button>
-             <button 
-               onClick={() => setIsApptModalOpen(true)}
-               className="flex items-center gap-2 px-5 py-2 bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95"
-             >
-               <Plus className="h-3 w-3" /> New Walk-in Lab
-             </button>
+              <button 
+                onClick={() => {
+                  if (isReadOnly) {
+                      toastError('Access Restricted: Your subscription is inactive.');
+                      return;
+                  }
+                  setIsApptModalOpen(true);
+                }}
+                className={`flex items-center gap-2 px-5 py-2 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale shadow-none' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
+              >
+                <Plus className="h-3 w-3" /> New Walk-in Lab
+              </button>
           </div>
         </div>
 
@@ -319,8 +325,15 @@ export default function LaboratoryQueue() {
                           )}
                           {apt.status === 'awaiting-lab' && (
                             <button 
-                              onClick={(e) => { e.stopPropagation(); navigate(`/lab/entry/${apt.id}`); }}
-                              className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2"
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (isReadOnly) {
+                                    toastError('Access Restricted: Your subscription is inactive.');
+                                    return;
+                                }
+                                navigate(`/lab/entry/${apt.id}`); 
+                              }}
+                              className={`px-4 py-2 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all shadow-lg flex items-center gap-2 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale shadow-none' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'}`}
                             >
                                <Play className="h-3 w-3" /> START LAB
                             </button>

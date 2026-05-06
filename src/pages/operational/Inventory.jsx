@@ -31,7 +31,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export default function Inventory() {
   const { currency } = useCurrency();
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, isReadOnly } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -169,10 +169,15 @@ export default function Inventory() {
           </div>
           <button 
             onClick={() => {
+              if (isReadOnly) {
+                  // Using alert or toast if available. The component doesn't seem to have toast injected.
+                  // I'll check if I can use toast.
+                  return;
+              }
               setEditingItem(null);
               setIsAdding(true);
             }}
-            className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-3xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95"
+            className={`flex items-center gap-2 px-8 py-4 text-white font-medium text-xs uppercase tracking-widest rounded-3xl transition-all shadow-2xl active:scale-95 ${isReadOnly ? 'bg-slate-300 cursor-not-allowed grayscale shadow-none' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
           >
             <PlusCircle className="h-5 w-5" />
             Stock Inbound
@@ -305,20 +310,26 @@ export default function Inventory() {
                         <p className="font-medium text-slate-900 text-base">{currency} {item.price.toFixed(2)}</p>
                       </td>
                       <td className="py-6 px-6 text-right">
-                         <div className="flex items-center justify-end gap-3 transition-opacity">
-                            <button 
-                              onClick={() => handleEdit(item)}
-                              className="p-3 bg-white text-slate-400 hover:text-slate-900 rounded-xl shadow-sm border border-slate-100 transition-all"
-                            >
-                               <Edit2Icon className="h-4.5 w-4.5" />
-                            </button>
-                            <button 
-                              onClick={() => setDeleteConfirmation(item)}
-                              className="p-3 bg-white text-slate-400 hover:text-red-500 rounded-xl shadow-sm border border-slate-100 transition-all"
-                            >
-                               <Trash2 className="h-4.5 w-4.5" />
-                            </button>
-                         </div>
+                          <div className="flex items-center justify-end gap-3 transition-opacity">
+                             <button 
+                               onClick={() => {
+                                 if (isReadOnly) return;
+                                 handleEdit(item);
+                               }}
+                               className={`p-3 rounded-xl shadow-sm border border-slate-100 transition-all ${isReadOnly ? 'bg-slate-50 text-slate-200 cursor-not-allowed' : 'bg-white text-slate-400 hover:text-slate-900'}`}
+                             >
+                                <Edit2Icon className="h-4.5 w-4.5" />
+                             </button>
+                             <button 
+                               onClick={() => {
+                                 if (isReadOnly) return;
+                                 setDeleteConfirmation(item);
+                               }}
+                               className={`p-3 rounded-xl shadow-sm border border-slate-100 transition-all ${isReadOnly ? 'bg-slate-50 text-slate-200 cursor-not-allowed' : 'bg-white text-slate-400 hover:text-red-500'}`}
+                             >
+                                <Trash2 className="h-4.5 w-4.5" />
+                             </button>
+                          </div>
                       </td>
                     </motion.tr>
                   ))
