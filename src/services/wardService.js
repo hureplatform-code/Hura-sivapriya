@@ -50,6 +50,14 @@ const wardService = {
     return firestoreService.create(this.collection, newWard);
   },
 
+  async updateWard(wardId, data) {
+    return firestoreService.update(this.collection, wardId, data);
+  },
+
+  async deleteWard(wardId) {
+    return firestoreService.delete(this.collection, wardId);
+  },
+
   async addBedToWard(wardId, bedName) {
     const ward = await firestoreService.getById(this.collection, wardId);
     if (!ward) return;
@@ -66,6 +74,14 @@ const wardService = {
     };
 
     return firestoreService.set(this.collection, wardId, updatedWard);
+  },
+
+  async deleteBed(wardId, bedId) {
+    const ward = await firestoreService.getById(this.collection, wardId);
+    if (!ward) return;
+
+    const updatedBeds = (ward.beds || []).filter(b => b.id !== bedId);
+    return firestoreService.update(this.collection, wardId, { beds: updatedBeds });
   },
 
   async dischargePatient(wardId, bedId) {

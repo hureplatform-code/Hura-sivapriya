@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [activeStaffCount, setActiveStaffCount] = useState(0);
   const [facilityData, setFacilityData] = useState(null);
-  const [actingRole, setActingRole] = useState(null);
+  const [actingRole, setActingRole] = useState(() => localStorage.getItem('actingRole'));
 
   async function login(email, password) {
     const result = await signInWithEmailAndPassword(auth, email, password);
@@ -104,7 +104,10 @@ export function AuthProvider({ children }) {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserData(data);
-            if (!actingRole) setActingRole(data.role);
+            if (!actingRole) {
+              const savedRole = localStorage.getItem('actingRole');
+              setActingRole(savedRole || data.role);
+            }
 
             // Fetch facility data immediately if needed
             if (data.facilityId && data.role !== 'superadmin') {
@@ -151,6 +154,7 @@ export function AuthProvider({ children }) {
         setVerificationStatus(null);
         setActiveStaffCount(0);
         setActingRole(null);
+        localStorage.removeItem('actingRole');
         setLoading(false);
         setInitialized(true);
       }
@@ -191,6 +195,13 @@ export function AuthProvider({ children }) {
   const isReadOnly = isSubscriptionInactive || (userData?.role !== 'superadmin' && verificationStatus !== 'verified' && subscriptionStatus?.status === 'trial' && subscriptionStatus?.expiryDate && new Date(subscriptionStatus.expiryDate) < new Date());
 
   const subscriptionMessage = isSubscriptionInactive ? "Your subscription is inactive. Please renew to continue using HURE Care." : null;
+
+  // Persist acting role changes
+  useEffect(() => {
+    if (actingRole) {
+      localStorage.setItem('actingRole', actingRole);
+    }
+  }, [actingRole]);
 
   const value = {
     currentUser,

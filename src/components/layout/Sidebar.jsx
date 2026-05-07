@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -28,7 +28,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_CONFIG } from '../../config';
 
-const getMenuItems = (role) => [
+const getMenuItems = (role, facilityProfile) => [
   { 
     id: 'dashboard',
     icon: LayoutDashboard, 
@@ -83,13 +83,16 @@ const getMenuItems = (role) => [
     roles: ['doctor', 'clinic_owner', 'nurse', 'receptionist', 'lab_tech'],
     subItems: [
       { label: role === 'lab_tech' ? 'Lab Appointment' : 'Appointments', path: '/appointments' },
-      { label: 'Clinical Notes', path: '/notes', roles: ['doctor', 'clinic_owner', 'nurse'] },
+      { label: 'Clinical Notes', path: '/notes', roles: ['doctor', 'clinic_owner'] },
       { label: 'Nursing Orders', path: '/nursing/queue', roles: ['nurse', 'clinic_owner', 'doctor'] },
       { label: 'Clinical Forms', path: '/clinical-forms', roles: ['doctor', 'clinic_owner', 'nurse'] },
-      { label: 'Laboratory Registry', path: '/lab/queue', roles: ['lab_tech', 'clinic_owner'] },
+      { label: 'Laboratory Registry', path: '/lab/queue', roles: ['lab_tech', 'clinic_owner', 'doctor'] },
       { label: 'Diagnostics & Labs', path: '/investigation', roles: ['doctor', 'clinic_owner', 'nurse'] },
       { label: 'Prescriptions', path: '/prescriptions', roles: ['doctor', 'clinic_owner'] },
-      { label: 'Ward / In-Patient', path: '/ward', roles: ['doctor', 'clinic_owner', 'nurse'] },
+      // Conditionally show Ward module based on facility configuration
+      ...(facilityProfile?.modules?.ward !== false ? [
+        { label: 'Ward / In-Patient', path: '/ward', roles: ['doctor', 'clinic_owner', 'nurse'] }
+      ] : []),
       { label: 'Waitlist TV', path: '/waitlist-tv', roles: ['doctor', 'nurse', 'receptionist', 'clinic_owner', 'admin'] },
     ]
   },
@@ -158,6 +161,37 @@ export default function Sidebar({ isOpen, onClose }) {
   const { userData, logout, actingRole } = useAuth();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState({});
+  const [facilityProfile, setFacilityProfile] = useState(null);
+  const [providerBalance, setProviderBalance] = useState(null);
+
+  useEffect(() => {
+    if (userData?.facilityId) {
+       import('../../services/facilityService').then(m => {
+          m.default.getProfile(userData.facilityId).then(p => {
+             if (p) setFacilityProfile(p);
+          });
+       });
+    }
+
+    // Auto-expand relevant sections for key roles
+    const role = actingRole || userData?.role;
+    if (role === 'doctor' || role === 'clinic_owner' || role === 'receptionist' || role === 'nurse' || role === 'lab_tech' || role === 'pharmacist' || role === 'lab_admin' || role === 'pharmacist_admin') {
+      setExpandedItems(prev => ({ 
+        ...prev, 
+        clinical: (role === 'doctor' || role === 'clinic_owner' || role === 'receptionist' || role === 'nurse' || role === 'lab_tech' || role === 'lab_admin'),
+        pharmacy: (role === 'pharmacist' || role === 'clinic_owner' || role === 'pharmacist_admin'),
+        financial: (role === 'receptionist' || role === 'clinic_owner') ? true : prev.financial 
+      }));
+    }
+
+    if (role === 'superadmin') {
+      import('../../services/smsSettingsService').then(m => {
+        m.default.getAtBalance().then(bal => {
+          if (bal) setProviderBalance(bal);
+        });
+      });
+    }
+  }, [userData?.facilityId, actingRole, userData?.role]);
 
   const toggleExpand = (id) => {
     setExpandedItems(prev => ({
@@ -193,38 +227,8 @@ export default function Sidebar({ isOpen, onClose }) {
   }
   
   if (!role) return null; // Still loading or something else
-  const [facilityProfile, setFacilityProfile] = useState(null);
-  const [providerBalance, setProviderBalance] = useState(null);
 
-  React.useEffect(() => {
-    if (userData?.facilityId) {
-       import('../../services/facilityService').then(m => {
-          m.default.getProfile(userData.facilityId).then(p => {
-             if (p) setFacilityProfile(p);
-          });
-       });
-    }
-
-    // Auto-expand relevant sections for key roles
-    if (role === 'doctor' || role === 'clinic_owner' || role === 'receptionist' || role === 'nurse' || role === 'lab_tech' || role === 'pharmacist' || role === 'lab_admin' || role === 'pharmacist_admin') {
-      setExpandedItems(prev => ({ 
-        ...prev, 
-        clinical: (role === 'doctor' || role === 'clinic_owner' || role === 'receptionist' || role === 'nurse' || role === 'lab_tech' || role === 'lab_admin'),
-        pharmacy: (role === 'pharmacist' || role === 'clinic_owner' || role === 'pharmacist_admin'),
-        financial: (role === 'receptionist' || role === 'clinic_owner') ? true : prev.financial 
-      }));
-    }
-
-    if (role === 'superadmin') {
-      import('../../services/smsSettingsService').then(m => {
-        m.default.getAtBalance().then(bal => {
-          if (bal) setProviderBalance(bal);
-        });
-      });
-    }
-  }, [userData?.facilityId, role]);
-
-  const filteredMenuItems = getMenuItems(role).filter(item => 
+  const filteredMenuItems = getMenuItems(role, facilityProfile).filter(item => 
     !item.roles || item.roles.includes(role)
   );
 

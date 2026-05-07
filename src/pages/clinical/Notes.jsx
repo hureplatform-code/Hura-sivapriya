@@ -72,7 +72,7 @@ export default function Notes() {
   const [labSuggestions, setLabSuggestions] = useState([]);
   const [searchContext, setSearchContext] = useState({ type: null, index: null });
   const [viewingHistoryPatient, setViewingHistoryPatient] = useState(null);
-  const [dateFilter, setDateFilter] = useState('today');
+  const [dateFilter, setDateFilter] = useState(location.state?.filter || 'today');
 
   const { success, error: toastError } = useToast();
 
@@ -82,6 +82,12 @@ export default function Notes() {
   };
 
   const { userData, isReadOnly } = useAuth();
+
+  useEffect(() => {
+    if (location.state?.filter) {
+      setDateFilter(location.state.filter);
+    }
+  }, [location.state?.filter]);
 
   useEffect(() => {
     fetchNotes();
@@ -574,17 +580,19 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     plan: '',
     nursingOrders: '',
     diagnosis: '',
-    vitals: {
-      temp: '',
-      hr: '',
-      rr: '',
-      bp_sys: '',
-      bp_dia: '',
-      spo2: '',
-      weight: '',
-      height: '',
-      bmi: ''
-    },
+      vitals: {
+        temp: '',
+        hr: '',
+        rr: '',
+        bp_sys: '',
+        bp_dia: '',
+        spo2: '',
+        weight: '',
+        height: '',
+        bmi: '',
+        pain_score: '',
+        rbs: ''
+      },
     specialtyData: {},
     labRequests: [],
     prescriptions: []
@@ -766,7 +774,7 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
     fetchPatients();
     if (initialRecordId) loadExistingRecord(initialRecordId);
     else if (appointmentId) loadExistingDraft();
-  }, [initialRecordId]);
+  }, [initialRecordId, appointmentId]);
 
   const loadExistingRecord = async (id) => {
     try {
@@ -780,8 +788,18 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
           plan: record.plan || '',
           nursingOrders: record.nursingOrders || '',
           diagnosis: record.diagnosis || '',
-          vitals: record.vitals || {
-            temp: '', hr: '', rr: '', bp_sys: '', bp_dia: '', spo2: '', weight: '', height: '', bmi: ''
+          vitals: {
+            temp: record.vitals?.temp || '',
+            hr: record.vitals?.hr || record.vitals?.heart_rate || '',
+            rr: record.vitals?.rr || record.vitals?.resp_rate || '',
+            bp_sys: record.vitals?.bp_sys || '',
+            bp_dia: record.vitals?.bp_dia || '',
+            spo2: record.vitals?.spo2 || '',
+            weight: record.vitals?.weight || '',
+            height: record.vitals?.height || '',
+            bmi: record.vitals?.bmi || '',
+            pain_score: record.vitals?.pain_score || '',
+            rbs: record.vitals?.rbs || ''
           },
           specialtyData: record.specialtyData || {},
           labRequests: record.labRequests || [],
@@ -795,17 +813,57 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
 
   const loadExistingDraft = async () => {
     try {
+      console.log("Loading session for appointment:", appointmentId);
+      let currentVitals = { ...formData.vitals };
+      let subjective = '';
+      let aptObj = null;
+
+      // 1. Fetch Appointment Data (Primary source for triage vitals)
       if (appointmentId) {
-        const appointment = await appointmentService.getAppointmentById(appointmentId);
-        if (appointment) setAssociatedApt(appointment);
+        aptObj = await appointmentService.getAppointmentById(appointmentId);
+        if (aptObj) {
+          setAssociatedApt(aptObj);
+          console.log("Found appointment data:", aptObj.vitals);
+          if (aptObj.vitals) {
+            currentVitals = {
+              ...currentVitals,
+              temp: aptObj.vitals.temp || currentVitals.temp,
+              hr: aptObj.vitals.hr || aptObj.vitals.heart_rate || currentVitals.hr,
+              rr: aptObj.vitals.rr || aptObj.vitals.resp_rate || currentVitals.rr,
+              bp_sys: aptObj.vitals.bp_sys || currentVitals.bp_sys,
+              bp_dia: aptObj.vitals.bp_dia || currentVitals.bp_dia,
+              spo2: aptObj.vitals.spo2 || currentVitals.spo2,
+              weight: aptObj.vitals.weight || currentVitals.weight,
+              height: aptObj.vitals.height || currentVitals.height,
+              bmi: aptObj.vitals.bmi || currentVitals.bmi,
+              pain_score: aptObj.vitals.pain_score || currentVitals.pain_score,
+              rbs: aptObj.vitals.rbs || currentVitals.rbs
+            };
+            subjective = aptObj.reason || aptObj.complaint || '';
+          }
+          if (aptObj.patientId) setPatientId(aptObj.patientId);
+        }
       }
       
+      // 2. Fetch Clinical Record Draft (If one exists)
       const draft = await medicalRecordService.getRecordByAppointment(appointmentId);
       if (draft) {
+        console.log("Found existing clinical draft:", draft.id);
         setExistingRecordId(draft.id);
         
-        // SYNC PAYMENT STATUS: Use the appointment (source of truth for billing) to update the draft's list
-        const latestApt = appointment || associatedApt;
+        // Merge draft vitals over appointment vitals (draft takes precedence if populated)
+        if (draft.vitals) {
+          Object.keys(draft.vitals).forEach(k => {
+            if (draft.vitals[k]) {
+              if (k === 'heart_rate') currentVitals.hr = draft.vitals[k];
+              else if (k === 'resp_rate') currentVitals.rr = draft.vitals[k];
+              else currentVitals[k] = draft.vitals[k];
+            }
+          });
+        }
+
+        // SYNC PAYMENT STATUS for Labs/Meds
+        const latestApt = aptObj || associatedApt;
         const syncedLabs = (draft.labRequests || []).map(r => {
            const aptMatch = (latestApt?.labRequests || []).find(al => (al.test || al.testName) === (r.test || r.name));
            return aptMatch ? { ...r, isPaid: aptMatch.isPaid } : r;
@@ -817,31 +875,25 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
         });
 
         setFormData({
-          subjective: draft.subjective || '',
+          subjective: draft.subjective || subjective || '',
           objective: draft.objective || '',
           assessment: draft.assessment || '',
           plan: draft.plan || '',
           nursingOrders: draft.nursingOrders || '',
           diagnosis: draft.diagnosis || '',
-          vitals: draft.vitals || {
-            temp: '', hr: '', rr: '', bp_sys: '', bp_dia: '', spo2: '', weight: '', height: '', bmi: ''
-          },
+          vitals: currentVitals,
           specialtyData: draft.specialtyData || {},
           labRequests: syncedLabs,
           prescriptions: syncedPrescriptions
         });
         if (draft.specialties?.length > 0) setActiveSpecialties(draft.specialties);
-        if (draft.patientId) setPatientId(draft.patientId);
-      } else if (appointmentId) {
-        const appointment = await appointmentService.getAppointmentById(appointmentId);
-        if (appointment && appointment.patientId) {
-          setPatientId(appointment.patientId);
-          setFormData(prev => ({
-            ...prev,
-            subjective: appointment.reason || appointment.complaint || prev.subjective,
-            vitals: { ...prev.vitals, ...(appointment.vitals || {}) }
-          }));
-        }
+      } else {
+        // Just use the appointment data
+        setFormData(prev => ({
+          ...prev,
+          subjective: subjective || prev.subjective,
+          vitals: currentVitals
+        }));
       }
     } catch (e) { console.error("Load draft/appointment failed:", e); }
   };
@@ -1734,7 +1786,9 @@ function NoteEditor({ onClose, onSave, showNotification, initialPatientId = '', 
                     { label: 'SpO2', field: 'spo2', unit: '%' },
                     { label: 'Weight', field: 'weight', unit: 'kg' },
                     { label: 'Height', field: 'height', unit: 'cm' },
-                    { label: 'Pain', field: 'pain_score', unit: '0-10' }
+                    { label: 'Pain', field: 'pain_score', unit: '0-10' },
+                    { label: 'RBS', field: 'rbs', unit: 'mmol/L' },
+                    { label: 'BMI', field: 'bmi', unit: 'kg/m²' }
                   ].map((v) => (
                     <div key={v.field} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2 group hover:border-primary-200 transition-all">
                        <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-tighter px-0.5">{v.label}</label>

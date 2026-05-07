@@ -19,6 +19,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import appointmentService from '../../services/appointmentService';
 
+const formatLastVisitRelative = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+  
+  if (diffInDays === 0) return 'Visited Today';
+  if (diffInDays === 1) return 'Visited Yesterday';
+  if (diffInDays < 7) return `${diffInDays} days ago`;
+  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+  return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+};
+
 export default function AppointmentModal({ isOpen, onClose, onSave, initialDate, appointment }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -119,7 +132,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate,
   const fetchDoctors = async () => {
     try {
       const data = await userService.getAllUsers(userData?.facilityId);
-      const docs = data.filter(u => u.role === 'doctor');
+      const docs = data.filter(u => u.role === 'doctor' || u.role === 'clinic_owner');
       setDoctors(docs);
     } catch (error) {
       console.error("Error fetching doctors:", error);
@@ -427,12 +440,25 @@ export default function AppointmentModal({ isOpen, onClose, onSave, initialDate,
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                               <Clock className="h-5 w-5" />
                             </div>
-                            <input 
-                              type="time" 
+                            <select 
                               value={formData.time}
                               onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                              className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all" 
-                            />
+                              className="block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none appearance-none transition-all"
+                            >
+                              {Array.from({ length: 24 * 4 }).map((_, i) => {
+                                const hours = Math.floor(i / 4);
+                                const minutes = (i % 4) * 15;
+                                const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                                const ampm = hours >= 12 ? 'PM' : 'AM';
+                                const displayHours = hours % 12 || 12;
+                                const displayString = `${displayHours}:${String(minutes).padStart(2, '0')} ${ampm}`;
+                                return (
+                                  <option key={timeString} value={timeString}>
+                                    {displayString}
+                                  </option>
+                                );
+                              })}
+                            </select>
                           </div>
                         </div>
                       </div>

@@ -25,7 +25,7 @@ export default function OutcomeReport() {
         userService.getAllUsers(facilityId),
       ]);
 
-      const doctors = users.filter(u => u.role === 'doctor');
+      const doctors = users.filter(u => u.role === 'doctor' || u.role === 'clinic_owner');
 
       const doctorOutcomes = doctors.map(doc => {
         const docRecords = records.filter(r => r.doctorName === doc.name || r.doctorId === doc.id);

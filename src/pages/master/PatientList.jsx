@@ -45,6 +45,16 @@ export default function PatientList() {
     fetchPatients();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeMenu && !event.target.closest('.menu-container')) {
+        setActiveMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeMenu]);
+
   if (userData?.role === 'superadmin') {
     return (
       <DashboardLayout>
@@ -294,7 +304,7 @@ export default function PatientList() {
                             >
                               <ExternalLink className="h-4.5 w-4.5" />
                             </button>
-                            <div className="relative">
+                            <div className="relative menu-container">
                               <button 
                                 onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === pat.id ? null : pat.id); }}
                                 className="p-2.5 text-slate-400 hover:text-slate-900 bg-white rounded-xl shadow-sm border border-slate-100"

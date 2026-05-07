@@ -151,7 +151,7 @@ export default function Dashboard() {
       const isSuperadmin = role === 'superadmin' || role === 'platform_owner';
       
       const promises = [
-        userService.getAllUsers(),
+        userService.getAllUsers(userData?.facilityId),
         appointmentService.getAllAppointments(isSuperadmin ? null : userData?.facilityId),
         billingService.getAllInvoices(isSuperadmin ? null : userData?.facilityId),
         billingService.getFinancialStats(isSuperadmin ? null : userData?.facilityId),
@@ -215,7 +215,7 @@ export default function Dashboard() {
         setStats([
           { label: focusLabel, value: activeToday.toString() + ' Patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/appointments' },
           { label: 'Clinical Documentation', value: pendingNotes.toString() + ' Pending', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', path: '/notes' },
-          { label: 'Overdue Notes (>24h)', value: overdueNotes.toString(), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/notes' },
+          { label: 'Overdue Notes (>24h)', value: overdueNotes.toString(), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/notes', state: { filter: 'all' } },
           { label: 'Discharged Today', value: completedToday.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/appointments' },
         ]);
         const todayApts = appointments
@@ -287,7 +287,7 @@ export default function Dashboard() {
 
         setStats([
           { label: 'Overdue Notes (>24h)', value: overdueNotes.toString(), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/notes' },
-          { label: 'Active Doctors', value: users.filter(u => u.role === 'doctor').length.toString(), icon: Stethoscope, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/master/users' },
+          { label: 'Active Staff', value: users.length.toString(), icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/master/users' },
           { label: 'Monthly Revenue', value: `${currency} ${billingStats.revenue.toLocaleString()}`, icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50', path: '/billing' },
           { label: 'Arrears Rate', value: arrearsRate, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', path: '/billing' },
         ]);
@@ -430,7 +430,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.1 }}
-              onClick={() => stat.path && navigate(stat.path)}
+              onClick={() => stat.path && navigate(stat.path, { state: stat.state })}
               className={`bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group ${stat.path ? 'cursor-pointer active:scale-95' : ''}`}
             >
               <div className={`h-12 w-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>

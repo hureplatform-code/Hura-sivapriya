@@ -56,6 +56,7 @@ export default function Appointments() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [specialtyFilter, setSpecialtyFilter] = useState('All');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'board'
+  const [filterMyPatients, setFilterMyPatients] = useState(false);
   const { success, warning, error: toastError } = useToast();
   const { confirm } = useConfirm();
 
@@ -120,6 +121,19 @@ export default function Appointments() {
     }
   }, [userData]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeMenu && !event.target.closest('.menu-container')) {
+        setActiveMenu(null);
+      }
+      if (routingMenu && !event.target.closest('.routing-container')) {
+        setRoutingMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeMenu, routingMenu]);
+
   const handleSaveAppointment = async (data) => {
     try {
       const newAppointment = await appointmentService.bookAppointment(data);
@@ -135,7 +149,13 @@ export default function Appointments() {
 
   const dailyAppointments = appointments.filter(a => {
     const aptDate = a.date || a.app_date;
-    return aptDate === selectedDate;
+    const isToday = aptDate === selectedDate;
+    if (!isToday) return false;
+    
+    if (filterMyPatients && (userData?.role === 'doctor' || actingRole === 'doctor')) {
+      return a.provider === userData?.name;
+    }
+    return true;
   });
 
   const stats = {
@@ -235,6 +255,9 @@ export default function Appointments() {
         status: 'signed',
         vitals
       }, { id: userData?.uid, name: userData?.name });
+      
+      // 3. Sync Vitals to Appointment (Source of truth for the current session)
+      await appointmentService.updateAppointment(triageApt.id, { vitals });
 
       fetchAppointments();
       setIsTriageOpen(false);
@@ -461,6 +484,22 @@ export default function Appointments() {
                 />
               </div>
               <div className="flex gap-2 w-full md:w-auto">
+                {(userData?.role === 'doctor' || actingRole === 'doctor') && (
+                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
+                    <button 
+                      onClick={() => setFilterMyPatients(false)}
+                      className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${!filterMyPatients ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400'}`}
+                    >
+                      All
+                    </button>
+                    <button 
+                      onClick={() => setFilterMyPatients(true)}
+                      className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${filterMyPatients ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400'}`}
+                    >
+                      Mine
+                    </button>
+                  </div>
+                )}
                 <select 
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -659,6 +698,8 @@ function AppointmentCard({
   const navigate = useNavigate();
   const { error: toastError } = useToast();
   const role = actingRole || userData?.role;
+  const isAssignedToMe = apt.provider === userData?.name;
+  const canPerformClinicalAction = isAssignedToMe || (userData?.role === 'clinic_owner' && !actingRole);
 
   return (
     <motion.div
@@ -784,7 +825,7 @@ function AppointmentCard({
               </button>
             )}
 
-            {(apt.status === 'arrived' || apt.status === 'triage') && (userData?.role === 'doctor' || actingRole === 'doctor') && (
+            {(apt.status === 'arrived' || apt.status === 'triage') && canPerformClinicalAction && (
               apt.labResultsReady ? (
                 <button 
                   onClick={() => onStartConsultation(apt)}
@@ -810,7 +851,7 @@ function AppointmentCard({
               )
             )}
             
-            {apt.status === 'awaiting-nurse' && ['nurse'].includes(userData?.role) && (
+            {apt.status === 'awaiting-nurse' && ['nurse', 'doctor', 'clinic_owner'].includes(role) && (
               <button 
                 onClick={() => {
                   if (isReadOnly) {
@@ -825,7 +866,7 @@ function AppointmentCard({
               </button>
             )}
 
-            {(apt.status === 'calling' || apt.status === 'triage') && (userData?.role === 'doctor' || actingRole === 'doctor') && (
+            {(apt.status === 'calling' || apt.status === 'triage') && canPerformClinicalAction && (
                <button 
                  onClick={() => {
                    if (isReadOnly) {
@@ -840,7 +881,7 @@ function AppointmentCard({
                </button>
             )}
 
-            {apt.status === 'in-session' && (userData?.role === 'doctor' || actingRole === 'doctor') && (
+            {apt.status === 'in-session' && canPerformClinicalAction && (
               <>
                 <button 
                   onClick={() => {
@@ -854,7 +895,7 @@ function AppointmentCard({
                 >
                   RESUME
                 </button>
-                <div className="relative">
+                <div className="relative routing-container">
                   <button 
                     onClick={() => {
                       if (isReadOnly) {
@@ -917,7 +958,7 @@ function AppointmentCard({
             )}
             
             {!['in-session', 'completed', 'cancelled'].includes(apt.status) && userData?.role !== 'doctor' && userData?.role !== 'nurse' && (
-              <div className="relative">
+              <div className="relative menu-container">
                 <button 
                   onClick={() => setActiveMenu(activeMenu === apt.id ? null : apt.id)}
                   className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100"

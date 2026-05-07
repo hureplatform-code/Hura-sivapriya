@@ -18,11 +18,15 @@ import {
   X,
   Calendar,
   Layers,
-  Activity
+  Activity,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import wardService from '../../services/wardService';
 import patientService from '../../services/patientService';
+import { useConfirm } from '../../contexts/ConfirmContext';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function Ward() {
   const navigate = useNavigate();
@@ -32,8 +36,11 @@ export default function Ward() {
   const [isAdmitting, setIsAdmitting] = useState(false);
   const [isAddingWard, setIsAddingWard] = useState(false);
   const [isAddingBed, setIsAddingBed] = useState(false);
+  const [isEditingWard, setIsEditingWard] = useState(null);
   const [activeBedMenu, setActiveBedMenu] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { confirm } = useConfirm();
+  const { success, error: toastError } = useToast();
 
   useEffect(() => {
     if (userData) {
@@ -128,6 +135,60 @@ export default function Ward() {
     }
   };
 
+  const handleDeleteWard = async (wardId) => {
+    const isConfirmed = await confirm({
+      title: 'Delete Facility Unit',
+      message: 'Are you sure you want to delete this entire ward? All empty beds will be removed. This action cannot be undone if beds are occupied.',
+      confirmText: 'Delete Unit',
+      cancelText: 'Keep Unit',
+      isDestructive: true
+    });
+
+    if (isConfirmed) {
+      try {
+        await wardService.deleteWard(wardId);
+        success('Facility unit removed.');
+        const remaining = wards.filter(w => w.id !== wardId);
+        setWards(remaining);
+        if (selectedWard?.id === wardId) {
+          setSelectedWard(remaining[0] || null);
+        }
+      } catch (e) {
+        toastError('Failed to delete ward. Ensure it is empty.');
+      }
+    }
+  };
+
+  const handleRenameWard = async (wardId, newName) => {
+    try {
+      await wardService.updateWard(wardId, { name: newName });
+      success('Unit renamed.');
+      fetchWards();
+      setIsEditingWard(null);
+    } catch (e) {
+      toastError('Failed to rename unit.');
+    }
+  };
+
+  const handleDeleteBed = async (bedId) => {
+    const isConfirmed = await confirm({
+      title: 'Remove Bed',
+      message: 'Are you sure you want to remove this bed?',
+      confirmText: 'Remove',
+      isDestructive: true
+    });
+
+    if (isConfirmed) {
+      try {
+        await wardService.deleteBed(selectedWard.id, bedId);
+        success('Bed removed.');
+        fetchWards();
+      } catch (e) {
+        toastError('Failed to remove bed.');
+      }
+    }
+  };
+
   if (loading) return <DashboardLayout><div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-center font-medium text-slate-500">Mapping Units...</div></DashboardLayout>;
 
   return (
@@ -204,10 +265,34 @@ export default function Ward() {
                         {ward.beds.length} Total Units
                      </p>
                    </div>
-                   <div className={`h-8 w-8 rounded-xl flex items-center justify-center transition-colors
-                     ${selectedWard?.id === ward.id ? 'bg-white/10' : 'bg-slate-50 group-hover:bg-slate-100'}`}>
-                     <Layers className="h-4 w-4" />
-                   </div>
+                    <div className="flex items-center gap-2">
+                       {selectedWard?.id === ward.id && (
+                          <div className="flex gap-1">
+                             <button 
+                               onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsEditingWard(ward);
+                               }}
+                               className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                             >
+                                <Edit className="h-3.5 w-3.5" />
+                             </button>
+                             <button 
+                               onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteWard(ward.id);
+                               }}
+                               className="p-1.5 hover:bg-red-500 rounded-lg transition-colors"
+                             >
+                                <Trash2 className="h-3.5 w-3.5" />
+                             </button>
+                          </div>
+                       )}
+                       <div className={`h-8 w-8 rounded-xl flex items-center justify-center transition-colors
+                         ${selectedWard?.id === ward.id ? 'bg-white/10' : 'bg-slate-50 group-hover:bg-slate-100'}`}>
+                         <Layers className="h-4 w-4" />
+                       </div>
+                    </div>
                  </button>
               ))}
            </div>
@@ -284,17 +369,30 @@ export default function Ward() {
                                         Discharge Patient
                                       </button>
                                     ) : (
-                                      <button 
-                                        onClick={() => { 
-                                          if (isReadOnly) return;
-                                          setIsAdmitting(true); 
-                                          setActiveBedMenu(null); 
-                                        }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReadOnly ? 'text-slate-300 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
-                                      >
-                                        <UserPlus className="h-4 w-4" />
-                                        Admit Patient
-                                      </button>
+                                      <>
+                                        <button 
+                                          onClick={() => { 
+                                            if (isReadOnly) return;
+                                            setIsAdmitting({ wardId: selectedWard.id, bedId: bed.id });
+                                            setActiveBedMenu(null);
+                                          }}
+                                          className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReadOnly ? 'text-slate-300 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
+                                        >
+                                          <UserPlus className="h-4 w-4" />
+                                          Assign Subject
+                                        </button>
+                                        <button 
+                                          onClick={() => {
+                                            if (isReadOnly) return;
+                                            handleDeleteBed(bed.id);
+                                            setActiveBedMenu(null);
+                                          }}
+                                          className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReadOnly ? 'text-slate-300 cursor-not-allowed' : 'text-red-600 hover:bg-red-50'}`}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                          Remove Bed
+                                        </button>
+                                      </>
                                     )}
                                     <button 
                                       onClick={() => {
@@ -428,6 +526,14 @@ export default function Ward() {
                 fetchWards();
                 setIsAddingBed(false);
               }}
+            />
+          )}
+          {isEditingWard && (
+            <EditWardModal 
+              isOpen={!!isEditingWard}
+              ward={isEditingWard}
+              onClose={() => setIsEditingWard(null)}
+              onSave={handleRenameWard}
             />
           )}
        </AnimatePresence>
@@ -599,4 +705,44 @@ function NewBedModal({ wardId, onClose, onSave }) {
         </motion.div>
       </motion.div>
     );
+}
+
+
+function EditWardModal({ isOpen, onClose, onSave, ward }) {
+  const [name, setName] = useState(ward?.name || '');
+
+  useEffect(() => {
+    if (ward) setName(ward.name);
+  }, [ward]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
+      >
+        <h3 className="text-xl font-semibold text-slate-900 mb-6">Rename Unit</h3>
+        <input 
+          type="text" 
+          value={name} 
+          onChange={(e) => setName(e.target.value)}
+          className="w-full p-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-primary-500 rounded-2xl text-sm font-medium outline-none transition-all mb-6"
+          placeholder="Unit Name..."
+        />
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-4 text-slate-500 font-medium text-xs uppercase tracking-widest">Cancel</button>
+          <button 
+            onClick={() => onSave(ward.id, name)}
+            className="flex-2 py-4 bg-slate-900 text-white font-medium text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all"
+          >
+            Update Unit
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
 }
