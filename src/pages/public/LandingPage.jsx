@@ -2,8 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import siteContentService from "../../services/siteContentService";
+import { db } from "../../firebase";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
-import {
+import * as LucideIcons from "lucide-react";
+
+const {
   CheckCircle2,
   ChevronDown,
   Layout,
@@ -20,8 +24,14 @@ import {
   Twitter,
   Linkedin,
   Facebook,
-  Instagram
-} from "lucide-react";
+  Instagram,
+  Loader2
+} = LucideIcons;
+
+const RenderIcon = ({ iconName, className }) => {
+  const IconComponent = LucideIcons[iconName] || LucideIcons.HelpCircle;
+  return <IconComponent className={className} />;
+};
 
 const initialContent = {
   heroBadge: "Patient care management, done right",
@@ -43,84 +53,80 @@ const initialContent = {
   faqBody: "Can't find the answer you're looking for? Reach out to our specialist team.",
   footerBlurb:
     "HURE Care: The intelligent operating system empowering healthcare facilities with streamlined workflows and data-driven coordination.",
+  
+  // Dynamic Core Ecosystem header
+  ecosystemEyebrow: "Core Ecosystem",
+  ecosystemTitle: "Built for precision. Designed for clinical flow.",
+  ecosystemBody: "Everything your medical team needs to transition from manual bottlenecks to digital excellence.",
+  
+  // Custom logo
+  logoUrl: "",
 };
 
-const featureCards = [
+const DEFAULT_FEATURES = [
   {
-    icon: User,
+    icon: "User",
     title: "Patient Administration",
     description:
       "Centralized patient records, visit history, and care documentation secured with enterprise-grade encryption.",
-    span: "lg:col-span-2",
   },
   {
-    icon: Calendar,
+    icon: "Calendar",
     title: "Intelligent Scheduling",
     description:
       "Optimize provider calendars and patient flow across single or multi-branch facility operations.",
-    span: "lg:col-span-1",
   },
   {
-    icon: FileText,
+    icon: "FileText",
     title: "Clinical Documentation",
     description:
       "Structured SOAP notes and treatment plans designed for clinical speed and precision.",
-    span: "lg:col-span-1",
   },
   {
-    icon: CreditCard,
+    icon: "CreditCard",
     title: "Revenue Cycle",
     description:
       "Automated billing, charges, and payment tracking linked directly to the clinical encounter.",
-    span: "lg:col-span-2",
   },
   {
-    icon: Globe,
+    icon: "Globe",
     title: "Multi-Location Control",
     description:
       "Manage branch-level operations with centralized administrative oversight and secure access.",
-    span: "lg:col-span-1",
   },
   {
-    icon: ShieldCheck,
+    icon: "ShieldCheck",
     title: "Audit & Governance",
     description:
       "Role-based access controls and immutable audit logs to protect sensitive health information.",
-    span: "lg:col-span-2",
   },
 ];
 
-const plans = [
+const DEFAULT_GROWTH_STEPS = [
   {
-    name: "Essential",
-    subtitle: "For boutique clinics starting out",
-    price: "Ksh 10,000",
-    priceNote: "/ month",
-    features: ["Single location", "Up to 10 staff users", "Full EMR workflow"],
-    cta: "Start Free Trial",
-    featured: false,
+    step: "01",
+    title: "10-Day Evaluation",
+    body: "Experience the full HURE Care workflow across triage, clinical notes, and billing with zero restrictions.",
+    icon: "Activity",
+    color: "bg-teal-50 text-teal-600"
   },
   {
-    name: "Professional",
-    subtitle: "For growing multi-provider teams",
-    price: "Ksh 18,000",
-    priceNote: "/ month",
-    features: ["Up to 2 locations", "Up to 30 staff users", "Full EMR workflow"],
-    cta: "Start Free Trial",
-    featured: true,
+    step: "02",
+    title: "Document Verification",
+    body: "Submit your facility licensing for our compliance review to ensure secure, uninterrupted access.",
+    icon: "ShieldCheck",
+    color: "bg-blue-50 text-blue-600"
   },
   {
-    name: "Enterprise",
-    subtitle: "For scaling healthcare networks",
-    price: "Ksh 30,000",
-    priceNote: "/ month",
-    features: ["Up to 5 locations", "Up to 75 staff users", "Full EMR workflow"],
-    cta: "Contact Sales",
-    featured: false,
-  },
+    step: "03",
+    title: "Unrestricted Growth",
+    body: "Activate your preferred plan and scale your facility with a verified professional operating system.",
+    icon: "TrendingUp",
+    color: "bg-indigo-50 text-indigo-600"
+  }
 ];
 
-const faqs = [
+const DEFAULT_FAQS = [
   {
     question: "How long does system onboarding take?",
     answer:
@@ -143,28 +149,76 @@ const faqs = [
   },
 ];
 
+// Fallback plans if database is empty
+const DEFAULT_PLANS = [
+  {
+    name: "Essential",
+    subtitle: "For boutique clinics starting out",
+    price: 10000,
+    maxStaff: 10,
+    maxLocations: 1,
+    featured: false,
+  },
+  {
+    name: "Professional",
+    subtitle: "For growing multi-provider teams",
+    price: 18000,
+    maxStaff: 30,
+    maxLocations: 2,
+    featured: true,
+  },
+  {
+    name: "Enterprise",
+    subtitle: "For scaling healthcare networks",
+    price: 30000,
+    maxStaff: 75,
+    maxLocations: 5,
+    featured: false,
+  },
+];
+
 export default function LandingPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [activeFaq, setActiveFaq] = useState(0);
   const [content, setContent] = useState(initialContent);
+  const [plans, setPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
 
   useEffect(() => {
-    if (currentUser) {
-      navigate('/dashboard');
-    }
-    const loadContent = async () => {
-      const dbContent = await siteContentService.getContent();
-      if (dbContent) {
-        setContent(prev => ({ ...prev, ...dbContent }));
+    const fetchData = async () => {
+      try {
+        const [dbContent, plansSnap] = await Promise.all([
+          siteContentService.getContent(),
+          getDocs(query(collection(db, 'subscription_plans'), orderBy('price', 'asc')))
+        ]);
+
+        if (dbContent) {
+          setContent(prev => ({ ...prev, ...dbContent }));
+        }
+
+        const plansList = plansSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        setPlans(plansList.length > 0 ? plansList : DEFAULT_PLANS);
+      } catch (err) {
+        console.error("Error fetching landing data:", err);
+        setPlans(DEFAULT_PLANS);
+      } finally {
+        setLoadingPlans(false);
       }
     };
-    loadContent();
+    
+    fetchData();
   }, [currentUser, navigate]);
 
   const handleStartTrial = (planName) => {
     navigate(`/signup?plan=${planName}`);
   };
+
+  const faqs = content.faqs || DEFAULT_FAQS;
 
   return (
     <div className="min-h-screen bg-white font-['Inter'] text-slate-800 selection:bg-teal-100 selection:text-teal-900">
@@ -173,7 +227,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="h-10 w-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-lg shadow-slate-200/50 group-hover:scale-105 transition-transform overflow-hidden">
-              <img src="/logo.png" alt="Logo" className="h-full w-full object-contain p-1.5" />
+              <img src={content.logoUrl || "/logo.png"} alt="Logo" className="h-full w-full object-contain p-1.5" />
             </div>
             <div>
               <div className="text-xl font-semibold tracking-tight text-slate-900 italic">
@@ -190,13 +244,24 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-6">
-            <button onClick={() => navigate('/login')} className="text-sm font-semibold text-slate-600 hover:text-teal-600 transition-colors">Sign in</button>
-            <button
-              onClick={() => navigate('/signup')}
-              className="px-6 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold shadow-xl shadow-teal-100 hover:bg-teal-700 hover:shadow-teal-200 transition-all active:scale-95"
-            >
-              Get Started
-            </button>
+            {currentUser ? (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-6 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold shadow-xl shadow-teal-100 hover:bg-teal-700 hover:shadow-teal-200 transition-all active:scale-95 flex items-center gap-1.5"
+              >
+                Go to Dashboard <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <>
+                <button onClick={() => navigate('/login')} className="text-sm font-semibold text-slate-600 hover:text-teal-600 transition-colors">Sign in</button>
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="px-6 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold shadow-xl shadow-teal-100 hover:bg-teal-700 hover:shadow-teal-200 transition-all active:scale-95"
+                >
+                  Get Started
+                </button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -329,13 +394,13 @@ export default function LandingPage() {
         <section id="features" className="px-6 py-24 bg-slate-50/50">
           <div className="mx-auto max-w-7xl">
             <div className="max-w-3xl mb-20">
-              <div className="text-teal-600 text-sm font-bold uppercase tracking-[0.2em] mb-4">Core Ecosystem</div>
-              <h2 className="text-4xl lg:text-5xl font-medium tracking-tight text-slate-900 mb-6">Built for precision. Designed for clinical flow.</h2>
-              <p className="text-lg text-slate-500 leading-relaxed">Everything your medical team needs to transition from manual bottlenecks to digital excellence.</p>
+              <div className="text-teal-600 text-sm font-bold uppercase tracking-[0.2em] mb-4">{content.ecosystemEyebrow}</div>
+              <h2 className="text-4xl lg:text-5xl font-medium tracking-tight text-slate-900 mb-6">{content.ecosystemTitle}</h2>
+              <p className="text-lg text-slate-500 leading-relaxed">{content.ecosystemBody}</p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
-              {featureCards.map((feature, idx) => (
+              {(content.features || DEFAULT_FEATURES).map((feature, idx) => (
                 <motion.div
                   key={idx}
                   whileHover={{ y: -4, x: 4, scale: 1.01 }}
@@ -347,7 +412,7 @@ export default function LandingPage() {
                   </div>
 
                   <div className="shrink-0 h-24 w-24 bg-slate-50 rounded-[1.5rem] flex items-center justify-center text-teal-600 border border-slate-100 group-hover:bg-teal-600 group-hover:text-white transition-all duration-500 shadow-inner group-hover:rotate-6">
-                    <feature.icon className="h-10 w-10" />
+                    <RenderIcon iconName={feature.icon} className="h-10 w-10" />
                   </div>
                   
                   <div className="flex-1 pr-12">
@@ -357,9 +422,6 @@ export default function LandingPage() {
                     <p className="text-sm text-slate-500 leading-relaxed font-medium">
                       {feature.description}
                     </p>
-                    <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-teal-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-[-10px] group-hover:translate-x-0">
-                       Learn More <ArrowRight className="h-3 w-3" />
-                    </div>
                   </div>
 
                   {/* Subtle Background Mesh */}
@@ -378,7 +440,11 @@ export default function LandingPage() {
             <p className="text-lg text-slate-500 leading-relaxed max-w-2xl mx-auto mb-16">{content.pricingNote}</p>
 
             <div className="grid lg:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
-              {plans.map((plan, idx) => (
+              {loadingPlans ? (
+                <div className="col-span-3 py-20">
+                   <Loader2 className="h-12 w-12 animate-spin text-teal-600 mx-auto" />
+                </div>
+              ) : plans.map((plan, idx) => (
                 <div
                   key={idx}
                   className={`relative p-10 rounded-[2.5rem] border flex flex-col transition-all duration-300 ${plan.featured
@@ -391,21 +457,28 @@ export default function LandingPage() {
                       RECOMMENDED
                     </div>
                   )}
-                  <div className="mb-8">
+                  <div className="mb-8 text-left">
                     <h4 className="text-2xl font-medium tracking-tight mb-2">{plan.name}</h4>
                     <p className={`text-sm ${plan.featured ? "text-slate-400" : "text-slate-500"}`}>{plan.subtitle}</p>
                   </div>
-                  <div className="flex items-baseline gap-2 mb-10">
-                    <span className="text-5xl font-medium tracking-tighter">{plan.price}</span>
-                    <span className={`text-sm ${plan.featured ? "text-slate-500" : "text-slate-400"}`}>{plan.priceNote}</span>
+                  <div className="flex items-baseline gap-1 mb-10 flex-wrap justify-start">
+                    <span className={`text-lg font-bold ${plan.featured ? "text-teal-400" : "text-teal-600"}`}>Ksh</span>
+                    <span className="text-4xl font-black tracking-tight">{plan.price?.toLocaleString()}</span>
+                    <span className={`text-xs ml-1 font-semibold ${plan.featured ? "text-slate-400" : "text-slate-500"}`}>/ month</span>
                   </div>
                   <div className="space-y-4 mb-12 flex-1">
-                    {plan.features.map((f, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <CheckCircle2 className={`h-5 w-5 ${plan.featured ? "text-teal-400" : "text-teal-600"}`} />
-                        <span className="text-sm font-medium">{f}</span>
-                      </div>
-                    ))}
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className={`h-5 w-5 ${plan.featured ? "text-teal-400" : "text-teal-600"}`} />
+                      <span className="text-sm font-medium">{plan.maxLocations === 1 ? 'Single location' : `Up to ${plan.maxLocations} locations`}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className={`h-5 w-5 ${plan.featured ? "text-teal-400" : "text-teal-600"}`} />
+                      <span className="text-sm font-medium">{`Up to ${plan.maxStaff} staff users`}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className={`h-5 w-5 ${plan.featured ? "text-teal-400" : "text-teal-600"}`} />
+                      <span className="text-sm font-medium">Full EMR workflow access</span>
+                    </div>
                   </div>
                   <button
                     onClick={() => handleStartTrial(plan.name)}
@@ -414,7 +487,7 @@ export default function LandingPage() {
                       : "bg-slate-100 text-slate-900 hover:bg-slate-200"
                       }`}
                   >
-                    {plan.cta}
+                    {plan.name === 'Enterprise' ? 'Contact Sales' : 'Start Free Trial'}
                   </button>
                 </div>
               ))}
@@ -435,33 +508,11 @@ export default function LandingPage() {
               {/* Connecting Line */}
               <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-100 -translate-y-1/2 hidden md:block -z-10" />
 
-              {[
-                {
-                  step: "01",
-                  title: "10-Day Evaluation",
-                  body: "Experience the full HURE Care workflow across triage, clinical notes, and billing with zero restrictions.",
-                  icon: Activity,
-                  color: "bg-teal-50 text-teal-600"
-                },
-                {
-                  step: "02",
-                  title: "Document Verification",
-                  body: "Submit your facility licensing for our compliance review to ensure secure, uninterrupted access.",
-                  icon: ShieldCheck,
-                  color: "bg-blue-50 text-blue-600"
-                },
-                {
-                  step: "03",
-                  title: "Unrestricted Growth",
-                  body: "Activate your preferred plan and scale your facility with a verified professional operating system.",
-                  icon: TrendingUp,
-                  color: "bg-indigo-50 text-indigo-600"
-                }
-              ].map((item, idx) => (
+              {(content.growthSteps || DEFAULT_GROWTH_STEPS).map((item, idx) => (
                 <div key={idx} className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm relative group hover:shadow-xl hover:shadow-slate-100 transition-all">
                   <div className="text-[10px] font-black text-slate-200 tracking-[0.5em] mb-6 group-hover:text-teal-100 transition-colors">STEP {item.step}</div>
-                  <div className={`h-16 w-16 ${item.color} rounded-2xl flex items-center justify-center mb-6 shadow-sm`}>
-                    <item.icon className="h-8 w-8" />
+                  <div className={`h-16 w-16 ${item.color || "bg-teal-50 text-teal-600"} rounded-2xl flex items-center justify-center mb-6 shadow-sm`}>
+                    <RenderIcon iconName={item.icon} className="h-8 w-8" />
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-4">{item.title}</h3>
                   <p className="text-sm text-slate-500 leading-relaxed font-medium">{item.body}</p>
@@ -518,11 +569,11 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-[#030712] py-24 px-6 relative overflow-hidden">
         <div className="mx-auto max-w-7xl relative z-10">
-          <div className="grid md:grid-cols-4 gap-16 mb-24">
+          <div className="grid md:col-cols-4 gap-16 mb-24">
             <div className="md:col-span-2">
               <div className="flex items-center gap-4 mb-8">
                 <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center p-2 shadow-lg shadow-white/5 overflow-hidden">
-                  <img src="/logo.png" alt="Logo" className="h-full w-auto object-contain" />
+                  <img src={content.logoUrl || "/logo.png"} alt="Logo" className="h-full w-auto object-contain" />
                 </div>
                 <div className="text-2xl font-bold tracking-tight text-white italic">
                   HURE <span className="text-teal-400">Care</span>

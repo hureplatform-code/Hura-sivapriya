@@ -33,6 +33,10 @@ const accountingService = {
       netProfit: netProfit,
       entriesCount: entries.length
     };
+  },
+
+  async deleteEntry(id) {
+    return firestoreService.delete(this.collection, id);
   }
 };
 

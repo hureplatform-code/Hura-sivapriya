@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, Bell, User, X, FileText, Calendar, Users, Menu, LogOut, Zap } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import patientService from '../../services/patientService';
 import appointmentService from '../../services/appointmentService';
 import medicalRecordService from '../../services/medicalRecordService';
@@ -12,11 +12,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Header({ onMenuClick }) {
   const { userData, logout, actingRole, setActingRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isCmsPage = location.pathname === '/superadmin/site-content';
+  const searchPlaceholder = isCmsPage ? "Search content, sections, or pages..." : "Search patients, appointments, records...";
   const role = actingRole || userData?.role || 'Superadmin';
   const [notifications, setNotifications] = React.useState([]);
   const [showNotifications, setShowNotifications] = React.useState(false);
   const notificationRef = React.useRef(null);
-  
+
   // Search State
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState([]);
@@ -43,14 +46,14 @@ export default function Header({ onMenuClick }) {
 
       const filteredPatients = patients.filter(p => {
         const nameMatch = p.name?.toLowerCase().includes(queryLower);
-        const idMatch = (p.id || '').toLowerCase().includes(queryLower) || 
-                        (p.patientId || '').toLowerCase().includes(queryLower);
+        const idMatch = (p.id || '').toLowerCase().includes(queryLower) ||
+          (p.patientId || '').toLowerCase().includes(queryLower);
         const mobileDigits = (p.mobile || '').replace(/[^0-9]/g, '');
         const contactDigits = (p.contact || '').replace(/[^0-9]/g, '');
-        
+
         const phoneMatch = (queryDigits && (mobileDigits.includes(queryDigits) || contactDigits.includes(queryDigits))) ||
-                          (queryNoZero && (mobileDigits.includes(queryNoZero) || contactDigits.includes(queryNoZero)));
-        
+          (queryNoZero && (mobileDigits.includes(queryNoZero) || contactDigits.includes(queryNoZero)));
+
         return nameMatch || idMatch || phoneMatch;
       }).slice(0, 5);
 
@@ -87,7 +90,7 @@ export default function Header({ onMenuClick }) {
           facilityService.getAllSubscriptionRequests(),
           facilityService.getAllFacilities()
         ]);
-        
+
         const pending = requests.filter(r => r.status === 'pending');
         notes = pending.map(r => {
           const facility = facilities.find(f => f.id === r.facilityId);
@@ -143,7 +146,7 @@ export default function Header({ onMenuClick }) {
           } catch (e) {
             console.error("Invalid appointment date/time", apt);
           }
-          
+
           return {
             id: apt.id,
             title: 'Appointment Today',
@@ -155,7 +158,7 @@ export default function Header({ onMenuClick }) {
         });
       } else if (role === 'nurse') {
         const appointments = await appointmentService.getAllAppointments(facilityId);
-        
+
         const getLocalDateStr = () => {
           const now = new Date();
           return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -231,7 +234,7 @@ export default function Header({ onMenuClick }) {
 
   return (
     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50 px-4 md:px-8 flex items-center gap-4 justify-between">
-      <button 
+      <button
         onClick={onMenuClick}
         className="lg:hidden p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
       >
@@ -243,16 +246,16 @@ export default function Header({ onMenuClick }) {
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary-500 transition-colors">
             {searching ? <div className="h-4 w-4 border-2 border-primary-500 border-t-transparent animate-spin rounded-full" /> : <Search className="h-5 w-5" />}
           </div>
-          <input 
-            type="text" 
-            placeholder="Search patients, appointments, records..." 
+          <input
+            type="text"
+            placeholder={searchPlaceholder}
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             onFocus={() => query.length >= 2 && setShowResults(true)}
             className="w-full bg-slate-50 border-none focus:ring-2 focus:ring-primary-100 rounded-2xl pl-12 pr-10 py-2.5 text-sm transition-all outline-none"
           />
           {query && (
-            <button 
+            <button
               onClick={() => { setQuery(''); setResults([]); setShowResults(false); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
@@ -265,7 +268,7 @@ export default function Header({ onMenuClick }) {
           {showResults && (
             <>
               <div className="fixed inset-0 z-[-1]" onClick={() => setShowResults(false)} />
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
@@ -306,7 +309,7 @@ export default function Header({ onMenuClick }) {
 
       <div className="flex items-center gap-6">
         <div className="relative" ref={notificationRef}>
-          <button 
+          <button
             onClick={() => setShowNotifications(!showNotifications)}
             className={`relative p-2 transition-colors rounded-xl ${showNotifications ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-900'}`}
           >
@@ -333,7 +336,7 @@ export default function Header({ onMenuClick }) {
                 <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                   {notifications.length > 0 ? (
                     notifications.map((note) => (
-                      <button 
+                      <button
                         key={note.id}
                         onClick={() => {
                           if (note.link) navigate(note.link);
@@ -343,7 +346,7 @@ export default function Header({ onMenuClick }) {
                       >
                         <div className="flex gap-3">
                           <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 
-                            ${note.type === 'alert' ? 'bg-red-50 text-red-500' : 
+                            ${note.type === 'alert' ? 'bg-red-50 text-red-500' :
                               note.type === 'warning' ? 'bg-amber-50 text-amber-500' : 'bg-blue-50 text-blue-500'}`}
                           >
                             <Bell className="h-4 w-4" />
@@ -352,7 +355,7 @@ export default function Header({ onMenuClick }) {
                             <p className="text-xs font-medium text-slate-900 leading-snug group-hover:text-primary-600 transition-colors">{note.title}</p>
                             <p className="text-xs text-slate-500 mt-1 line-clamp-2">{note.message}</p>
                             <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-wide">
-                              {note.time instanceof Date && !isNaN(note.time) 
+                              {note.time instanceof Date && !isNaN(note.time)
                                 ? note.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                 : 'Recent'}
                             </p>
@@ -373,7 +376,7 @@ export default function Header({ onMenuClick }) {
             )}
           </AnimatePresence>
         </div>
-        
+
         <div className="h-8 w-[1px] bg-slate-100"></div>
 
         <div className="flex items-center gap-3">
@@ -382,7 +385,7 @@ export default function Header({ onMenuClick }) {
             <div className="flex flex-col items-end">
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">{role.replace('_', ' ')}</p>
               {userData?.role === 'clinic_owner' && (
-                <button 
+                <button
                   onClick={() => setActingRole(actingRole === 'clinic_owner' ? 'doctor' : 'clinic_owner')}
                   className="mt-1 flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-600 rounded text-[8px] font-bold uppercase tracking-widest hover:bg-primary-100 transition-colors border border-primary-100"
                 >

@@ -3,10 +3,11 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Zap, CheckCircle2, ArrowUpRight, Shield, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import facilityService from '../../services/facilityService';
-import { APP_CONFIG } from '../../config';
+import { db } from '../../firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 
-const plans = [
+const DEFAULT_PLANS = [
   { 
     name: 'Essential', 
     price: 10000, 
@@ -39,13 +40,14 @@ const plans = [
 export default function ChangePlan() {
   const { userData, facilityData } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [plans, setPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const [currentPlan, setCurrentPlan] = useState('');
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
-    fetchCurrentPlan();
+    fetchData();
     
-    // Load Paystack script
     const script = document.createElement('script');
     script.src = 'https://js.paystack.co/v1/inline.js';
     script.async = true;
@@ -56,13 +58,29 @@ export default function ChangePlan() {
     }
   }, []);
 
-  const fetchCurrentPlan = async () => {
+  const fetchData = async () => {
     try {
+      setLoadingPlans(true);
+      const plansSnap = await getDocs(query(collection(db, 'subscription_plans'), orderBy('price', 'asc')));
+      const plansList = plansSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Map back consistent colors/features for the UI
+        color: doc.data().name === 'Enterprise' ? 'indigo' : doc.data().name === 'Professional' ? 'primary' : 'slate',
+        recommended: doc.data().name === 'Professional',
+        features: doc.data().features || (DEFAULT_PLANS.find(p => p.name === doc.data().name)?.features || [])
+      }));
+
+      setPlans(plansList.length > 0 ? plansList : DEFAULT_PLANS);
+      
       if (facilityData?.subscription?.planName) {
         setCurrentPlan(facilityData.subscription.planName);
       }
     } catch (e) {
-      console.error("Fetch plan error:", e);
+      console.error("Fetch plans error:", e);
+      setPlans(DEFAULT_PLANS);
+    } finally {
+      setLoadingPlans(false);
     }
   };
 
@@ -71,9 +89,9 @@ export default function ChangePlan() {
     const handler = window.PaystackPop.setup({
       key: 'pk_test_d9ad39cd6fd776742957c7d8732fb048ba246998', 
       email: userData?.email || 'admin@hurecare.com',
-      amount: plan.price * 100, // Paystack works with kobo/cents
+      amount: plan.price * 100, 
       currency: 'KES',
-      ref: '' + Math.floor((Math.random() * 1000000000) + 1), // Generate random reference
+      ref: '' + Math.floor((Math.random() * 1000000000) + 1), 
       metadata: {
         custom_fields: [
           {
@@ -89,13 +107,12 @@ export default function ChangePlan() {
         ]
       },
       callback: async (response) => {
-        // Successful payment
         try {
           const subscriptionData = {
             planId: plan.name.toLowerCase(),
             planName: plan.name,
-            maxStaff: plan.maxStaff,
-            maxLocations: plan.maxLocations,
+            maxStaff: plan.maxStaff || plan.limits?.staff,
+            maxLocations: plan.maxLocations || plan.limits?.locations,
             startDate: new Date().toISOString(),
             expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             status: 'active',
@@ -141,21 +158,26 @@ export default function ChangePlan() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan, i) => (
+          {loadingPlans ? (
+            <div className="col-span-3 py-20 flex flex-col items-center gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-primary-600" />
+              <p className="text-sm font-medium text-slate-400 uppercase tracking-widest">Fetching Available Plans...</p>
+            </div>
+          ) : plans.map((plan, i) => (
             <motion.div
               key={plan.name}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className={`relative bg-white p-8 rounded-[2.5rem] border ${plan.recommended ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-slate-100 shadow-sm'} overflow-hidden group`}
+              className={`relative bg-white p-8 rounded-[2.5rem] border ${plan.recommended ? 'border-blue-500 shadow-xl shadow-blue-100' : 'border-slate-100 shadow-sm'} overflow-hidden group`}
             >
               {plan.recommended && (
-                <div className="absolute top-0 right-0 bg-primary-600 text-white text-[10px] font-medium px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest">
+                <div className="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-medium px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest">
                   Popular
                 </div>
               )}
               
-              <div className={`h-14 w-14 rounded-2xl ${plan.color === 'primary' ? 'bg-primary-50 text-primary-600' : plan.color === 'indigo' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-600'} flex items-center justify-center mb-8`}>
+              <div className={`h-14 w-14 rounded-2xl ${plan.color === 'primary' ? 'bg-blue-50 text-blue-600' : plan.color === 'indigo' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-600'} flex items-center justify-center mb-8`}>
                 <Zap className="h-8 w-8" />
               </div>
 
@@ -166,9 +188,17 @@ export default function ChangePlan() {
               </div>
 
               <div className="mt-8 space-y-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className={`h-5 w-5 ${plan.recommended ? 'text-blue-500' : 'text-slate-300'}`} />
+                  <span className="text-sm font-medium text-slate-600">{plan.maxLocations === 1 ? 'Single location' : `Up to ${plan.maxLocations} locations`}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className={`h-5 w-5 ${plan.recommended ? 'text-blue-500' : 'text-slate-300'}`} />
+                  <span className="text-sm font-medium text-slate-600">{`Up to ${plan.maxStaff || plan.limits?.staff} staff users`}</span>
+                </div>
                 {plan.features.map(feat => (
                   <div key={feat} className="flex items-center gap-3">
-                    <CheckCircle2 className={`h-5 w-5 ${plan.recommended ? 'text-primary-500' : 'text-slate-300'}`} />
+                    <CheckCircle2 className={`h-5 w-5 ${plan.recommended ? 'text-blue-500' : 'text-slate-300'}`} />
                     <span className="text-sm font-medium text-slate-600">{feat}</span>
                   </div>
                 ))}
@@ -180,7 +210,7 @@ export default function ChangePlan() {
                 className={`w-full mt-10 py-4 rounded-2xl font-medium text-xs uppercase tracking-widest transition-all flex items-center justify-center 
                   ${plan.name === currentPlan 
                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default' 
-                    : 'bg-primary-600 text-white shadow-lg shadow-primary-100 hover:bg-primary-700 active:scale-95 disabled:opacity-50'}`}
+                    : 'bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-95 disabled:opacity-50'}`}
               >
                 {loading && plan.name !== currentPlan ? (
                   <Loader2 className="h-4 w-4 animate-spin mx-auto text-white" />
